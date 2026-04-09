@@ -6825,8 +6825,12 @@ function renderDashboardLists() {
   }
   document.getElementById('dash-income-list').innerHTML = incHtml;
   const dbt = sortedDebts().slice(0,4);
-  document.getElementById('dash-debt-list').innerHTML = dbt.length ?
-    `<table><tbody>${dbt.map(d=>`<tr><td><b>${e(d.name)}</b></td><td style="color:var(--red)">${fmt(d.balance)}</td><td style="color:var(--muted);font-size:11px">${d.rate}%</td></tr>`).join('')}</tbody></table>` :
+  // Include Plaid credit/loan accounts when no manual debts
+  const plaidDbtRows = dbt.length ? [] : filteredAccounts().filter(a=>a.balance<0).slice(0,4)
+    .map(a=>({name:a.name, balance:Math.abs(a.balance), rate:0, isPlaid:true}));
+  const allDbt = dbt.length ? dbt : plaidDbtRows;
+  document.getElementById('dash-debt-list').innerHTML = allDbt.length ?
+    `<table><tbody>${allDbt.map(d=>`<tr><td><b>${e(d.name)}</b></td><td style="color:var(--red)">${fmt(d.balance)}</td><td style="color:var(--muted);font-size:11px">${d.isPlaid?'credit':d.rate+'%'}</td></tr>`).join('')}</tbody></table>` :
     '<div class="empty" style="padding:20px">No debts.</div>';
 }
 
