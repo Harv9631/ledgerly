@@ -30,7 +30,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const plaidRoutes = require('./routes/plaid');
+const plaidRoutes  = require('./routes/plaid');
+const stripeRoutes = require('./routes/stripe');
 const { requireAuth } = require('./auth');
 
 const app = express();
@@ -93,6 +94,17 @@ ${financialContext || 'No financial data available yet.'}`;
   } catch (err) {
     res.status(500).json({ error: err.message || 'AI error' });
   }
+});
+
+// Serve upgrade page with Stripe publishable key + price ID injected
+app.get('/upgrade', (_req, res) => {
+  const fs   = require('fs');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'upgrade.html'), 'utf8');
+  const config = `<script>
+    window.__STRIPE_PUBLISHABLE_KEY__ = ${JSON.stringify(process.env.STRIPE_PUBLISHABLE_KEY || '')};
+    window.__STRIPE_PRICE_ID__        = ${JSON.stringify(process.env.STRIPE_PRICE_ID || '')};
+  </script>`;
+  res.send(html.replace('</head>', config + '</head>'));
 });
 
 // Serve login.html with Supabase config injected so keys stay in env vars
@@ -323,6 +335,10 @@ app.put('/api/user/state', requireAuth, (req, res) => {
   saveUserState(req.user.id, state);
   res.json({ ok: true });
 });
+
+// Stripe routes — webhook is unauth (uses sig verify), rest require auth
+app.use('/api/stripe/webhook', stripeRoutes);
+app.use('/api/stripe', requireAuth, stripeRoutes);
 
 // Plaid proxy routes — protected by auth
 app.use('/api/plaid', requireAuth, plaidRoutes);

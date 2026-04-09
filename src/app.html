@@ -9053,6 +9053,22 @@ function exportAmortizationCsv() {
 })();
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
 
+// ── SUBSCRIPTION CHECK (web only) ──────────────────────────────────────────────
+if (window._webToken) {
+  fetch(window.location.origin + '/api/stripe/status', {
+    headers: { 'Authorization': 'Bearer ' + window._webToken }
+  }).then(r => r.json()).then(data => {
+    if (!data.active) {
+      // Not subscribed — redirect to upgrade page
+      // Allow a grace period via ?subscribed=1 after checkout completes
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('subscribed')) {
+        window.location.href = '/upgrade';
+      }
+    }
+  }).catch(() => {}); // if check fails, allow access (don't block on network error)
+}
+
 // ── WEB STATE SYNC ─────────────────────────────────────────────────────────────
 // When running as web app, load state from server on startup and push changes back.
 // This makes data available on any browser/device after login.
