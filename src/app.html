@@ -6364,8 +6364,10 @@ function renderExpenses() {
     ${rcptCell}
     <td><button class="btn btn-danger" onclick="deleteExpense('${x.id}')">Remove</button></td></tr>`;
   }).join('');
-  document.getElementById('expense-empty').style.display = (show.length || hasTxDebits) ? 'none' : 'block';
-  document.querySelector('#page-expenses .table-wrap').style.display = (show.length || hasTxDebits) ? '' : 'none';
+  const expEmptyEl = document.getElementById('expense-empty');
+  if (expEmptyEl) expEmptyEl.style.display = show.length ? 'none' : 'block';
+  if (expEmptyEl && !show.length && hasTxDebits) expEmptyEl.innerHTML = '<div class="empty" style="padding:24px;text-align:center"><div style="font-size:15px;font-weight:600;margin-bottom:8px">No recurring expenses added yet</div><div style="color:var(--muted);font-size:13px">Your bank transactions show on the <a onclick="showPage(\'transactions\')" style="color:var(--green);cursor:pointer">Transactions page</a>. Add fixed recurring costs here (rent, subscriptions, insurance, etc.).</div></div>';
+  document.querySelector('#page-expenses .table-wrap').style.display = show.length ? '' : 'none';
 }
 
 function renderDebt() {
