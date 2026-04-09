@@ -156,7 +156,23 @@ app.get('/plaid-sdk.js', (_req, res) => {
 
 // AI feature routes — dispatches to domain modules
 // POST /api/ai/:feature  { ...payload }
-const TX_CATEGORIES = ['Groceries','Dining','Transport','Entertainment','Shopping','Healthcare','Utilities','Rent/Housing','Insurance','Travel','Subscriptions','Education','Marketing','Payroll','Software','Income','Transfer','COGS','Personal Care & Beauty','Fitness & Sports','Pets','Childcare & Family','Gifts & Donations','Home Improvement & Maintenance','Investments & Savings','Taxes','Professional Services','Office Supplies','Equipment & Hardware','Contractor & Freelance','Shipping & Fulfillment','Inventory Purchases','Meals & Entertainment (Business)','Bank Fees & Financial Charges','Other'];
+const TX_CATEGORIES = [
+  'Income','Payroll & Wages','Freelance Income','Business Revenue','Interest & Dividends','Rental Income','Refunds',
+  'Groceries','Dining & Restaurants','Fast Food','Coffee & Drinks','Alcohol & Bars',
+  'Gas & Fuel','Auto Payment','Auto Insurance','Parking & Tolls','Rideshare & Taxi','Public Transit','Vehicle Maintenance',
+  'Rent & Mortgage','Home Improvement','Furniture & Appliances','Household Supplies','HOA Fees',
+  'Electric & Gas','Water & Sewer','Internet & Cable','Phone',
+  'Health Insurance','Doctor & Medical','Pharmacy','Dental & Vision','Gym & Fitness','Mental Health',
+  'Clothing & Apparel','Electronics','Personal Care & Beauty','Pets','Gifts & Donations','Books & Hobbies',
+  'Streaming & Subscriptions','Entertainment','Travel & Hotels','Flights','Vacation',
+  'Childcare','Tuition & Student Loans','School Supplies',
+  'Investments & Savings','Retirement','Credit Card Payment','Loan Payment','Life Insurance','Bank Fees',
+  'Federal & State Taxes','Property Taxes','Tax Preparation',
+  'Advertising & Marketing','Software & SaaS','Office Supplies','Professional Services','Legal & Accounting',
+  'Business Insurance','Contractor & Freelance','Equipment & Hardware','Payroll',
+  'Meals & Entertainment (Biz)','Business Travel','COGS','Inventory','Shipping & Fulfillment',
+  'Transfer','Uncategorized','Other'
+];
 
 const aiDomainPath = path.join(__dirname, '..', 'domains', 'ai');
 
