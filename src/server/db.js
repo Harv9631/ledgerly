@@ -29,7 +29,7 @@ function query(sql, params = []) {
   const upper = s.toUpperCase();
 
   // ── SELECT plaid_items ──────────────────────────────────────────────────────
-  if (/SELECT .* FROM plaid_items WHERE user_id/.test(upper)) {
+  if (/SELECT .* FROM plaid_items WHERE user_id/.test(s)) {
     const userId = params[0];
     const data = load();
     const rows = (data.plaid_items || [])
@@ -38,7 +38,7 @@ function query(sql, params = []) {
     return Promise.resolve({ rows, rowCount: rows.length });
   }
 
-  if (/SELECT .* FROM plaid_items WHERE item_id/.test(upper)) {
+  if (/SELECT .* FROM plaid_items WHERE item_id/.test(s)) {
     const itemId = params[0], userId = params[1];
     const data = load();
     const rows = (data.plaid_items || []).filter(r => r.item_id === itemId && r.user_id === userId);
@@ -46,7 +46,7 @@ function query(sql, params = []) {
   }
 
   // ── INSERT plaid_items ──────────────────────────────────────────────────────
-  if (/INSERT INTO plaid_items/.test(upper)) {
+  if (/INSERT INTO plaid_items/.test(s)) {
     const [item_id, user_id, access_token, institution_id, institution_name] = params;
     const data = load();
     data.plaid_items = data.plaid_items || [];
@@ -65,7 +65,7 @@ function query(sql, params = []) {
   }
 
   // ── UPDATE cursor ───────────────────────────────────────────────────────────
-  if (/UPDATE plaid_items SET cursor/.test(upper)) {
+  if (/UPDATE plaid_items SET cursor/.test(s)) {
     const [cursor, item_id] = params;
     const data = load();
     const item = (data.plaid_items || []).find(r => r.item_id === item_id);
@@ -75,7 +75,7 @@ function query(sql, params = []) {
   }
 
   // ── UPDATE status ───────────────────────────────────────────────────────────
-  if (/UPDATE plaid_items SET status/.test(upper)) {
+  if (/UPDATE plaid_items SET status/.test(s)) {
     const status = params[0], item_id = params[1];
     const data = load();
     const item = (data.plaid_items || []).find(r => r.item_id === item_id);
@@ -85,7 +85,7 @@ function query(sql, params = []) {
   }
 
   // ── UPDATE updated_at (webhook) ─────────────────────────────────────────────
-  if (/UPDATE plaid_items SET updated_at/.test(upper)) {
+  if (/UPDATE plaid_items SET updated_at/.test(s)) {
     const item_id = params[0];
     const data = load();
     const item = (data.plaid_items || []).find(r => r.item_id === item_id);
@@ -95,7 +95,7 @@ function query(sql, params = []) {
   }
 
   // ── DELETE plaid_items ──────────────────────────────────────────────────────
-  if (/DELETE FROM plaid_items/.test(upper)) {
+  if (/DELETE FROM plaid_items/.test(s)) {
     const item_id = params[0];
     const data = load();
     const before = (data.plaid_items || []).length;
