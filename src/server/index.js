@@ -112,6 +112,16 @@ app.get('/supabase.js', (_req, res) => {
   res.sendFile(path.join(__dirname, 'node_modules/@supabase/supabase-js/dist/umd/supabase.js'));
 });
 
+// Serve HTML files with no-cache so browsers always get the latest version
+app.use(function(req, res, next) {
+  if (req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 // Serve frontend static files (enables plaid-link.html from HTTP origin)
 app.use(express.static(path.join(__dirname, '..')));
 
