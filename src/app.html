@@ -8911,7 +8911,7 @@ function renderIncomeInsights() {
   let liquidAccounts = filteredAccounts().filter(a => ['checking','savings'].includes(a.type) && a.balance > 0);
   if (!liquidAccounts.length) liquidAccounts = filteredAccounts().filter(a => a.balance > 0);
   const liquidAssets = liquidAccounts.reduce((s, a) => s + a.balance, 0);
-  const bucketTotal = (state.savingsBuckets || []).filter(b => b.mode === state.mode).reduce((s, b) => s + (b.current || 0), 0);
+  const bucketTotal = (state.savingsBuckets || []).filter(b => b.mode === state.mode).reduce((s, b) => s + bucketBalance(b), 0);
   const currentBuffer = liquidAssets + bucketTotal;
 
   const smoothedEl = document.getElementById('ii-smoothed-income');
