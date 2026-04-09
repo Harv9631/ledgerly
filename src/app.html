@@ -6348,26 +6348,52 @@ function renderTransactions() {
   const bulkCatSel = document.getElementById('tx-bulk-cat');
   if (bulkCatSel) bulkCatSel.innerHTML = '<option value="">— choose —</option>' + getEffectiveCategories().map(c=>`<option>${e(c)}</option>`).join('');
 
-  document.getElementById('tx-table-body').innerHTML = filtered.map(t=>{
+  const _cats = getEffectiveCategories();
+  const _rows = [];
+  let _lastDate = null;
+  filtered.forEach(t => {
+    // Insert date group header when date changes — spans all 9 columns
+    if (t.date !== _lastDate) {
+      _lastDate = t.date;
+      const _dayTxs = filtered.filter(x => x.date === t.date);
+      const _dayIn  = _dayTxs.filter(x=>x.type==='credit').reduce((s,x)=>s+x.amount,0);
+      const _dayOut = _dayTxs.filter(x=>x.type==='debit').reduce((s,x)=>s+Math.abs(x.amount),0);
+      let _dayLabel = t.date;
+      try {
+        const _dt = new Date(t.date+'T12:00:00');
+        const _today = new Date(); _today.setHours(0,0,0,0);
+        const _yest  = new Date(_today); _yest.setDate(_today.getDate()-1);
+        const _dDay  = new Date(t.date+'T12:00:00'); _dDay.setHours(0,0,0,0);
+        if (_dDay.getTime()===_today.getTime()) _dayLabel='Today';
+        else if (_dDay.getTime()===_yest.getTime()) _dayLabel='Yesterday';
+        else _dayLabel=_dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      } catch(ex) {}
+      const _daySumParts = [];
+      if (_dayIn>0)  _daySumParts.push('<span style="color:var(--green)">+'+fmt(_dayIn)+'</span>');
+      if (_dayOut>0) _daySumParts.push('<span style="color:var(--red)">&#8722;'+fmt(_dayOut)+'</span>');
+      _rows.push('<tr style="background:var(--surface2)"><td colspan="5" style="padding:5px 12px;font-size:12px;font-weight:700;color:var(--text)">'+e(_dayLabel)+'</td><td colspan="4" style="padding:5px 12px;font-size:12px;text-align:right">'+_daySumParts.join(' &nbsp;')+'</td></tr>');
+    }
     const rcpt = getReceipt(t.id);
     const rcptCell = rcpt
       ? `<td style="white-space:nowrap"><img class="receipt-thumb" src="${rcpt.startsWith('data:application/pdf') ? 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A//www.w3.org/2000/svg%22 width%3D%2234%22 height%3D%2234%22%3E%3Crect width%3D%2234%22 height%3D%2234%22 fill%3D%22%23374151%22 rx%3D%224%22/%3E%3Ctext x%3D%2250%25%22 y%3D%2255%25%22 font-size%3D%2210%22 fill%3D%22%23e8eaf6%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22%3EPDF%3C/text%3E%3C/svg%3E' : rcpt}" onclick="viewReceiptById('${t.id}')" title="View receipt"> <button class="btn btn-danger btn-sm" onclick="deleteTxReceipt('${t.id}',event)" title="Remove receipt">✕</button></td>`
       : `<td><button class="receipt-attach-btn" onclick="openTxReceiptPicker('${t.id}')">📎 Attach</button></td>`;
     const checked = _txSelected.has(t.id) ? 'checked' : '';
-    return `<tr>
+    const _noteHtml = `<div style="margin-top:2px"><input type="text" value="${e(t.notes||'')}" placeholder="Add note…" style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--muted2);font-size:10px;width:100%;max-width:220px;outline:none;padding:0" onchange="saveTxNote('${t.id}',this.value)" onclick="event.stopPropagation()"></div>`;
+    _rows.push(`<tr>
       <td><input type="checkbox" class="tx-row-check" data-id="${t.id}" ${checked} onchange="txToggleSelect('${t.id}')"></td>
       <td style="white-space:nowrap;color:var(--muted)">${e(t.date)}</td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e(t.desc)}">${e((t.desc||'').replace(/\s{2,}/g,' ').replace(/\b\d{6,}\b/g,'').replace(/\*+\S+/g,'').trim().replace(/^[A-Z][A-Z\s\/\-&.,'0-9]+$/,s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))||t.desc||'')}</td>
+      <td style="max-width:260px;overflow:hidden;white-space:nowrap" title="${e(t.desc)}">${e(cleanTxDesc(t.desc))}${_noteHtml}</td>
       <td><span class="badge badge-blue">${e(t.category)}</span></td>
       <td class="${t.type==='credit'?'tx-amount-pos':'tx-amount-neg'}">${t.type==='credit'?'+':'-'}${fmt(Math.abs(t.amount))}</td>
       <td><button class="btn btn-sm ${t.type==='credit'?'badge-green':'badge-red'}" onclick="toggleTxType('${t.id}')" title="Click to flip type" style="border:none;cursor:pointer;padding:2px 8px;border-radius:4px">${t.type==='credit'?'Credit':'Debit'}</button></td>
       <td><select onchange="changeTxCategory('${t.id}',this.value)" style="padding:2px 5px;font-size:11px;width:auto">
-        ${getEffectiveCategories().map(c=>`<option ${c===t.category?'selected':''}>${e(c)}</option>`).join('')}
+        ${_cats.map(c=>`<option ${c===t.category?'selected':''}>${e(c)}</option>`).join('')}
       </select></td>
       ${rcptCell}
       <td><button class="btn btn-danger btn-sm" onclick="deleteTransaction('${t.id}')">✕</button></td>
-    </tr>`;
-  }).join('');
+    </tr>`);
+  });
+  document.getElementById('tx-table-body').innerHTML = _rows.join('');
   _txUpdateBulkBar();
   const catChartArea = document.getElementById('tx-cat-chart-area');
   if (catChartArea) catChartArea.style.display = catF ? 'none' : '';
