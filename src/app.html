@@ -2429,7 +2429,7 @@ const DEFAULT_ALERTS_CONFIG = [
   { id:'goal_milestone', label:'Goal Milestone Notifications', desc:'Celebrate when goals hit 25%, 50%, 75%, or 100%.',              enabled:true,  threshold:0,    unit:'any'     },
   { id:'weekly_digest',  label:'Weekly Summary Digest',        desc:'Show an in-app weekly summary of spend, income, and net worth.',enabled:true,  threshold:0,    unit:'any'     },
 ];
-let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{} };
+let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[] };
 const STORAGE_KEY = 'ledgerly_v3';
 let reportPeriods = { pl:'lastmonth', balance:'lastmonth', cashflow:'lastmonth' };
 let budgetViewYear = new Date().getFullYear();
@@ -2441,10 +2441,14 @@ let expenseFilter = 'all';
 let incomeFilters = { search: '', sortBy: 'default', dateFrom: '', dateTo: '' };
 let debtFilters = { search: '', sortBy: 'default', dateFrom: '', dateTo: '' };
 
-function inferTxType(desc, amount) {
+function inferTxType(desc, amount, category) {
   const d = (desc||'').toUpperCase();
-  // Vendor-specific overrides (always take priority)
-  if (/\bATT\b|AT&T|\bJEA\b|UTILITYPMT|\bAFFIRM\b|BAINBRIDGE|THEBAINBRIDGE|\bTIKTOK\b|NEW.?SMYRNA|SE.?TOYOTA|\bWHOP\b|INTERNET PAYMENT WEB PMTS/.test(d)) return 'debit';
+  const cat = (category||'').toUpperCase();
+  // Category-based overrides for Plaid transactions
+  if (/FOOD|GROCER|RESTAURANT|FAST.?FOOD|GENERAL.?MERCH|TRANSPORT|GAS|FUEL|ENTERTAINMENT|PERSONAL.?CARE|MEDICAL|HEALTH|HOME|EDUCATION|RENT|UTILITIES|INSURANCE|DINING|COFFEE|SHOPPING|CLOTHING|ELECTRONICS|PET|TRAVEL|AIRLINE|HOTEL/.test(cat)) return 'debit';
+  if (/^INCOME$|PAYROLL|WAGES/.test(cat)) return 'credit';
+  // Vendor-specific overrides
+  if (/\bATT\b|AT&T|\bJEA\b|UTILITYPMT|\bAFFIRM\b|BAINBRIDGE|THEBAINBRIDGE|\bTIKTOK\b|NEW.?SMYRNA|SE.?TOYOTA|\bWHOP\b|INTERNET PAYMENT WEB PMTS|PUBLIX|PANDA.?EXPRESS|CHICK.?FIL|MCDONALD|STARBUCKS|CHIPOTLE|WENDYS|SUBWAY|DOMINO|PIZZA|WALMART|TARGET|COSTCO|AMAZON|WHOLE.?FOODS/.test(d)) return 'debit';
   if (/\bDEEL\b/.test(d)) return 'credit';
   if (/\bDEBIT\b|DEBIT CARD|PURCHASE|WITHDRAWAL|WITHDRAW|CHECK PAID|NSF|OVERDRAFT|\bFEE\b|\bCHARGE\b|BILL PAY|ONLINE PMT|ATM WITHDRAWAL/.test(d)) return 'debit';
   if (/\bCREDIT\b|DIRECT DEP|DIRECT DEPOSIT|PAYROLL|REFUND|INTEREST PAID|DIVIDEND|MOBILE DEP|CHECK DEP|WIRE IN|ACH CREDIT|ZELLE IN/.test(d)) return 'credit';
@@ -2511,7 +2515,7 @@ function migrateTransactions() {
         changed = true;
       }
     }
-    const inferredType = inferTxType(tx.desc, tx.amount);
+    const inferredType = inferTxType(tx.desc, tx.amount, tx.category);
     const amount = Math.abs(tx.amount);
     const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
@@ -2675,7 +2679,18 @@ function txInRange(t, start, end) {
 function filteredIncome()  { return state.income.filter(i => i.mode === state.mode); }
 function filteredExpenses(){ return state.expenses.filter(x => x.mode === state.mode); }
 function filteredDebts()   { return state.debts.filter(d => d.mode === state.mode); }
-function filteredTx()      { return state.transactions.filter(t => t.mode === state.mode); }
+function filteredTx() {
+  const hidden = new Set(state.hiddenPlaidAccountIds || []);
+  return state.transactions.filter(t => {
+    if (t.mode !== state.mode) return false;
+    if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
+    // Plaid transactions synced before account tracking was added have no plaidAccountId.
+    // When accounts are hidden, exclude these ambiguous transactions so they don't leak
+    // hidden account data. They will be re-fetched with proper IDs on next sync.
+    if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
+    return true;
+  });
+}
 function filteredAccounts(){ return state.accounts.filter(a => a.mode === state.mode); }
 function filteredBudgets() { return state.budgets.filter(b => b.mode === state.mode); }
 function budgetsForMonth(month, year) { return filteredBudgets().filter(b => b.month === month && b.year === year); }
@@ -2697,9 +2712,13 @@ function incomeForMonth(month, year, actualOnly = false) {
 
 function monthlyIncome()  { return filteredIncome().reduce((s,i) => s + toMonthly(i.amount,i.freq), 0); }
 function monthlyExpenses(){ return filteredExpenses().reduce((s,x) => s + toMonthly(x.amount,x.freq), 0); }
-function totalDebt()      { return filteredDebts().reduce((s,d) => s + d.balance, 0); }
+// Plaid credit/loan accounts are stored with negative balances (they are liabilities).
+// totalAssets counts only positive balances; totalDebt includes both manual debts and
+// negative Plaid account balances so the Total Debt card reflects real credit card balances.
+function plaidAccountDebt() { return filteredAccounts().filter(a => a.balance < 0).reduce((s,a) => s + Math.abs(a.balance), 0); }
+function totalDebt()      { return filteredDebts().reduce((s,d) => s + d.balance, 0) + plaidAccountDebt(); }
 function monthlyPayment() { return filteredDebts().reduce((s,d) => s + d.payment, 0); }
-function totalAssets()    { return filteredAccounts().reduce((s,a) => s + a.balance, 0); }
+function totalAssets()    { return filteredAccounts().filter(a => a.balance > 0).reduce((s,a) => s + a.balance, 0); }
 
 function sortedDebts() {
   const d = [...filteredDebts()];
@@ -2793,6 +2812,41 @@ function txForPeriod(period) {
 
 function txCredits(txs) { return txs.filter(t => t.type==='credit').reduce((s,t) => s+t.amount, 0); }
 function txDebits(txs)  { return txs.filter(t => t.type==='debit').reduce((s,t) => s+Math.abs(t.amount), 0); }
+
+// Returns average monthly income/expenses from the last 3 months of transactions.
+// Used as a fallback when the user hasn't manually entered income or expense records.
+function txAvgMonthlyIncome() {
+  const n = now();
+  let total = 0, months = 0;
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(n.getFullYear(), n.getMonth() - i, 1);
+    const txs = filteredTx().filter(t => txInRange(t, startOfMonth(d), endOfMonth(d)));
+    const credits = txCredits(txs);
+    if (credits > 0) { total += credits; months++; }
+  }
+  return months > 0 ? total / months : 0;
+}
+function txAvgMonthlyExpenses() {
+  const n = now();
+  let total = 0, months = 0;
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(n.getFullYear(), n.getMonth() - i, 1);
+    const txs = filteredTx().filter(t => txInRange(t, startOfMonth(d), endOfMonth(d)));
+    const debits = txDebits(txs);
+    if (debits > 0) { total += debits; months++; }
+  }
+  return months > 0 ? total / months : 0;
+}
+
+// Effective monthly income/expenses: prefer manual entries, fall back to transaction averages.
+function effectiveMonthlyIncome() {
+  const manual = monthlyIncome();
+  return manual > 0 ? manual : txAvgMonthlyIncome();
+}
+function effectiveMonthlyExpenses() {
+  const manual = monthlyExpenses();
+  return manual > 0 ? manual : txAvgMonthlyExpenses();
+}
 
 // Spending by category for a period
 function spendingByCategory(period) {
@@ -3802,11 +3856,14 @@ function renderBalanceSheet() {
   const period = reportPeriods.balance || 'lastmonth';
   const accs = filteredAccounts();
   const debts = filteredDebts();
-  const currentAssets = accs.filter(a=>['checking','savings'].includes(a.type)).reduce((s,a)=>s+a.balance,0);
-  const ltAssets = accs.filter(a=>!['checking','savings'].includes(a.type)).reduce((s,a)=>s+a.balance,0);
+  // Positive-balance accounts = assets; negative-balance Plaid accounts = liabilities
+  const currentAssets = accs.filter(a=>['checking','savings'].includes(a.type) && a.balance > 0).reduce((s,a)=>s+a.balance,0);
+  const ltAssets = accs.filter(a=>!['checking','savings'].includes(a.type) && a.balance > 0).reduce((s,a)=>s+a.balance,0);
   const totalAss = currentAssets + ltAssets;
-  const currentLiab = debts.filter(d=>['Credit Card'].includes(d.type)).reduce((s,d)=>s+d.balance,0);
-  const ltLiab = debts.filter(d=>!['Credit Card'].includes(d.type)).reduce((s,d)=>s+d.balance,0);
+  const plaidCreditLiab = accs.filter(a=>a.balance < 0 && a.type === 'credit').reduce((s,a)=>s+Math.abs(a.balance),0);
+  const plaidLoanLiab   = accs.filter(a=>a.balance < 0 && a.type !== 'credit').reduce((s,a)=>s+Math.abs(a.balance),0);
+  const currentLiab = debts.filter(d=>['Credit Card'].includes(d.type)).reduce((s,d)=>s+d.balance,0) + plaidCreditLiab;
+  const ltLiab = debts.filter(d=>!['Credit Card'].includes(d.type)).reduce((s,d)=>s+d.balance,0) + plaidLoanLiab;
   const totalLiab = currentLiab + ltLiab;
   const equity = totalAss - totalLiab;
 
@@ -3872,8 +3929,6 @@ function renderCashFlow() {
     {label:'Cash Inflows (Income)', val:cashIn, cls:''},
     {label:'Cash Outflows (Expenses)', val:-cashOut, cls:''},
     {label:'Net Cash', val:cashNet, cls:'rpt-subtotal'},
-    {label:'Investments', val:null, cls:'rpt-section'},
-    {label:'Net Investment Cash', val:0, cls:'rpt-subtotal'},
     {label:'Debt Payments', val:null, cls:'rpt-section'},
     {label:'Monthly Debt Payments', val:-mp, cls:'rpt-subtotal'},
     {label:'Net Change in Cash', val:cashNet-mp, cls:'rpt-total'},
@@ -3883,8 +3938,6 @@ function renderCashFlow() {
     {label:'01 Cash Inflows', val:cashIn, cls:''},
     {label:'02 Cash Outflows', val:-cashOut, cls:''},
     {label:'03 Net Cash from Operations', val:cashNet, cls:'rpt-subtotal'},
-    {label:'Investing Activities', val:null, cls:'rpt-section'},
-    {label:'04 Net Cash from Investing', val:0, cls:'rpt-subtotal'},
     {label:'Financing Activities', val:null, cls:'rpt-section'},
     {label:'05 Net Cash from Financing', val:-mp, cls:'rpt-subtotal'},
     {label:'Net Change in Cash', val:cashNet-mp, cls:'rpt-total'},
@@ -3915,9 +3968,15 @@ function setProjHorizon(months, el) {
 }
 
 function renderCashFlowProjection() {
+  // Auto-fill starting balance from liquid accounts when the field is empty
+  const projEl = document.getElementById('proj-starting-balance');
+  if (projEl && projEl.value === '') {
+    const liquid = filteredAccounts().filter(a => ['checking','savings'].includes(a.type)).reduce((s,a) => s + Math.max(0, a.balance), 0);
+    if (liquid > 0) projEl.value = liquid.toFixed(2);
+  }
   const startingBal = parseFloat(document.getElementById('proj-starting-balance')?.value || 0) || 0;
-  const monthlyInc = monthlyIncome();
-  const monthlyExp = monthlyExpenses();
+  const monthlyInc = effectiveMonthlyIncome();
+  const monthlyExp = effectiveMonthlyExpenses();
   const monthlyDebt = monthlyPayment();
   const monthlyNet = monthlyInc - monthlyExp - monthlyDebt;
 
@@ -5249,8 +5308,8 @@ function renderFIREReport() {
   const annualReturn  = parseFloat(document.getElementById('fire-return-rate').value) / 100 || 0.07;
   const swr           = parseFloat(document.getElementById('fire-swr').value) / 100 || 0.04;
   const fiMultiple    = 1 / swr;  // e.g. 25× for 4% SWR
-  const annualExp     = monthlyExpenses() * 12;
-  const annualInc     = monthlyIncome() * 12;
+  const annualExp     = effectiveMonthlyExpenses() * 12;
+  const annualInc     = effectiveMonthlyIncome() * 12;
   const annualSavings = Math.max(0, annualInc - annualExp);
   const fiNumber      = annualExp * fiMultiple;
 
@@ -5896,16 +5955,19 @@ function renderSummaryCards() {
   const n = now();
   const monthTxs = filteredTx().filter(t => txInRange(t, startOfMonth(n), endOfMonth(n)));
   const txMI = txCredits(monthTxs), txME = txDebits(monthTxs);
-  const effMI = txMI > 0 ? txMI : mi;
-  const effME = txME > 0 ? txME : me;
+  // At the start of the month income may not have posted yet. Fall back to the 3-month
+  // rolling average so net doesn't show artificially negative.
+  const avgMI = txAvgMonthlyIncome(), avgME = txAvgMonthlyExpenses();
+  const effMI = txMI > 0 ? txMI : (mi > 0 ? mi : avgMI);
+  const effME = txME > 0 ? txME : (me > 0 ? me : avgME);
   const net = effMI - effME;
   const dti = effMI > 0 ? Math.round((monthlyPayment()/effMI)*100) : 0;
   document.getElementById('net-worth').textContent = fmtShort(nw);
   document.getElementById('net-worth').className = 'card-value '+(nw>=0?'blue':'red');
   document.getElementById('monthly-income').textContent = fmtShort(effMI);
   document.getElementById('monthly-exp').textContent = fmtShort(effME);
-  document.getElementById('mi-sub').textContent = txMI > 0 ? 'this month · transactions' : 'recurring (Income page)';
-  document.getElementById('me-sub').textContent = txME > 0 ? 'this month · transactions' : 'recurring (Expenses page)';
+  document.getElementById('mi-sub').textContent = txMI > 0 ? 'this month · transactions' : (avgMI > 0 ? '3-month avg' : 'recurring (Income page)');
+  document.getElementById('me-sub').textContent = txME > 0 ? 'this month · transactions' : (avgME > 0 ? '3-month avg' : 'recurring (Expenses page)');
   document.getElementById('net-monthly').textContent = fmtShort(net);
   document.getElementById('net-monthly').className = 'card-value '+(net>=0?'green':'red');
   document.getElementById('total-debt').textContent = fmtShort(td);
@@ -6134,10 +6196,29 @@ function renderVendorAnalytics(txs) {
   const limit = limitEl ? parseInt(limitEl.value) || 10 : 10;
   const debits = (txs || filteredTx()).filter(t => t.type === 'debit');
   if (!debits.length) { listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:4px 0">No debit transactions imported yet.</div>'; return; }
-  // Normalize vendor: take first meaningful words (up to 4) from description
+  // Normalize vendor: strip store numbers, state codes, generic terms so brands consolidate
+  function normalizeVendor(desc) {
+    return (desc || '')
+      .replace(/#\w+/g, '')          // store numbers: #1234
+      .replace(/\*\w+/g, '')         // card refs: *1234
+      .replace(/\b\d{4,}\b/g, '')    // long digit strings (zip, ref numbers)
+      .replace(/\b[A-Z]{2}\b(?=\s|$)/g, '') // trailing state codes: FL, TX, NY
+      .replace(/\b(LLC|INC|CORP|CO|LTD|DBA|SQ\*|SP\*)\b/gi, '')
+      // Strip generic words that follow brand names (Toyota Financial → Toyota)
+      .replace(/\b(FINANCIAL|FINANCE|SERVICES|SERVICE|PAYMENT|PAYMENTS|MOTOR|MOTORS|AUTOMOTIVE|AUTO|CREDIT|ONLINE|DIGITAL|BANK|BANKING|INSURANCE|LEASING|LOAN|LOANS)\b/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+      .replace(/^THE(?=[A-Z])/i, '')              // "THEBAINBRIDGE" → "BAINBRIDGE"
+      .replace(/^(THE|A|AN)\s+/i, '')            // "THE BAINBRIDGE" → "BAINBRIDGE"
+      .replace(/^(SE|NE|NW|SW|[NSEW])(?=[A-Z]{3,})/i, '') // "SETOYOTA" → "TOYOTA"
+      .split(/\s+/).slice(0, 2).join(' ') // first 2 meaningful words
+      .toLowerCase()
+      .replace(/\b\w/g, c => c.toUpperCase()) // title case
+      || 'Unknown';
+  }
   const vendorMap = {};
   debits.forEach(t => {
-    const vendor = (t.desc || '').replace(/\s{2,}/g,' ').trim().split(/\s+/).slice(0,4).join(' ') || 'Unknown';
+    const vendor = normalizeVendor(t.desc);
     if (!vendorMap[vendor]) vendorMap[vendor] = { total:0, count:0, cats:{} };
     vendorMap[vendor].total += Math.abs(t.amount);
     vendorMap[vendor].count++;
@@ -6410,25 +6491,28 @@ function renderDashboardLists() {
 function getMonthlySummary(numMonths) {
   numMonths = numMonths || 12;
   const n = now();
-  const mi = monthlyIncome();
   const mp = monthlyPayment();
-  const me = monthlyExpenses();
   const currentNW = totalAssets() - totalDebt();
-  const monthlySavings = mi - me - mp;
   const result = [];
+
+  // Build month entries oldest → newest
   for (let i = numMonths - 1; i >= 0; i--) {
     const m = new Date(n.getFullYear(), n.getMonth() - i, 1);
     const label = m.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
     const start = startOfMonth(m), end = endOfMonth(m);
     const txs = filteredTx().filter(t => txInRange(t, start, end));
-    const txIncome = txCredits(txs);
-    const txExpenses = txDebits(txs);
-    const income = txIncome > 0 ? txIncome : mi;
-    const expenses = txExpenses > 0 ? txExpenses : me;
-    // Estimate net worth at that month relative to current
-    const netWorth = currentNW - monthlySavings * i;
-    result.push({ month: label, income, expenses, debtPayment: mp, netCash: income - expenses - mp, netWorth: Math.max(0, netWorth) });
+    const income = txCredits(txs);
+    const expenses = txDebits(txs);
+    result.push({ month: label, income, expenses, debtPayment: mp, netCash: income - expenses - mp, _i: i });
   }
+
+  // Work backwards from current net worth using actual monthly net cash to estimate past values
+  let runningNW = currentNW;
+  for (let idx = result.length - 1; idx >= 0; idx--) {
+    result[idx].netWorth = runningNW;
+    runningNW -= result[idx].netCash; // subtract this month's net to get prior month's estimate
+  }
+
   return result;
 }
 
@@ -6465,9 +6549,14 @@ function renderDebtCategoryChart() {
   const ctx = document.getElementById('debt-category-chart').getContext('2d');
   destroyChart('debtCat');
   const debts = filteredDebts();
-  if (!debts.length) { ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); return; }
+  // Include Plaid credit/loan accounts as debt entries
+  const plaidDebts = filteredAccounts()
+    .filter(a => a.balance < 0)
+    .map(a => ({ type: a.type === 'credit' ? 'Credit Card' : a.type === 'loan' ? 'Loan' : 'Other', balance: Math.abs(a.balance) }));
+  const allDebts = [...debts, ...plaidDebts];
+  if (!allDebts.length) { ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); return; }
   const bytype = {};
-  debts.forEach(d => { const k = d.type || 'Other'; bytype[k] = (bytype[k] || 0) + d.balance; });
+  allDebts.forEach(d => { const k = d.type || 'Other'; bytype[k] = (bytype[k] || 0) + d.balance; });
   const labels = Object.keys(bytype);
   const values = labels.map(l => bytype[l]);
   charts.debtCat = new Chart(ctx, {
@@ -6478,14 +6567,14 @@ function renderDebtCategoryChart() {
 }
 
 function renderFinancialHealthScore() {
-  const mi = monthlyIncome();
+  const mi = effectiveMonthlyIncome();
   const mp = monthlyPayment();
-  const me = monthlyExpenses();
+  const me = effectiveMonthlyExpenses();
   const el = document.getElementById('dti-savings-area');
-  const hasData = filteredIncome().length > 0 || filteredDebts().length > 0;
+  const hasData = filteredIncome().length > 0 || filteredDebts().length > 0 || filteredTx().length > 0 || filteredAccounts().length > 0;
 
   if (!hasData) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Not enough data — add income or debt entries to see your Financial Health Score.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Not enough data — connect a bank or add income and debt entries to see your Financial Health Score.</div>';
     return;
   }
 
@@ -8017,34 +8106,111 @@ async function loadPlaidConfig() {
 
 async function connectBank() {
   if (!window.electronAPI) { alert('Bank connection requires the Ledgerly desktop app.'); return; }
-  let res;
-  try { res = await window.electronAPI.plaid.createLinkToken(); } catch(ex) { alert('Error: ' + ex.message); return; }
-  if (res && res.error) { alert(res.error); return; }
-  const link_token = (res && res.link_token) || res;
-  window.open('plaid-link.html?token=' + link_token, 'PlaidLink', 'width=500,height=700');
-  function onMessage(event) {
-    if (event.origin !== window.location.origin) return;
-    if (event.data && event.data.type === 'PLAID_SUCCESS') {
-      window.removeEventListener('message', onMessage);
-      handlePlaidSuccess(event.data.public_token, event.data.metadata);
-    } else if (event.data && event.data.type === 'PLAID_EXIT') {
-      window.removeEventListener('message', onMessage);
-    }
+  const btn = document.querySelector('.btn[onclick="connectBank()"]');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Opening browser…'; }
+  let tokenRes;
+  try { tokenRes = await window.electronAPI.plaid.createLinkToken(); } catch(ex) {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+    alert('Error: ' + ex.message); return;
   }
-  window.addEventListener('message', onMessage);
+  if (tokenRes && tokenRes.error) {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+    alert(tokenRes.error); return;
+  }
+  const link_token = (tokenRes && tokenRes.link_token) || tokenRes;
+  if (btn) btn.textContent = 'Complete in browser…';
+  let result;
+  try { result = await window.electronAPI.plaid.openLink(link_token); } catch(ex) {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+    alert('Error: ' + ex.message); return;
+  }
+  if (btn) { btn.disabled = false; btn.textContent = origText; }
+  if (result && result.success) {
+    await handlePlaidSuccess(result.public_token, result.metadata);
+  }
 }
 
 async function handlePlaidSuccess(publicToken, metadata) {
   if (!window.electronAPI) return;
   let res;
-  try { res = await window.electronAPI.plaid.exchangeToken(publicToken); } catch(ex) { alert('Error exchanging token: ' + ex.message); return; }
+  try { res = await window.electronAPI.plaid.exchangeToken(publicToken, metadata); } catch(ex) { alert('Error exchanging token: ' + ex.message); return; }
   if (res && res.error) { alert(res.error); return; }
-  await syncAllPlaidItems();
+  if (res && res.item_id) {
+    await syncPlaidItem(res.item_id);
+  } else {
+    await syncAllPlaidItems();
+  }
+  await renderPlaidLinkedAccounts();
   alert('Bank connected successfully!');
 }
 
-function mapPlaidType(plaidType) {
-  return { checking:'checking', savings:'savings', investment:'investment', credit:'other', loan:'other' }[plaidType] || 'other';
+function plaidTxType(tx) {
+  const primary = ((tx.personal_finance_category && tx.personal_finance_category.primary) || '').toUpperCase();
+  // Categories that are always expenses regardless of sign
+  const alwaysDebit = /FOOD|GROCERIES|GENERAL_MERCHANDISE|TRANSPORTATION|TRAVEL|ENTERTAINMENT|PERSONAL_CARE|MEDICAL|HOME_IMPROVEMENT|EDUCATION|GAS|RENT|UTILITIES|LOAN_PAYMENTS|INSURANCE/;
+  if (alwaysDebit.test(primary)) return 'debit';
+  // Categories that are always income
+  const alwaysCredit = /^INCOME$|PAYROLL|WAGES/;
+  if (alwaysCredit.test(primary)) return 'credit';
+  // Fall back to sign
+  return tx.amount > 0 ? 'debit' : 'credit';
+}
+
+function mapPlaidCategory(tx) {
+  const detail  = (tx.personal_finance_category && tx.personal_finance_category.detailed)  || '';
+  const primary = (tx.personal_finance_category && tx.personal_finance_category.primary)   || '';
+  const legacy  = (tx.category && tx.category[0]) || '';
+  const key = (detail || primary || legacy).toUpperCase();
+
+  if (/GROC|SUPERMARKET|WHOLESALE_CLUB/.test(key))              return 'Groceries';
+  if (/RESTAURANT|FAST_FOOD|FOOD_AND_DRINK/.test(key))          return 'Dining';
+  if (/COFFEE/.test(key))                                        return 'Coffee';
+  if (/GAS_STATION|FUEL/.test(key))                             return 'Gas';
+  if (/AUTO|CAR_WASH|PARKING|TOLL|VEHICLE/.test(key))           return 'Auto';
+  if (/TAXI|RIDE_SHARE|PUBLIC_TRANSIT|TRANSPORT/.test(key))     return 'Transportation';
+  if (/AIRLINE|HOTEL|LODGING|TRAVEL/.test(key))                 return 'Travel';
+  if (/MEDICAL|PHARMACY|DOCTOR|DENTAL|HEALTH/.test(key))        return 'Medical';
+  if (/GYM|FITNESS|SPORT/.test(key))                            return 'Health & Fitness';
+  if (/ENTERTAINMENT|AMUSEMENT|MOVIE|MUSIC|GAMING/.test(key))   return 'Entertainment';
+  if (/STREAMING|SUBSCRIPTION/.test(key))                       return 'Subscriptions';
+  if (/UTILITIES|ELECTRIC|WATER|INTERNET|PHONE|CABLE/.test(key)) return 'Utilities';
+  if (/RENT/.test(key))                                          return 'Rent';
+  if (/MORTGAGE/.test(key))                                      return 'Mortgage';
+  if (/INSURANCE/.test(key))                                     return 'Insurance';
+  if (/EDUCATION|TUITION|STUDENT/.test(key))                    return 'Education';
+  if (/PERSONAL_CARE|SALON|SPA/.test(key))                      return 'Personal Care';
+  if (/PET/.test(key))                                           return 'Pet';
+  if (/CLOTHING|APPAREL/.test(key))                             return 'Clothing';
+  if (/ELECTRONICS/.test(key))                                   return 'Electronics';
+  if (/HOME_IMPROVEMENT|HARDWARE/.test(key))                    return 'Home';
+  if (/GENERAL_MERCHANDISE|DEPARTMENT_STORE|ONLINE_MARKET/.test(key)) return 'Shopping';
+  if (/PAYROLL|INCOME|WAGES/.test(key))                         return 'Income';
+  if (/TRANSFER|PAYMENT|BANK_FEE|ATM/.test(key))               return 'Transfer';
+  if (/LOAN|CREDIT_CARD_PAYMENT/.test(key))                     return 'Debt Payment';
+  if (/CHARITY|DONATION/.test(key))                             return 'Charity';
+  if (/TAX/.test(key))                                           return 'Taxes';
+  if (primary || legacy) return (primary || legacy).toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return 'Other';
+}
+
+// Plaid uses `type` (depository, credit, loan, investment) and `subtype` (checking, savings, etc.)
+function mapPlaidType(account) {
+  const type = (account.type || '').toLowerCase();
+  const sub  = (account.subtype || '').toLowerCase();
+  if (type === 'depository') return sub === 'savings' ? 'savings' : 'checking';
+  if (type === 'credit')     return 'credit';
+  if (type === 'loan')       return 'loan';
+  if (type === 'investment') return 'investment';
+  return 'other';
+}
+
+// Plaid reports credit/loan balances as positive numbers representing what you OWE.
+// We store them as negative so they correctly reduce net worth (assets - liabilities).
+function plaidBalance(account) {
+  const raw  = (account.balances && account.balances.current) || 0;
+  const type = (account.type || '').toLowerCase();
+  return (type === 'credit' || type === 'loan') ? -Math.abs(raw) : raw;
 }
 
 async function syncAllPlaidItems() {
@@ -8057,16 +8223,17 @@ async function syncAllPlaidItems() {
     try { accs = await window.electronAPI.plaid.syncAccounts(item.item_id); } catch(ex) { continue; }
     if (!accs || accs.error) continue;
     for (const account of (accs.accounts || [])) {
+      if ((state.hiddenPlaidAccountIds || []).includes(account.account_id)) continue;
       const existing = state.accounts.find(a => a.plaidAccountId === account.account_id);
       if (!existing) {
         state.accounts.push({
           id: uid(), plaidAccountId: account.account_id, plaidItemId: item.item_id,
           name: account.name, institution: (account.institution && account.institution.name) || 'Bank',
-          type: mapPlaidType(account.type), balance: (account.balances && account.balances.current) || 0,
+          type: mapPlaidType(account), balance: plaidBalance(account),
           mode: state.mode, isPlaid: true
         });
       } else {
-        existing.balance = (account.balances && account.balances.current) || existing.balance;
+        existing.balance = plaidBalance(account);
       }
     }
   }
@@ -8075,55 +8242,81 @@ async function syncAllPlaidItems() {
   await renderPlaidLinkedAccounts();
 }
 
-async function syncPlaidItem(itemId) {
+async function syncPlaidItem(itemId, btn) {
   if (!window.electronAPI) return;
-  let accs;
-  try { accs = await window.electronAPI.plaid.syncAccounts(itemId); } catch(ex) { accs = null; }
-  if (accs && !accs.error) {
-    for (const account of (accs.accounts || [])) {
-      const existing = state.accounts.find(a => a.plaidAccountId === account.account_id);
-      if (!existing) {
-        state.accounts.push({
-          id: uid(), plaidAccountId: account.account_id, plaidItemId: itemId,
-          name: account.name, institution: (account.institution && account.institution.name) || 'Bank',
-          type: mapPlaidType(account.type), balance: (account.balances && account.balances.current) || 0,
-          mode: state.mode, isPlaid: true
-        });
-      } else {
-        existing.balance = (account.balances && account.balances.current) || existing.balance;
+  if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
+  try {
+    let accs;
+    try { accs = await window.electronAPI.plaid.syncAccounts(itemId); } catch(ex) { accs = null; }
+    if (accs && !accs.error) {
+      for (const account of (accs.accounts || [])) {
+        if ((state.hiddenPlaidAccountIds || []).includes(account.account_id)) continue;
+        const existing = state.accounts.find(a => a.plaidAccountId === account.account_id);
+        if (!existing) {
+          state.accounts.push({
+            id: uid(), plaidAccountId: account.account_id, plaidItemId: itemId,
+            name: account.name, institution: (account.institution && account.institution.name) || 'Bank',
+            type: mapPlaidType(account), balance: plaidBalance(account),
+            mode: state.mode, isPlaid: true
+          });
+        } else {
+          existing.balance = plaidBalance(account);
+        }
       }
     }
-  }
-  let txs;
-  try { txs = await window.electronAPI.plaid.syncTransactions(itemId); } catch(ex) { return; }
-  if (!txs || txs.error) return;
-  for (const tx of (txs.added || [])) {
-    if (state.transactions.find(t => t.plaidTxId === tx.transaction_id)) continue;
-    state.transactions.push({
-      id: uid(), date: tx.date, desc: tx.name,
-      amount: Math.abs(tx.amount),
-      type: tx.amount > 0 ? 'debit' : 'credit',
-      category: (tx.personal_finance_category && tx.personal_finance_category.primary) || (tx.category && tx.category[0]) || 'uncategorized',
-      mode: state.mode, plaidTxId: tx.transaction_id
-    });
-  }
-  for (const tx of (txs.modified || [])) {
-    const existing = state.transactions.find(t => t.plaidTxId === tx.transaction_id);
-    if (existing) {
-      existing.date = tx.date;
-      existing.desc = tx.name;
-      existing.amount = Math.abs(tx.amount);
-      existing.type = tx.amount > 0 ? 'debit' : 'credit';
+    // Reset cursor if no transactions are stored locally — ensures a full re-fetch
+    // after the user has cleared their transaction history.
+    const needsReset = filteredTx().length === 0;
+    let txs;
+    try { txs = await window.electronAPI.plaid.syncTransactions(itemId, needsReset); } catch(ex) { txs = null; }
+    if (txs && !txs.error) {
+      for (const tx of (txs.added || [])) {
+        if (state.transactions.find(t => t.plaidTxId === tx.transaction_id)) continue;
+        state.transactions.push({
+          id: uid(), date: tx.date, desc: tx.name,
+          amount: Math.abs(tx.amount),
+          type: plaidTxType(tx),
+          category: mapPlaidCategory(tx),
+          mode: state.mode, plaidTxId: tx.transaction_id, plaidAccountId: tx.account_id
+        });
+      }
+      for (const tx of (txs.modified || [])) {
+        const existing = state.transactions.find(t => t.plaidTxId === tx.transaction_id);
+        if (existing) {
+          existing.date = tx.date;
+          existing.desc = tx.name;
+          existing.amount = Math.abs(tx.amount);
+          existing.type = plaidTxType(tx);
+        }
+      }
+      const removedIds = new Set((txs.removed || []).map(t => t.transaction_id));
+      if (removedIds.size) state.transactions = state.transactions.filter(t => !removedIds.has(t.plaidTxId));
+      saveState();
+      renderAll();
     }
+  } finally {
+    await renderPlaidLinkedAccounts();
   }
-  const removedIds = new Set((txs.removed || []).map(t => t.transaction_id));
-  if (removedIds.size) state.transactions = state.transactions.filter(t => !removedIds.has(t.plaidTxId));
+}
+
+function hidePlaidAccount(accountId) {
+  if (!confirm('Hide this account? Its transactions will no longer appear in the app. The bank connection stays active.')) return;
+  const acc = state.accounts.find(a => a.id === accountId);
+  if (acc && acc.plaidAccountId) {
+    state.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || [];
+    if (!state.hiddenPlaidAccountIds.includes(acc.plaidAccountId)) {
+      state.hiddenPlaidAccountIds.push(acc.plaidAccountId);
+    }
+    state.transactions = state.transactions.filter(t => t.plaidAccountId !== acc.plaidAccountId);
+  }
+  state.accounts = state.accounts.filter(a => a.id !== accountId);
   saveState();
   renderAll();
+  renderPlaidLinkedAccounts();
 }
 
 async function removePlaidItem(itemId) {
-  if (!confirm('Remove this bank connection? Associated accounts will be removed.')) return;
+  if (!confirm('Disconnect this bank entirely? All accounts from this bank will be removed.')) return;
   if (!window.electronAPI) return;
   try { await window.electronAPI.plaid.removeItem(itemId); } catch(ex) {}
   state.accounts = state.accounts.filter(a => a.plaidItemId !== itemId);
@@ -8147,12 +8340,14 @@ async function renderPlaidLinkedAccounts() {
     el.innerHTML = '<div class="empty" style="padding:24px 0;color:var(--muted);font-size:13px">No banks connected. Click Connect Bank to link your account via Plaid.</div>';
     return;
   }
+  // Group accounts by item so Disconnect Bank appears once per bank, not per account
+  const itemIds = [...new Set(plaidAccounts.map(a => a.plaidItemId))];
   el.innerHTML = '<div class="account-cards">' +
     plaidAccounts.map(a =>
       '<div class="account-card">' +
         '<div class="ac-actions">' +
-          '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\')">Sync</button>' +
-          '<button class="btn btn-danger" onclick="removePlaidItem(\'' + e(a.plaidItemId) + '\')">Remove</button>' +
+          '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' +
+          '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +
         '<div class="ac-type">' + e(a.institution || 'Bank') + '</div>' +
         '<div class="ac-name">' + e(a.name) + '</div>' +
@@ -8160,6 +8355,12 @@ async function renderPlaidLinkedAccounts() {
         '<div class="ac-balance ' + (a.balance >= 0 ? 'green' : 'red') + '">' + fmt(a.balance) + '</div>' +
       '</div>'
     ).join('') +
+    '</div>' +
+    '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
+    itemIds.map(itemId => {
+      const inst = (plaidAccounts.find(a => a.plaidItemId === itemId) || {}).institution || 'Bank';
+      return '<button class="btn btn-danger btn-sm" onclick="removePlaidItem(\'' + e(itemId) + '\')">Disconnect ' + e(inst) + '</button>';
+    }).join('') +
     '</div>';
 }
 
@@ -8206,9 +8407,12 @@ function renderIncomeInsights() {
   const pct = smoothed > 0 ? ((variance / smoothed) * 100) : 0;
   const isLowMonth = smoothed > 0 && thisMonthIncome < smoothed * 0.8;
 
-  const avgExpenses = monthlyExpenses();
+  const avgExpenses = effectiveMonthlyExpenses();
   const bufferRec = avgExpenses * 2;
-  const liquidAssets = filteredAccounts().filter(a => ['checking','savings'].includes(a.type)).reduce((s, a) => s + Math.max(0, a.balance), 0);
+  // Prefer checking/savings accounts; fall back to all positive-balance accounts if none typed yet
+  let liquidAccounts = filteredAccounts().filter(a => ['checking','savings'].includes(a.type) && a.balance > 0);
+  if (!liquidAccounts.length) liquidAccounts = filteredAccounts().filter(a => a.balance > 0);
+  const liquidAssets = liquidAccounts.reduce((s, a) => s + a.balance, 0);
   const bucketTotal = (state.savingsBuckets || []).filter(b => b.mode === state.mode).reduce((s, b) => s + (b.current || 0), 0);
   const currentBuffer = liquidAssets + bucketTotal;
 
@@ -8858,7 +9062,12 @@ async function loadCashFlowForecast() {
   el.style.display = '';
   el.innerHTML = `<div class="chart-area"><div class="chart-title">✨ Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Loading forecast…</div></div>`;
   try {
-    const txs = filteredTx();
+    // Forecaster expects signed amounts (negative = expense, positive = income) and merchant_name
+    const txs = filteredTx().map(t => ({
+      ...t,
+      merchant_name: t.desc,
+      amount: t.type === 'credit' ? Math.abs(t.amount) : -Math.abs(t.amount)
+    }));
     const currentBalance = totalAssets() - totalDebt();
     const result = await window.electronAPI.ai.forecastCashFlow({ transactions: txs, currentBalance });
     if (result && result.error) throw new Error(result.error);

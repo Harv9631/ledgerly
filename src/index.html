@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ledgerly — The smartest income and debt tracker for personal and business finances.">
+  <title>Ledgerly — Master Your Finances</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- GSAP -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Custom Cursor -->
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- Navigation -->
+  <nav id="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="18" height="18"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        Ledgerly
+      </div>
+      <div class="nav-links">
+        <a href="#dashboard">Dashboard</a>
+        <a href="#income">Income</a>
+        <a href="#debt">Debt</a>
+        <a href="#reports">Reports</a>
+      </div>
+      <div class="nav-actions">
+        <div class="mode-toggle" id="modeToggle">
+          <button class="mode-btn active" data-mode="personal">Personal</button>
+          <button class="mode-btn" data-mode="business">Business</button>
+        </div>
+        <a href="#" class="nav-link-subtle">Sign in</a>
+        <button class="btn-primary nav-cta">Get Started</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section id="hero">
+    <canvas id="hero-canvas"></canvas>
+    <div class="hero-noise"></div>
+
+    <div class="hero-content">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        Now with AI-powered insights
+      </div>
+
+      <h1 class="hero-h1">
+        <span class="line">Track Every</span>
+        <span class="line grad-text">Dollar.</span>
+        <span class="line">Own Your Future.</span>
+      </h1>
+
+      <p class="hero-sub">
+        The most powerful income and debt tracker for individuals and businesses.
+        Real-time insights, smart payoff strategies, and complete financial clarity.
+      </p>
+
+      <div class="hero-ctas">
+        <button class="btn-primary btn-lg">
+          <span>Start Free Today</span>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </button>
+        <button class="btn-ghost btn-lg">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"/></svg>
+          See Demo
+        </button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-val">$<span class="counter" data-target="12450">0</span></span>
+          <span class="stat-label">Monthly Income</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+          <span class="stat-val"><span class="counter" data-target="78">0</span></span>
+          <span class="stat-label">Health Score</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+          <span class="stat-val">$<span class="counter" data-target="2340">0</span></span>
+          <span class="stat-label">Saved This Month</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero Dashboard Preview -->
+    <div class="hero-dashboard">
+      <div class="dash-card">
+        <div class="dash-card-header">
+          <span class="dash-card-title">Net Worth Overview</span>
+          <span class="dash-badge positive">+4.2%</span>
+        </div>
+        <div class="dash-metric">
+          <span class="dash-metric-val">$47,830</span>
+          <span class="dash-metric-label">Total Net Worth</span>
+        </div>
+        <canvas id="sparkline-canvas" class="sparkline-canvas" height="60"></canvas>
+        <div class="dash-row">
+          <div class="dash-mini">
+            <span class="dash-mini-icon income-col">↑</span>
+            <div>
+              <div class="dash-mini-val">$12,450</div>
+              <div class="dash-mini-label">Income / mo</div>
+            </div>
+          </div>
+          <div class="dash-mini">
+            <span class="dash-mini-icon debt-col">↓</span>
+            <div>
+              <div class="dash-mini-val">$89,200</div>
+              <div class="dash-mini-label">Total Debt</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="health-card">
+        <div class="health-label">Financial Health Score</div>
+        <div class="health-ring-wrap">
+          <svg viewBox="0 0 120 120" class="health-ring">
+            <circle class="ring-track" cx="60" cy="60" r="48"/>
+            <circle class="ring-fill" cx="60" cy="60" r="48"/>
+          </svg>
+          <div class="health-score-inner">
+            <span class="health-num">78</span>
+            <span class="health-grade">Good</span>
+          </div>
+        </div>
+        <div class="health-factors">
+          <div class="health-factor">
+            <span>Income Stability</span>
+            <div class="hf-bar"><div class="hf-fill" style="width:85%"></div></div>
+          </div>
+          <div class="health-factor">
+            <span>Debt Ratio</span>
+            <div class="hf-bar"><div class="hf-fill hf-warn" style="width:60%"></div></div>
+          </div>
+          <div class="health-factor">
+            <span>Savings Rate</span>
+            <div class="hf-bar"><div class="hf-fill" style="width:72%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scroll-hint">
+      <div class="scroll-line"></div>
+      <span>Scroll</span>
+    </div>
+  </section>
+
+  <!-- Trust Strip -->
+  <section id="logos">
+    <div class="logos-inner">
+      <span class="logos-label">Trusted by 50K+ users</span>
+      <div class="logos-track">
+        <div class="logo-item">Fortune 500s</div>
+        <div class="logo-item">Startups</div>
+        <div class="logo-item">Freelancers</div>
+        <div class="logo-item">Families</div>
+        <div class="logo-item">Investors</div>
+        <div class="logo-item">Small Business</div>
+        <div class="logo-item">Fortune 500s</div>
+        <div class="logo-item">Startups</div>
+        <div class="logo-item">Freelancers</div>
+        <div class="logo-item">Families</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dashboard / Features Section -->
+  <section id="dashboard">
+    <div class="container">
+      <div class="section-eyebrow">Features</div>
+      <h2 class="section-title">
+        Everything you need<br>
+        <span class="grad-text">to master your money</span>
+      </h2>
+      <p class="section-sub">Powerful tools for complete visibility and control over your financial life.</p>
+
+      <div class="features-grid">
+
+        <div class="feat-card feat-card--large">
+          <div class="feat-glow"></div>
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>Real-Time Financial Dashboard</h3>
+          <p>See your complete financial picture instantly. Net worth, income streams, debt balances, and savings — all synced live.</p>
+          <div class="feat-bar">
+            <div class="feat-bar-fill" style="width:78%"></div>
+            <span>Health Score: 78</span>
+          </div>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-glow"></div>
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          </div>
+          <h3>Income Tracking</h3>
+          <p>Log salaries, freelance, dividends, and rental income. Categorize every dollar that flows in.</p>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-glow"></div>
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <h3>Debt Manager</h3>
+          <p>Track all debts and interest rates. Choose avalanche or snowball — and watch debt shrink.</p>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-glow"></div>
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          </div>
+          <h3>Visual Reports</h3>
+          <p>Beautiful charts showing income vs. expenses, debt reduction progress, and net worth trends.</p>
+        </div>
+
+        <div class="feat-card">
+          <div class="feat-glow"></div>
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Bill Reminders</h3>
+          <p>Never miss a payment. Smart alerts for every bill, loan, and subscription — on every device.</p>
+        </div>
+
+        <div class="feat-card feat-card--wide">
+          <div class="feat-glow"></div>
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Bank-Level Security</h3>
+          <p>256-bit AES encryption, zero-knowledge architecture, and SOC 2 Type II compliance. You own your data, always.</p>
+          <div class="deploy-pills">
+            <span class="pill">256-bit AES</span>
+            <span class="pill">Zero-Knowledge</span>
+            <span class="pill">SOC 2 Type II</span>
+            <span class="pill">GDPR</span>
+            <span class="pill">2FA</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Income Tracker Section -->
+  <section id="income">
+    <div class="container">
+      <div class="tracker-layout">
+        <div class="tracker-text">
+          <div class="section-eyebrow">Income Tracker</div>
+          <h2 class="section-title section-title--left">
+            Every stream,<br>
+            <span class="grad-text">one dashboard</span>
+          </h2>
+          <p class="section-sub section-sub--left">
+            Track salaries, freelance, dividends, rental — see monthly totals, trends,
+            and year-over-year growth at a glance.
+          </p>
+          <ul class="check-list">
+            <li><svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Categorize by source and type</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Monthly and annual summaries</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Trend sparklines per stream</li>
+          </ul>
+        </div>
+
+        <div class="fin-panel">
+          <div class="panel-header">
+            <span class="panel-title">Income Streams</span>
+            <span class="panel-meta">March 2026</span>
+          </div>
+          <div class="panel-total">
+            <span class="panel-total-val">$12,450</span>
+            <span class="dash-badge positive">+8.3% vs last month</span>
+          </div>
+          <div class="income-list">
+            <div class="income-item">
+              <div class="income-icon" style="background:rgba(99,102,241,.15);color:#818cf8">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/><path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/></svg>
+              </div>
+              <div class="income-info">
+                <span class="income-name">Primary Salary</span>
+                <span class="income-freq">Monthly</span>
+              </div>
+              <span class="income-amount">$7,500</span>
+            </div>
+            <div class="income-item">
+              <div class="income-icon" style="background:rgba(168,85,247,.15);color:#c084fc">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"/></svg>
+              </div>
+              <div class="income-info">
+                <span class="income-name">Freelance Work</span>
+                <span class="income-freq">Variable</span>
+              </div>
+              <span class="income-amount">$2,800</span>
+            </div>
+            <div class="income-item">
+              <div class="income-icon" style="background:rgba(16,185,129,.15);color:#34d399">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>
+              </div>
+              <div class="income-info">
+                <span class="income-name">Dividends</span>
+                <span class="income-freq">Quarterly</span>
+              </div>
+              <span class="income-amount">$950</span>
+            </div>
+            <div class="income-item">
+              <div class="income-icon" style="background:rgba(245,158,11,.15);color:#fbbf24">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg>
+              </div>
+              <div class="income-info">
+                <span class="income-name">Rental Income</span>
+                <span class="income-freq">Monthly</span>
+              </div>
+              <span class="income-amount">$1,200</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Debt Tracker Section -->
+  <section id="debt">
+    <div class="container">
+      <div class="tracker-layout tracker-layout--reverse">
+        <div class="fin-panel">
+          <div class="panel-header">
+            <span class="panel-title">Debt Accounts</span>
+            <span class="panel-meta">$89,200 total</span>
+          </div>
+          <div class="debt-list">
+            <div class="debt-item">
+              <div class="debt-info">
+                <div class="debt-name">Home Mortgage</div>
+                <div class="debt-meta">3.5% APR · Due Mar 15</div>
+              </div>
+              <div class="debt-right">
+                <span class="debt-amount">$245,000</span>
+                <div class="debt-progress">
+                  <div class="debt-bar"><div class="debt-fill" style="width:68%"></div></div>
+                  <span class="debt-pct">68% paid</span>
+                </div>
+              </div>
+            </div>
+            <div class="debt-item">
+              <div class="debt-info">
+                <div class="debt-name">Student Loan</div>
+                <div class="debt-meta">4.2% APR · Due Apr 1</div>
+              </div>
+              <div class="debt-right">
+                <span class="debt-amount">$28,400</span>
+                <div class="debt-progress">
+                  <div class="debt-bar"><div class="debt-fill debt-fill--warn" style="width:43%"></div></div>
+                  <span class="debt-pct">43% paid</span>
+                </div>
+              </div>
+            </div>
+            <div class="debt-item">
+              <div class="debt-info">
+                <div class="debt-name">Visa Card</div>
+                <div class="debt-meta">19.9% APR · Due Mar 28</div>
+              </div>
+              <div class="debt-right">
+                <span class="debt-amount">$4,200</span>
+                <div class="debt-progress">
+                  <div class="debt-bar"><div class="debt-fill debt-fill--danger" style="width:22%"></div></div>
+                  <span class="debt-pct">22% paid</span>
+                </div>
+              </div>
+            </div>
+            <div class="debt-item">
+              <div class="debt-info">
+                <div class="debt-name">Car Loan</div>
+                <div class="debt-meta">5.1% APR · Due Apr 5</div>
+              </div>
+              <div class="debt-right">
+                <span class="debt-amount">$11,600</span>
+                <div class="debt-progress">
+                  <div class="debt-bar"><div class="debt-fill" style="width:55%"></div></div>
+                  <span class="debt-pct">55% paid</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="strategy-row">
+            <span class="strategy-label">Strategy:</span>
+            <span class="pill pill--active">Avalanche</span>
+            <span class="pill">Snowball</span>
+            <span class="strategy-save">Saves $4,230 in interest</span>
+          </div>
+        </div>
+
+        <div class="tracker-text">
+          <div class="section-eyebrow">Debt Tracker</div>
+          <h2 class="section-title section-title--left">
+            Crush your debt<br>
+            <span class="grad-text">with a plan</span>
+          </h2>
+          <p class="section-sub section-sub--left">
+            See all debts in one place — balances, rates, due dates.
+            Choose avalanche or snowball and watch debt disappear.
+          </p>
+          <ul class="check-list">
+            <li><svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Track APRs and interest costs</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Payoff date projections</li>
+            <li><svg viewBox="0 0 20 20" fill="currentColor" width="15"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg> Bill due-date calendar</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reports / Charts Section -->
+  <section id="reports">
+    <div class="container">
+      <div class="section-eyebrow">Reports</div>
+      <h2 class="section-title">
+        Your financial story,<br>
+        <span class="grad-text">visualized</span>
+      </h2>
+      <p class="section-sub">Income vs. debt payments over the last 6 months — at a glance.</p>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">Income vs. Debt Payments</span>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-dot" style="background:#6366f1"></span>Income</span>
+            <span class="legend-item"><span class="legend-dot" style="background:#ec4899"></span>Debt Payment</span>
+          </div>
+        </div>
+        <canvas id="main-chart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section id="cta">
+    <canvas id="cta-canvas"></canvas>
+    <div class="cta-noise"></div>
+    <div class="container">
+      <div class="cta-content">
+        <div class="section-eyebrow">Get started today</div>
+        <h2 class="cta-title">
+          Ready to take control<br>
+          <span class="grad-text">of your finances?</span>
+        </h2>
+        <p class="cta-sub">Join 50,000+ people already building financial freedom with Ledgerly.</p>
+        <div class="cta-form">
+          <input type="email" placeholder="Enter your email" class="email-input">
+          <button class="btn-primary btn-lg">Start Free Trial</button>
+        </div>
+        <p class="cta-note">Free 14-day trial · No credit card required · Cancel anytime</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <div class="nav-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            Ledgerly
+          </div>
+          <p>The income and debt tracker<br>for people who mean business.</p>
+        </div>
+        <div class="footer-cols">
+          <div class="footer-col">
+            <h4>Product</h4>
+            <a href="#">Dashboard</a>
+            <a href="#">Income</a>
+            <a href="#">Debt Tracker</a>
+            <a href="#">Reports</a>
+          </div>
+          <div class="footer-col">
+            <h4>Company</h4>
+            <a href="#">About</a>
+            <a href="#">Blog</a>
+            <a href="#">Careers</a>
+            <a href="#">Press</a>
+          </div>
+          <div class="footer-col">
+            <h4>Legal</h4>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Security</a>
+            <a href="#">Cookies</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Ledgerly Inc. All rights reserved.</span>
+        <div class="footer-socials">
+          <a href="#" aria-label="Twitter"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg></a>
+          <a href="#" aria-label="GitHub"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="main.js" defer></script>
+</body>
+</html>

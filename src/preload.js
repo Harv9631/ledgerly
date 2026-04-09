@@ -7,9 +7,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getConfig: () => ipcRenderer.invoke('plaid:get-config'),
     setConfig: (serverUrl) => ipcRenderer.invoke('plaid:set-config', { serverUrl }),
     createLinkToken: () => ipcRenderer.invoke('plaid:create-link-token'),
-    exchangeToken: (publicToken) => ipcRenderer.invoke('plaid:exchange-token', publicToken),
+    openLink: (token) => ipcRenderer.invoke('plaid:open-link', token),
+    exchangeToken: (publicToken, metadata) => ipcRenderer.invoke('plaid:exchange-token', publicToken, metadata),
     syncAccounts: (itemId) => ipcRenderer.invoke('plaid:sync-accounts', itemId),
-    syncTransactions: (itemId) => ipcRenderer.invoke('plaid:sync-transactions', itemId),
+    syncTransactions: (itemId, reset) => ipcRenderer.invoke('plaid:sync-transactions', itemId, reset),
     getLinkedItems: () => ipcRenderer.invoke('plaid:get-linked-items'),
     removeItem: (itemId) => ipcRenderer.invoke('plaid:remove-item', itemId)
   },

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Connect Bank Account</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f5f5f5; }
+    #overlay {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 20px;
+    }
+    #card {
+      background: #fff; border-radius: 8px; padding: 32px 24px;
+      max-width: 460px; width: 100%; text-align: center;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    #card h2 { margin-bottom: 12px; font-size: 18px; }
+    #msg { color: #555; font-size: 14px; line-height: 1.5; }
+    #error { color: #c00; font-size: 13px; margin-top: 8px; word-break: break-word; }
+    #open-btn {
+      margin-top: 20px; padding: 12px 28px; background: #0a85d1; color: #fff;
+      border: none; border-radius: 6px; font-size: 15px; cursor: pointer;
+      display: none;
+    }
+    #open-btn:hover { background: #0873b8; }
+  </style>
+</head>
+<body>
+<div id="overlay">
+  <div id="card">
+    <h2>Connect Bank Account</h2>
+    <p id="msg">Loading bank connection...</p>
+    <p id="error"></p>
+    <button id="open-btn" onclick="handler && handler.open()">Open Bank Connection</button>
+  </div>
+</div>
+
+<script>
+  function show(msg) { document.getElementById('msg').textContent = msg; }
+  function showError(msg) {
+    show('');
+    document.getElementById('error').textContent = msg;
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('token');
+  var handler = null;
+
+  function initPlaid() {
+    if (typeof Plaid === 'undefined') {
+      showError('Could not load Plaid SDK. Check your internet connection and try again.');
+      return;
+    }
+    if (!token) {
+      showError('No link token. Please close this tab and click Connect Bank again.');
+      return;
+    }
+    handler = Plaid.create({
+      token: token,
+      onSuccess: onPlaidSuccess,
+      onExit: onPlaidExit,
+      onLoad: function() {
+        show('Ready to connect your bank.');
+        document.getElementById('open-btn').style.display = 'none';
+        handler.open();
+      }
+    });
+  }
+
+  function onPlaidSuccess(public_token, metadata) {
+    show('Bank connected! Finishing setup... please wait.');
+    document.getElementById('open-btn').style.display = 'none';
+    try { sessionStorage.removeItem('plaid_link_token'); } catch {}
+
+    fetch('/api/plaid/link-callback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ public_token: public_token, metadata: metadata || {} })
+    })
+    .then(function(r) {
+      if (r.ok) {
+        show('Bank connected successfully! You can close this tab and return to Ledgerly.');
+        try { window.close(); } catch(e) {}
+      } else {
+        showError('Server error (' + r.status + '). Ledgerly may not have received the result.');
+      }
+    })
+    .catch(function(err) {
+      showError('Could not reach Ledgerly server: ' + err.message + '. Try restarting Ledgerly.');
+    });
+  }
+
+  function onPlaidExit(err) {
+    if (err) {
+      showError('Bank connection failed: ' + (err.display_message || err.error_message || 'Unknown error'));
+    } else {
+      show('Cancelled. You can close this tab.');
+    }
+    document.getElementById('open-btn').style.display = 'inline-block';
+  }
+
+  // Load Plaid SDK from local cache (downloaded at startup via electron.net) with CDN fallback.
+  // Correct filename per Plaid docs: link-initialize.js
+  (function() {
+    function tryLoad(src, onLoad, onFail) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = onLoad;
+      s.onerror = onFail;
+      document.head.appendChild(s);
+    }
+
+    tryLoad('/plaid-sdk.js', initPlaid, function() {
+      tryLoad('https://cdn.plaid.com/link/v2/stable/link-initialize.js', initPlaid, function() {
+        showError('Could not load Plaid SDK. Check your internet connection and try again.');
+      });
+    });
+  })();
+</script>
+</body>
+</html>

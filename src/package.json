@@ -1,0 +1,57 @@
+{
+  "name": "ledgerly",
+  "version": "3.0.0",
+  "description": "Ledgerly — The smartest income and debt tracker for personal and business finances.",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64",
+    "dist-portable": "electron-builder --win portable --x64",
+    "test": "node --test ../tests/ai/normalization.test.js ../tests/ai/featureExtractor.test.js ../tests/ai/trendDetection.test.js ../tests/ai/anomalyAlerts.test.js ../tests/ai/debtOptimizer.test.js ../tests/ai/cashFlowForecaster.test.js ../tests/ai/subscriptionDetector.test.js ../tests/ai/taxCategorizer.test.js ../tests/ai/netWorthProjector.test.js ../tests/ai/goalAdvisor.test.js ../tests/ai/budgetAdvisor.test.js ../tests/ai/mileageSuggestor.test.js"
+  },
+  "build": {
+    "appId": "com.ledgerly.app",
+    "productName": "Ledgerly",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "files": [
+      "app.html",
+      "electron-main.js",
+      "preload.js",
+      "plaid-link.html",
+      "!node_modules/.cache"
+    ]
+  },
+  "devDependencies": {
+    "electron": "^34.5.8",
+    "electron-builder": "^25.1.8"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.82.0",
+    "plaid": "^41.4.0"
+  }
+}

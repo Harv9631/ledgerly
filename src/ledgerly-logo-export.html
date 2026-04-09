@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1024px;
+    height: 1024px;
+    overflow: hidden;
+    background: #0d1f16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .logo-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+  }
+  .icon-wrap {
+    width: 400px;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wordmark {
+    font-weight: 800;
+    font-size: 120px;
+    color: #fff;
+    letter-spacing: -0.04em;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="logo-wrap">
+  <div class="icon-wrap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" width="400" height="400">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+  </div>
+  <div class="wordmark">Ledgerly</div>
+</div>
+</body>
+</html>
