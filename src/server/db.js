@@ -1,12 +1,14 @@
 'use strict';
 
 /**
- * Lightweight JSON-file database for Ledgerly desktop.
- * Replaces PostgreSQL — no external server or native modules required.
- * Stores Plaid items (access tokens, cursors) in a JSON file in userData.
+ * Ledgerly database — JSON file with Supabase Storage backup.
  *
- * Exposes query(sql, params) mimicking pg's pool.query() so routes are unchanged.
- * Handles the specific queries used in plaid.js; unrecognised queries are no-ops.
+ * Priority:
+ *   1. Local file (fast, used as write-through cache)
+ *   2. Supabase Storage (survives Railway redeploys)
+ *
+ * On startup: loads from Supabase if local file missing.
+ * On write:   writes locally AND pushes to Supabase (async, non-blocking).
  */
 
 const fs   = require('fs');
@@ -14,24 +16,69 @@ const path = require('path');
 
 const dbDir  = process.env.DB_PATH || __dirname;
 const dbFile = path.join(dbDir, 'ledgerly-data.json');
+const BUCKET = 'ledgerly';
+const OBJECT = 'db.json';
 
-// Ensure the data directory exists (important when using Railway volumes)
-try { require('fs').mkdirSync(dbDir, { recursive: true }); } catch {}
+try { fs.mkdirSync(dbDir, { recursive: true }); } catch {}
+
+// Supabase Storage client (needs service role key to bypass RLS)
+let sbStorage = null;
+const sbUrl = process.env.SUPABASE_URL;
+const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (sbUrl && sbKey) {
+  try {
+    const { createClient } = require('@supabase/supabase-js');
+    sbStorage = createClient(sbUrl, sbKey).storage;
+  } catch {}
+}
+
+// ── Load / Save ──────────────────────────────────────────────────────────────
+
+function loadLocal() {
+  try { return JSON.parse(fs.readFileSync(dbFile, 'utf8')); }
+  catch { return null; }
+}
+
+async function loadFromSupabase() {
+  if (!sbStorage) return null;
+  try {
+    const { data, error } = await sbStorage.from(BUCKET).download(OBJECT);
+    if (error || !data) return null;
+    const text = await data.text();
+    return JSON.parse(text);
+  } catch { return null; }
+}
 
 function load() {
-  try { return JSON.parse(fs.readFileSync(dbFile, 'utf8')); }
-  catch { return { plaid_items: [] }; }
+  return loadLocal() || { plaid_items: [], user_states: {} };
 }
 
 function save(data) {
-  fs.writeFileSync(dbFile, JSON.stringify(data, null, 2));
+  const json = JSON.stringify(data, null, 2);
+  try { fs.writeFileSync(dbFile, json); } catch {}
+  // Push to Supabase Storage asynchronously (fire-and-forget)
+  if (sbStorage) {
+    const buf = Buffer.from(json, 'utf8');
+    sbStorage.from(BUCKET).upload(OBJECT, buf, { contentType: 'application/json', upsert: true })
+      .catch(() => {});
+  }
 }
+
+// On server start: restore from Supabase if local file is missing
+(async function restoreFromSupabase() {
+  if (loadLocal()) return; // local file exists, nothing to restore
+  const remote = await loadFromSupabase();
+  if (remote) {
+    try { fs.writeFileSync(dbFile, JSON.stringify(remote, null, 2)); } catch {}
+    console.log('[DB] Restored data from Supabase Storage');
+  }
+})();
+
+// ── Query interface (mimics pg pool.query) ───────────────────────────────────
 
 function query(sql, params = []) {
   const s = sql.replace(/\s+/g, ' ').trim();
-  const upper = s.toUpperCase();
 
-  // ── SELECT plaid_items ──────────────────────────────────────────────────────
   if (/SELECT .* FROM plaid_items WHERE user_id/.test(s)) {
     const userId = params[0];
     const data = load();
@@ -48,7 +95,6 @@ function query(sql, params = []) {
     return Promise.resolve({ rows, rowCount: rows.length });
   }
 
-  // ── INSERT plaid_items ──────────────────────────────────────────────────────
   if (/INSERT INTO plaid_items/.test(s)) {
     const [item_id, user_id, access_token, institution_id, institution_name] = params;
     const data = load();
@@ -56,9 +102,9 @@ function query(sql, params = []) {
     const existing = data.plaid_items.find(r => r.item_id === item_id);
     const now = new Date().toISOString();
     if (existing) {
-      existing.access_token     = access_token;
-      existing.status           = 'active';
-      existing.updated_at       = now;
+      existing.access_token = access_token;
+      existing.status       = 'active';
+      existing.updated_at   = now;
     } else {
       data.plaid_items.push({ item_id, user_id, access_token, institution_id, institution_name,
         cursor: null, status: 'active', created_at: now, updated_at: now });
@@ -67,7 +113,6 @@ function query(sql, params = []) {
     return Promise.resolve({ rows: [], rowCount: 1 });
   }
 
-  // ── UPDATE cursor ───────────────────────────────────────────────────────────
   if (/UPDATE plaid_items SET cursor/.test(s)) {
     const [cursor, item_id] = params;
     const data = load();
@@ -77,7 +122,6 @@ function query(sql, params = []) {
     return Promise.resolve({ rows: [], rowCount: item ? 1 : 0 });
   }
 
-  // ── UPDATE status ───────────────────────────────────────────────────────────
   if (/UPDATE plaid_items SET status/.test(s)) {
     const status = params[0], item_id = params[1];
     const data = load();
@@ -87,7 +131,6 @@ function query(sql, params = []) {
     return Promise.resolve({ rows: [], rowCount: item ? 1 : 0 });
   }
 
-  // ── UPDATE updated_at (webhook) ─────────────────────────────────────────────
   if (/UPDATE plaid_items SET updated_at/.test(s)) {
     const item_id = params[0];
     const data = load();
@@ -97,7 +140,6 @@ function query(sql, params = []) {
     return Promise.resolve({ rows: [], rowCount: item ? 1 : 0 });
   }
 
-  // ── DELETE plaid_items ──────────────────────────────────────────────────────
   if (/DELETE FROM plaid_items/.test(s)) {
     const item_id = params[0];
     const data = load();
@@ -107,19 +149,13 @@ function query(sql, params = []) {
     return Promise.resolve({ rows: [], rowCount: before - data.plaid_items.length });
   }
 
-  // ── accounts / transactions (best-effort server-side cache — no-op) ─────────
   return Promise.resolve({ rows: [], rowCount: 0 });
 }
 
-// ── User app state (cross-browser persistence) ──────────────────────────────
-// Stores the full Ledgerly localStorage state blob per user so data
-// is available on any browser/device after login.
+// ── User state ───────────────────────────────────────────────────────────────
 
 function getUserState(userId) {
-  try {
-    const data = load();
-    return (data.user_states || {})[userId] || null;
-  } catch { return null; }
+  try { return (load().user_states || {})[userId] || null; } catch { return null; }
 }
 
 function saveUserState(userId, appState) {
