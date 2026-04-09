@@ -20,9 +20,9 @@ function buildPlaidClient() {
   return new PlaidApi(configuration);
 }
 
-// Resolve user_id from request header (simple identity for now)
+// User ID comes from auth middleware (Supabase JWT) or fallback for Electron dev
 function getUserId(req) {
-  return req.headers['x-user-id'] || 'default';
+  return (req.user && req.user.id) || req.headers['x-user-id'] || 'default';
 }
 
 // In-process store for Plaid Link callback (consumed once, expires after 5 min)

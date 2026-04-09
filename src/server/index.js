@@ -6,13 +6,15 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const plaidRoutes = require('./routes/plaid');
+const { requireAuth } = require('./auth');
 
 const app = express();
 const PORT = process.env.PORT || 3210;
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*'
+  origin: process.env.CORS_ORIGIN || '*',
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 }));
 app.use(express.json());
 
@@ -41,8 +43,8 @@ app.get('/plaid-sdk.js', (_req, res) => {
   res.status(503).send('// Plaid SDK not yet cached. Retry or use CDN fallback.');
 });
 
-// Plaid proxy routes
-app.use('/api/plaid', plaidRoutes);
+// Plaid proxy routes — protected by auth
+app.use('/api/plaid', requireAuth, plaidRoutes);
 
 // Error handler
 app.use((err, _req, res, _next) => {
