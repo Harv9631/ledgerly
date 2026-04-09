@@ -3417,7 +3417,23 @@ function parseCsvStep1(text) {
 
 function csvBack() { document.getElementById('csv-step-1').style.display='block'; document.getElementById('csv-step-2').style.display='none'; }
 
-const TX_CATEGORIES = ['Groceries','Dining','Transport','Entertainment','Shopping','Healthcare','Utilities','Rent/Housing','Insurance','Travel','Subscriptions','Education','Marketing','Payroll','Software','Income','Transfer','COGS','Personal Care & Beauty','Fitness & Sports','Pets','Childcare & Family','Gifts & Donations','Home Improvement & Maintenance','Investments & Savings','Taxes','Professional Services','Office Supplies','Equipment & Hardware','Contractor & Freelance','Shipping & Fulfillment','Inventory Purchases','Meals & Entertainment (Business)','Bank Fees & Financial Charges','Other'];
+const TX_CATEGORIES = [
+  'Income','Payroll & Wages','Freelance Income','Business Revenue','Interest & Dividends','Rental Income','Refunds',
+  'Groceries','Dining & Restaurants','Fast Food','Coffee & Drinks','Alcohol & Bars',
+  'Gas & Fuel','Auto Payment','Auto Insurance','Parking & Tolls','Rideshare & Taxi','Public Transit','Vehicle Maintenance',
+  'Rent & Mortgage','Home Improvement','Furniture & Appliances','Household Supplies','HOA Fees',
+  'Electric & Gas','Water & Sewer','Internet & Cable','Phone',
+  'Health Insurance','Doctor & Medical','Pharmacy','Dental & Vision','Gym & Fitness','Mental Health',
+  'Clothing & Apparel','Electronics','Personal Care & Beauty','Pets','Gifts & Donations','Books & Hobbies',
+  'Streaming & Subscriptions','Entertainment','Travel & Hotels','Flights','Vacation',
+  'Childcare','Tuition & Student Loans','School Supplies',
+  'Investments & Savings','Retirement','Credit Card Payment','Loan Payment','Life Insurance','Bank Fees',
+  'Federal & State Taxes','Property Taxes','Tax Preparation',
+  'Advertising & Marketing','Software & SaaS','Office Supplies','Professional Services','Legal & Accounting',
+  'Business Insurance','Contractor & Freelance','Equipment & Hardware','Payroll',
+  'Meals & Entertainment (Biz)','Business Travel','COGS','Inventory','Shipping & Fulfillment',
+  'Transfer','Uncategorized','Other'
+];
 
 function getEffectiveCategories() {
   const custom = state.customCategories || [];
@@ -8453,32 +8469,44 @@ function mapPlaidCategory(tx) {
   const key = (detail || primary || legacy).toUpperCase();
 
   if (/GROC|SUPERMARKET|WHOLESALE_CLUB/.test(key))              return 'Groceries';
-  if (/RESTAURANT|FAST_FOOD|FOOD_AND_DRINK/.test(key))          return 'Dining';
-  if (/COFFEE/.test(key))                                        return 'Coffee';
-  if (/GAS_STATION|FUEL/.test(key))                             return 'Gas';
-  if (/AUTO|CAR_WASH|PARKING|TOLL|VEHICLE/.test(key))           return 'Auto';
-  if (/TAXI|RIDE_SHARE|PUBLIC_TRANSIT|TRANSPORT/.test(key))     return 'Transportation';
-  if (/AIRLINE|HOTEL|LODGING|TRAVEL/.test(key))                 return 'Travel';
-  if (/MEDICAL|PHARMACY|DOCTOR|DENTAL|HEALTH/.test(key))        return 'Medical';
-  if (/GYM|FITNESS|SPORT/.test(key))                            return 'Health & Fitness';
+  if (/FAST_FOOD/.test(key))                                     return 'Fast Food';
+  if (/COFFEE/.test(key))                                        return 'Coffee & Drinks';
+  if (/RESTAURANT|FOOD_AND_DRINK/.test(key))                    return 'Dining & Restaurants';
+  if (/GAS_STATION|FUEL/.test(key))                             return 'Gas & Fuel';
+  if (/PARKING|TOLL/.test(key))                                 return 'Parking & Tolls';
+  if (/TAXI|RIDE_SHARE/.test(key))                              return 'Rideshare & Taxi';
+  if (/PUBLIC_TRANSIT/.test(key))                               return 'Public Transit';
+  if (/AUTO|CAR_WASH|VEHICLE/.test(key))                        return 'Vehicle Maintenance';
+  if (/AIRLINE/.test(key))                                       return 'Flights';
+  if (/HOTEL|LODGING/.test(key))                                return 'Travel & Hotels';
+  if (/TRAVEL/.test(key))                                        return 'Vacation';
+  if (/PHARMACY/.test(key))                                      return 'Pharmacy';
+  if (/DENTAL/.test(key))                                        return 'Dental & Vision';
+  if (/MEDICAL|DOCTOR|HEALTH/.test(key))                        return 'Doctor & Medical';
+  if (/GYM|FITNESS|SPORT/.test(key))                            return 'Gym & Fitness';
   if (/ENTERTAINMENT|AMUSEMENT|MOVIE|MUSIC|GAMING/.test(key))   return 'Entertainment';
-  if (/STREAMING|SUBSCRIPTION/.test(key))                       return 'Subscriptions';
-  if (/UTILITIES|ELECTRIC|WATER|INTERNET|PHONE|CABLE/.test(key)) return 'Utilities';
-  if (/RENT/.test(key))                                          return 'Rent';
-  if (/MORTGAGE/.test(key))                                      return 'Mortgage';
-  if (/INSURANCE/.test(key))                                     return 'Insurance';
-  if (/EDUCATION|TUITION|STUDENT/.test(key))                    return 'Education';
-  if (/PERSONAL_CARE|SALON|SPA/.test(key))                      return 'Personal Care';
-  if (/PET/.test(key))                                           return 'Pet';
-  if (/CLOTHING|APPAREL/.test(key))                             return 'Clothing';
+  if (/STREAMING|SUBSCRIPTION/.test(key))                       return 'Streaming & Subscriptions';
+  if (/ELECTRIC|GAS_UTILITY/.test(key))                         return 'Electric & Gas';
+  if (/WATER/.test(key))                                         return 'Water & Sewer';
+  if (/INTERNET|CABLE/.test(key))                               return 'Internet & Cable';
+  if (/PHONE/.test(key))                                         return 'Phone';
+  if (/RENT/.test(key))                                          return 'Rent & Mortgage';
+  if (/MORTGAGE/.test(key))                                      return 'Rent & Mortgage';
+  if (/HOME_IMPROVEMENT|HARDWARE/.test(key))                    return 'Home Improvement';
+  if (/INSURANCE/.test(key))                                     return 'Health Insurance';
+  if (/EDUCATION|TUITION|STUDENT/.test(key))                    return 'Tuition & Student Loans';
+  if (/PERSONAL_CARE|SALON|SPA/.test(key))                      return 'Personal Care & Beauty';
+  if (/PET/.test(key))                                           return 'Pets';
+  if (/CLOTHING|APPAREL/.test(key))                             return 'Clothing & Apparel';
   if (/ELECTRONICS/.test(key))                                   return 'Electronics';
-  if (/HOME_IMPROVEMENT|HARDWARE/.test(key))                    return 'Home';
   if (/GENERAL_MERCHANDISE|DEPARTMENT_STORE|ONLINE_MARKET/.test(key)) return 'Shopping';
+  if (/CHARITY|DONATION/.test(key))                             return 'Gifts & Donations';
   if (/PAYROLL|INCOME|WAGES/.test(key))                         return 'Income';
-  if (/TRANSFER|PAYMENT|BANK_FEE|ATM/.test(key))               return 'Transfer';
-  if (/LOAN|CREDIT_CARD_PAYMENT/.test(key))                     return 'Debt Payment';
-  if (/CHARITY|DONATION/.test(key))                             return 'Charity';
-  if (/TAX/.test(key))                                           return 'Taxes';
+  if (/CREDIT_CARD_PAYMENT/.test(key))                          return 'Credit Card Payment';
+  if (/LOAN/.test(key))                                          return 'Loan Payment';
+  if (/BANK_FEE|ATM/.test(key))                                 return 'Bank Fees';
+  if (/TRANSFER/.test(key))                                      return 'Transfer';
+  if (/TAX/.test(key))                                           return 'Federal & State Taxes';
   if (primary || legacy) return (primary || legacy).toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   return 'Other';
 }
