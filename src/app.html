@@ -3593,23 +3593,17 @@ function changeTxCategory(id, cat) {
 
   if (!matches.length) { renderTransactions(); return; }
 
-  // Defer modal to after the onchange event fully completes — avoids DOM mutation issues
-  var desc = tx.desc, newCat = cat;
-  setTimeout(function() {
-    renderTransactions();
-    var msg = document.getElementById('tx-cat-apply-all-msg');
-    if (msg) msg.textContent = matches.length + ' other transaction' + (matches.length > 1 ? 's' : '') + ' with the same description (\u201c' + desc + '\u201d) found. Apply \u201c' + newCat + '\u201d to all of them too?';
-    document.getElementById('modal-tx-cat-apply-all').classList.add('open');
-    _txCatApplyAllResolve = function(applyAll) {
-      document.getElementById('modal-tx-cat-apply-all').classList.remove('open');
-      _txCatApplyAllResolve = null;
-      if (applyAll) {
-        matches.forEach(function(t) { t.category = newCat; });
-        saveState();
-      }
-      renderTransactions();
-    };
-  }, 0);
+  // Auto-apply to all matching transactions — also save a rule for future imports
+  matches.forEach(function(t) { t.category = cat; });
+
+  // Save a rule so future synced transactions with the same desc get this category
+  state.txRules = state.txRules || [];
+  var existingRule = state.txRules.find(function(r) { return (r.desc||'').trim().toLowerCase() === txDescNorm; });
+  if (existingRule) { existingRule.category = cat; }
+  else { state.txRules.push({ desc: tx.desc, descNorm: txDescNorm, category: cat, mode: tx.mode }); }
+
+  saveState();
+  renderTransactions();
 }
 
 // Bulk selection state
@@ -8577,7 +8571,7 @@ async function syncPlaidItem(itemId, btn) {
           id: uid(), date: tx.date, desc: tx.name,
           amount: Math.abs(tx.amount),
           type: plaidTxType(tx),
-          category: mapPlaidCategory(tx),
+          category: (function(){ var _dn=(tx.name||'').trim().toLowerCase(); var _r=(state.txRules||[]).find(function(r){return r.descNorm===_dn;}); return _r?_r.category:mapPlaidCategory(tx); })(),
           mode: state.mode, plaidTxId: tx.transaction_id, plaidAccountId: tx.account_id
         });
       }
