@@ -1061,7 +1061,7 @@
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th><input type="checkbox" id="tx-select-all" onchange="txToggleSelectAll(this.checked)" title="Select all"></th><th>Date</th><th>Description</th><th>Category</th><th>Amount</th><th>Type (click to flip)</th><th>Recategorize</th><th>Receipt</th><th></th></tr></thead>
+        <thead><tr><th><input type="checkbox" id="tx-select-all" onchange="txToggleSelectAll(this.checked)" title="Select all"></th><th>Date</th><th>Description &amp; Note</th><th>Category</th><th>Amount</th><th>Type</th><th>Receipt</th><th></th></tr></thead>
         <tbody id="tx-table-body"></tbody>
       </table>
     </div>
@@ -3563,6 +3563,26 @@ function clearTransactions() {
 }
 
 var _txCatApplyAllResolve = null;
+
+// ── TRANSACTION HELPERS ────────────────────────────────────────────────────────
+
+// Clean up raw Plaid descriptions: title-case all-caps names, strip ref numbers
+function cleanTxDesc(raw) {
+  const cleaned = (raw || '').replace(/\s{2,}/g,' ').replace(/\b\d{6,}\b/g,'').replace(/\*+\S+/g,'').trim();
+  // Only title-case if it looks like an all-caps Plaid name
+  if (/^[A-Z][A-Z\s\/\-&.,'0-9]+$/.test(cleaned)) {
+    return cleaned.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+  }
+  return cleaned || raw || '';
+}
+
+// Save a note on a transaction
+function saveTxNote(id, note) {
+  const tx = state.transactions.find(t => t.id === id);
+  if (!tx) return;
+  tx.notes = note.trim();
+  saveState();
+}
 
 function changeTxCategory(id, cat) {
   const tx = state.transactions.find(t => t.id===id);
@@ -6348,26 +6368,59 @@ function renderTransactions() {
   const bulkCatSel = document.getElementById('tx-bulk-cat');
   if (bulkCatSel) bulkCatSel.innerHTML = '<option value="">— choose —</option>' + getEffectiveCategories().map(c=>`<option>${e(c)}</option>`).join('');
 
-  document.getElementById('tx-table-body').innerHTML = filtered.map(t=>{
+  // Build rows with date group headers
+  const cats = getEffectiveCategories();
+  const rows = [];
+  let lastDate = null;
+  filtered.forEach(t => {
+    // Date group header when date changes
+    if (t.date !== lastDate) {
+      lastDate = t.date;
+      const dayTxs = filtered.filter(x => x.date === t.date);
+      const dayIn  = dayTxs.filter(x=>x.type==='credit').reduce((s,x)=>s+x.amount,0);
+      const dayOut = dayTxs.filter(x=>x.type==='debit').reduce((s,x)=>s+Math.abs(x.amount),0);
+      let dayLabel = t.date;
+      try {
+        const dt = new Date(t.date+'T12:00:00');
+        const today = new Date(); today.setHours(0,0,0,0);
+        const yest  = new Date(today); yest.setDate(today.getDate()-1);
+        const dDay  = new Date(t.date+'T12:00:00'); dDay.setHours(0,0,0,0);
+        if (dDay.getTime()===today.getTime()) dayLabel='Today';
+        else if (dDay.getTime()===yest.getTime()) dayLabel='Yesterday';
+        else dayLabel = dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+      } catch(ex) {}
+      const daySum = (dayIn>0?'<span style="color:var(--green)">+'+fmt(dayIn)+'</span> ':'')+
+                     (dayOut>0?'<span style="color:var(--red)">−'+fmt(dayOut)+'</span>':'');
+      rows.push('<tr style="background:var(--surface2);pointer-events:none">'+
+        '<td colspan="3" style="padding:5px 12px;font-size:12px;font-weight:700;color:var(--text)">'+e(dayLabel)+'</td>'+
+        '<td colspan="5" style="padding:5px 12px;font-size:12px;text-align:right">'+daySum+'</td>'+
+        '<td style="padding:5px 8px;font-size:11px;color:var(--muted)">'+dayTxs.length+'</td></tr>');
+    }
     const rcpt = getReceipt(t.id);
     const rcptCell = rcpt
-      ? `<td style="white-space:nowrap"><img class="receipt-thumb" src="${rcpt.startsWith('data:application/pdf') ? 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A//www.w3.org/2000/svg%22 width%3D%2234%22 height%3D%2234%22%3E%3Crect width%3D%2234%22 height%3D%2234%22 fill%3D%22%23374151%22 rx%3D%224%22/%3E%3Ctext x%3D%2250%25%22 y%3D%2255%25%22 font-size%3D%2210%22 fill%3D%22%23e8eaf6%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22%3EPDF%3C/text%3E%3C/svg%3E' : rcpt}" onclick="viewReceiptById('${t.id}')" title="View receipt"> <button class="btn btn-danger btn-sm" onclick="deleteTxReceipt('${t.id}',event)" title="Remove receipt">✕</button></td>`
-      : `<td><button class="receipt-attach-btn" onclick="openTxReceiptPicker('${t.id}')">📎 Attach</button></td>`;
+      ? '<td style="white-space:nowrap"><img class="receipt-thumb" src="'+
+        (rcpt.startsWith('data:application/pdf')?'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A//www.w3.org/2000/svg%22 width%3D%2234%22 height%3D%2234%22%3E%3Crect width%3D%2234%22 height%3D%2234%22 fill%3D%22%23374151%22 rx%3D%224%22/%3E%3Ctext x%3D%2250%25%22 y%3D%2255%25%22 font-size%3D%2210%22 fill%3D%22%23e8eaf6%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22%3EPDF%3C/text%3E%3C/svg%3E':rcpt)+
+        '" onclick="viewReceiptById(\''+t.id+'\')" title="View receipt"> <button class="btn btn-danger btn-sm" onclick="deleteTxReceipt(\''+t.id+'\',event)" title="Remove receipt">✕</button></td>'
+      : '<td><button class="receipt-attach-btn" onclick="openTxReceiptPicker(\''+t.id+'\')">📎</button></td>';
     const checked = _txSelected.has(t.id) ? 'checked' : '';
-    return `<tr>
-      <td><input type="checkbox" class="tx-row-check" data-id="${t.id}" ${checked} onchange="txToggleSelect('${t.id}')"></td>
-      <td style="white-space:nowrap;color:var(--muted)">${e(t.date)}</td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e(t.desc)}">${e((t.desc||'').replace(/\s{2,}/g,' ').replace(/\b\d{6,}\b/g,'').replace(/\*+\S+/g,'').trim().replace(/^[A-Z][A-Z\s\/\-&.,'0-9]+$/,s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))||t.desc||'')}</td>
-      <td><span class="badge badge-blue">${e(t.category)}</span></td>
-      <td class="${t.type==='credit'?'tx-amount-pos':'tx-amount-neg'}">${t.type==='credit'?'+':'-'}${fmt(Math.abs(t.amount))}</td>
-      <td><button class="btn btn-sm ${t.type==='credit'?'badge-green':'badge-red'}" onclick="toggleTxType('${t.id}')" title="Click to flip type" style="border:none;cursor:pointer;padding:2px 8px;border-radius:4px">${t.type==='credit'?'Credit':'Debit'}</button></td>
-      <td><select onchange="changeTxCategory('${t.id}',this.value)" style="padding:2px 5px;font-size:11px;width:auto">
-        ${getEffectiveCategories().map(c=>`<option ${c===t.category?'selected':''}>${e(c)}</option>`).join('')}
-      </select></td>
-      ${rcptCell}
-      <td><button class="btn btn-danger btn-sm" onclick="deleteTransaction('${t.id}')">✕</button></td>
-    </tr>`;
-  }).join('');
+    const displayDesc = cleanTxDesc(t.desc);
+    const noteHtml = '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+
+      '<input type="text" value="'+e(t.notes||'')+'" placeholder="Add note…" '+
+      'style="background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--muted2);font-size:10px;width:100%;outline:none;padding:0" '+
+      'onchange="saveTxNote(\''+t.id+'\',this.value)" onclick="event.stopPropagation()"></div>';
+    rows.push('<tr>'+
+      '<td><input type="checkbox" class="tx-row-check" data-id="'+t.id+'" '+checked+' onchange="txToggleSelect(\''+t.id+'\')"></td>'+
+      '<td style="white-space:nowrap;color:var(--muted);font-size:11px">'+e(t.date)+'</td>'+
+      '<td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+e(t.desc)+'">'+e(displayDesc)+noteHtml+'</td>'+
+      '<td><select onchange="changeTxCategory(\''+t.id+'\',this.value)" style="padding:2px 5px;font-size:11px;width:auto;background:none;border:none;color:var(--text)">'+
+        cats.map(c=>'<option'+(c===t.category?' selected':'')+'>'+e(c)+'</option>').join('')+'</select></td>'+
+      '<td class="'+(t.type==='credit'?'tx-amount-pos':'tx-amount-neg')+'">'+(t.type==='credit'?'+':'−')+fmt(Math.abs(t.amount))+'</td>'+
+      '<td><button class="btn btn-sm '+(t.type==='credit'?'badge-green':'badge-red')+'" onclick="toggleTxType(\''+t.id+'\')" style="border:none;cursor:pointer;padding:2px 8px;border-radius:4px">'+(t.type==='credit'?'Credit':'Debit')+'</button></td>'+
+      rcptCell+
+      '<td><button class="btn btn-danger btn-sm" onclick="deleteTransaction(\''+t.id+'\')">✕</button></td>'+
+    '</tr>');
+  });
+  document.getElementById('tx-table-body').innerHTML = rows.join('');
   _txUpdateBulkBar();
   const catChartArea = document.getElementById('tx-cat-chart-area');
   if (catChartArea) catChartArea.style.display = catF ? 'none' : '';
