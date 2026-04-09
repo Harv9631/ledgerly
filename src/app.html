@@ -9993,8 +9993,8 @@ function aiConfirmMileageSuggestion(idx, date, purpose, category) {
   const miles = parseFloat(milesEl?.value);
   if (!miles || miles <= 0) { alert('Please enter the number of miles.'); return; }
   const rate = 0.67; // 2024 IRS rate
-  if (!state.mileage) state.mileage = [];
-  state.mileage.push({ id: uid(), date, purpose, from: '', to: '', miles, category: 'business', rate, deduction: parseFloat((miles * rate).toFixed(2)), mode: state.mode });
+  if (!state.mileageLogs) state.mileageLogs = [];
+  state.mileageLogs.push({ id: uid(), date, purpose, from: '', to: '', miles, category: 'business', rate, deduction: parseFloat((miles * rate).toFixed(2)), mode: state.mode });
   saveState(); renderMileage();
   if (milesEl) milesEl.closest('div[style]').innerHTML = '<span style="color:var(--green);font-size:13px">✓ Added</span>';
 }
