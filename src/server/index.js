@@ -45,7 +45,13 @@ app.use(express.json());
 
 // Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', env: process.env.PLAID_ENV || 'sandbox' });
+  res.json({
+    status: 'ok',
+    env: process.env.PLAID_ENV || 'sandbox',
+    hasAiKey: !!process.env.ANTHROPIC_API_KEY,
+    hasPlaidId: !!process.env.PLAID_CLIENT_ID,
+    hasSupabase: !!process.env.SUPABASE_URL
+  });
 });
 
 // AI Chat — Server-Sent Events streaming endpoint
