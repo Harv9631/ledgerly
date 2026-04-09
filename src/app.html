@@ -2983,7 +2983,7 @@ function incomeForMonth(month, year, actualOnly = false) {
   const end = new Date(year, month, 0);
   const txs = filteredTx().filter(t => { const d = new Date(t.date); return d >= start && d <= end && t.type === 'credit'; });
   const txInc = txs.reduce((s, t) => s + t.amount, 0);
-  return txInc > 0 || actualOnly ? txInc : monthlyIncome();
+  return txInc > 0 || actualOnly ? txInc : effectiveMonthlyIncome();
 }
 
 function monthlyIncome()  { return filteredIncome().reduce((s,i) => s + toMonthly(i.amount,i.freq), 0); }
@@ -5527,7 +5527,8 @@ function renderBudgetActual() {
   chartEl.style.display = '';
 
   const labels = budgets.map(b => b.category);
-  const actuals = budgets.map(b => txs.filter(t => t.category === b.category).reduce((s,t) => s+Math.abs(parseFloat(t.amount)||0), 0));
+  const spending = spendingForMonth(d.getMonth() + 1, d.getFullYear());
+  const actuals = budgets.map(b => getSpentForCategory(spending, b.category));
   const limits  = budgets.map(b => b.limit);
 
   if (window._baChart) window._baChart.destroy();
@@ -6402,7 +6403,7 @@ function renderTransactions() {
   const monthF = document.getElementById('tx-filter-month').value; // YYYY-MM
 
   let filtered = txs.filter(t => {
-    if (search && !t.desc.toLowerCase().includes(search) && !t.date.includes(search)) return false;
+    if (search && !t.desc.toLowerCase().includes(search) && !t.date.includes(search) && !(t.category||'').toLowerCase().includes(search)) return false;
     if (typeF && t.type !== typeF) return false;
     if (catF && t.category !== catF) return false;
     if (monthF && !t.date.startsWith(monthF)) return false;
@@ -6802,9 +6803,17 @@ function renderDashboardLists() {
   renderDashMileageWidget();
   renderDebtFreeCountdown();
   const inc = filteredIncome().slice(0,4);
-  document.getElementById('dash-income-list').innerHTML = inc.length ?
-    `<table><tbody>${inc.map(i=>`<tr><td><b>${e(i.name)}</b></td><td style="color:var(--green)">${i.freq==='bonus'?fmt(i.amount)+' (bonus)':fmt(toMonthly(i.amount,i.freq))+'/mo'}</td></tr>`).join('')}</tbody></table>` :
-    '<div class="empty" style="padding:20px">No income sources.</div>';
+  let incHtml;
+  if (inc.length) {
+    incHtml = `<table><tbody>${inc.map(i=>`<tr><td><b>${e(i.name)}</b></td><td style="color:var(--green)">${i.freq==='bonus'?fmt(i.amount)+' (bonus)':fmt(toMonthly(i.amount,i.freq))+'/mo'}</td></tr>`).join('')}</tbody></table>`;
+  } else {
+    // Show top credit transactions as income sources
+    const credits = filteredTx().filter(t=>t.type==='credit').sort((a,b)=>b.amount-a.amount).slice(0,4);
+    incHtml = credits.length ?
+      `<table><tbody>${credits.map(c=>`<tr><td><b>${e(cleanTxDesc(c.desc))}</b></td><td style="color:var(--green)">+${fmt(c.amount)}</td></tr>`).join('')}</tbody></table>` :
+      '<div class="empty" style="padding:20px">No income yet.</div>';
+  }
+  document.getElementById('dash-income-list').innerHTML = incHtml;
   const dbt = sortedDebts().slice(0,4);
   document.getElementById('dash-debt-list').innerHTML = dbt.length ?
     `<table><tbody>${dbt.map(d=>`<tr><td><b>${e(d.name)}</b></td><td style="color:var(--red)">${fmt(d.balance)}</td><td style="color:var(--muted);font-size:11px">${d.rate}%</td></tr>`).join('')}</tbody></table>` :
@@ -7886,7 +7895,7 @@ function autoDetectSubscriptions() {
   // Group by payee (desc) and round amount to detect recurring charges
   const groups = {};
   txs.filter(t => t.type === 'debit').forEach(t => {
-    const key = `${t.desc.trim().toLowerCase()}|${Math.round((parseFloat(t.amount)||0)*100)}`;
+    const key = `${(t.desc||t.description||'').trim().toLowerCase()}|${Math.round((parseFloat(t.amount)||0)*100)}`;
     if (!groups[key]) groups[key] = { desc: t.desc, amount: parseFloat(t.amount)||0, dates: [] };
     groups[key].dates.push(t.date);
   });
