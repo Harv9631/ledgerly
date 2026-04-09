@@ -9429,10 +9429,12 @@ async function loadCashFlowForecast() {
   el.style.display = '';
   el.innerHTML = `<div class="chart-area"><div class="chart-title">✨ Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Loading forecast…</div></div>`;
   try {
-    // Forecaster expects signed amounts (negative = expense, positive = income) and merchant_name
+    // Forecaster only needs a few fields — trim to reduce payload size
     const txs = filteredTx().map(t => ({
-      ...t,
+      transaction_id: t.plaidTxId || t.id,
+      date: t.date,
       merchant_name: t.desc,
+      account_id: t.plaidAccountId || '',
       amount: t.type === 'credit' ? Math.abs(t.amount) : -Math.abs(t.amount)
     }));
     const currentBalance = totalAssets() - totalDebt();

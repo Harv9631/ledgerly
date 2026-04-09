@@ -42,7 +42,7 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 }));
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Health check
 app.get('/health', (_req, res) => {
