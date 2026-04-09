@@ -6399,7 +6399,7 @@ function renderDebt() {
       <td style="min-width:90px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">${pct}% paid</div>
         <div class="progress-bg"><div class="progress-fill" style="width:${pct}%;background:${pct>66?'var(--green)':pct>33?'var(--yellow)':'var(--red)'}"></div></div>
       </td>
-      <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openEditDebt('${d.id}')" style="margin-right:4px">Edit</button><button class="btn btn-danger" onclick="deleteDebt('${d.id}')">Remove</button></td>
+      <td style="white-space:nowrap">${d.isPlaid ? '<span style="font-size:11px;color:var(--muted)">Bank account</span>' : '<button class="btn btn-ghost btn-sm" onclick="openEditDebt(\''+d.id+'\')" style="margin-right:4px">Edit</button><button class="btn btn-danger" onclick="deleteDebt(\''+d.id+'\')">Remove</button>'}</td>
     </tr>`;
   }).join('');
   document.getElementById('debt-empty').style.display = (debts.length || plaidAccountDebt() > 0) ? 'none' : 'block';
