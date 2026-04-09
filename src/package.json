@@ -2,6 +2,7 @@
   "name": "ledgerly",
   "version": "3.0.0",
   "description": "Ledgerly — The smartest income and debt tracker for personal and business finances.",
+  "author": "Ledgerly",
   "main": "electron-main.js",
   "scripts": {
     "start": "electron .",
