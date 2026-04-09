@@ -9053,8 +9053,8 @@ const CHAT_RATE_LIMIT = 50;
 function buildFinancialContext() {
   const n = now();
   const mode = state.mode;
-  const mi = monthlyIncome();
-  const me = monthlyExpenses();
+  const mi = effectiveMonthlyIncome();
+  const me = effectiveMonthlyExpenses();
   const debts = filteredDebts();
   const totalDebtAmt = debts.reduce((s, d) => s + (parseFloat(d.balance) || 0), 0);
   const accounts = filteredAccounts();
@@ -9071,13 +9071,16 @@ function buildFinancialContext() {
   const goals = (state.goals || []).filter(g => g.mode === mode);
   const savings = (state.savingsBuckets || []).filter(s => s.mode === mode);
 
+  const txCreditsTotal = txCredits(recentTxs);
+  const txDebitsTotal  = txDebits(recentTxs);
   let ctx = `Financial Mode: ${mode === 'personal' ? 'Personal' : 'Business'}
-Monthly Income: $${mi.toFixed(2)}
-Monthly Expenses: $${me.toFixed(2)}
+Monthly Income: $${mi.toFixed(2)} (3-month avg from transactions)
+Monthly Expenses: $${me.toFixed(2)} (3-month avg from transactions)
 Monthly Cash Flow: $${(mi - me).toFixed(2)}
 Total Assets (tracked accounts): $${totalAssetAmt.toFixed(2)}
 Total Debt: $${totalDebtAmt.toFixed(2)}
-Net Worth: $${(totalAssetAmt - totalDebtAmt).toFixed(2)}`;
+Net Worth: $${(totalAssetAmt - totalDebtAmt).toFixed(2)}
+Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $${txDebitsTotal.toFixed(2)} | Net: $${(txCreditsTotal - txDebitsTotal).toFixed(2)}`;
 
   if (debts.length > 0) {
     ctx += `\n\nDebts (${debts.length}):`;
