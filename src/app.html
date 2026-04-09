@@ -6357,7 +6357,7 @@ function renderTransactions() {
     return `<tr>
       <td><input type="checkbox" class="tx-row-check" data-id="${t.id}" ${checked} onchange="txToggleSelect('${t.id}')"></td>
       <td style="white-space:nowrap;color:var(--muted)">${e(t.date)}</td>
-      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e(t.desc)}">${e(t.desc)}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e(t.desc)}">${e((t.desc||'').replace(/\s{2,}/g,' ').replace(/\b\d{6,}\b/g,'').replace(/\*+\S+/g,'').trim().replace(/^[A-Z][A-Z\s\/\-&.,'0-9]+$/,s=>s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()))||t.desc||'')}</td>
       <td><span class="badge badge-blue">${e(t.category)}</span></td>
       <td class="${t.type==='credit'?'tx-amount-pos':'tx-amount-neg'}">${t.type==='credit'?'+':'-'}${fmt(Math.abs(t.amount))}</td>
       <td><button class="btn btn-sm ${t.type==='credit'?'badge-green':'badge-red'}" onclick="toggleTxType('${t.id}')" title="Click to flip type" style="border:none;cursor:pointer;padding:2px 8px;border-radius:4px">${t.type==='credit'?'Credit':'Debit'}</button></td>
