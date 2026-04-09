@@ -199,7 +199,7 @@ router.post('/sync/:itemId', async (req, res) => {
 
     // Persist cursor
     await db.query(
-      'UPDATE plaid_items SET cursor = $1, updated_at = datetime('now') WHERE item_id = $2',
+      "UPDATE plaid_items SET cursor = $1, updated_at = datetime('now') WHERE item_id = $2",
       [nextCursor, itemId]
     );
 
