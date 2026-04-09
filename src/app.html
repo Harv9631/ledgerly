@@ -6392,13 +6392,15 @@ function renderVendorAnalytics(txs) {
       .replace(/\b\d{4,}\b/g, '')    // long digit strings (zip, ref numbers)
       .replace(/\b[A-Z]{2}\b(?=\s|$)/g, '') // trailing state codes: FL, TX, NY
       .replace(/\b(LLC|INC|CORP|CO|LTD|DBA|SQ\*|SP\*)\b/gi, '')
-      // Strip generic words that follow brand names (Toyota Financial → Toyota)
-      .replace(/\b(FINANCIAL|FINANCE|SERVICES|SERVICE|PAYMENT|PAYMENTS|MOTOR|MOTORS|AUTOMOTIVE|AUTO|CREDIT|ONLINE|DIGITAL|BANK|BANKING|INSURANCE|LEASING|LOAN|LOANS)\b/gi, '')
+      // Strip generic words (including abbreviations like FINAN, SVCS)
+      .replace(/\b(FINANCIAL|FINANCE|FINAN|SERVICES|SERVICE|SVCS|SVC|PAYMENT|PAYMENTS|MOTOR|MOTORS|AUTOMOTIVE|AUTO|CREDIT|ONLINE|DIGITAL|BANK|BANKING|INSURANCE|INS|LEASING|LOAN|LOANS)\b/gi, '')
       .replace(/\s{2,}/g, ' ')
       .trim()
       .replace(/^THE(?=[A-Z])/i, '')              // "THEBAINBRIDGE" → "BAINBRIDGE"
       .replace(/^(THE|A|AN)\s+/i, '')            // "THE BAINBRIDGE" → "BAINBRIDGE"
-      .replace(/^(SE|NE|NW|SW|[NSEW])(?=[A-Z]{3,})/i, '') // "SETOYOTA" → "TOYOTA"
+      // Strip directional prefixes anywhere in the remaining string word by word
+      .replace(/\b(SE|NE|NW|SW)(?=[A-Z]{3,})/gi, '') // "SETOYOTA" → "TOYOTA" anywhere
+      .replace(/^[NSEW](?=[A-Z]{3,})/i, '')      // single-letter directional at start
       .split(/\s+/).slice(0, 2).join(' ') // first 2 meaningful words
       .toLowerCase()
       .replace(/\b\w/g, c => c.toUpperCase()) // title case
