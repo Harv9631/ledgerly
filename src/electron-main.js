@@ -525,7 +525,7 @@ function startBackendServer() {
     serverProcess = spawn(process.execPath, [serverScript], {
       cwd: serverCwd,
       stdio: 'ignore',
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PLAID_SDK_CACHE_DIR: app.getPath('userData') }
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PLAID_SDK_CACHE_DIR: app.getPath('userData'), DB_PATH: app.getPath('userData') }
     });
     serverProcess.on('error', () => {}); // suppress spawn errors silently
   });

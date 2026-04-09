@@ -111,9 +111,9 @@ router.post('/exchange-token', async (req, res) => {
       `INSERT INTO plaid_items (item_id, user_id, access_token, institution_id, institution_name)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (item_id) DO UPDATE
-         SET access_token = EXCLUDED.access_token,
+         SET access_token = excluded.access_token,
              status = 'active',
-             updated_at = NOW()`,
+             updated_at = datetime('now')`,
       [item_id, userId, access_token, institutionId, institutionName]
     );
 
@@ -199,7 +199,7 @@ router.post('/sync/:itemId', async (req, res) => {
 
     // Persist cursor
     await db.query(
-      'UPDATE plaid_items SET cursor = $1, updated_at = NOW() WHERE item_id = $2',
+      'UPDATE plaid_items SET cursor = $1, updated_at = datetime('now') WHERE item_id = $2',
       [nextCursor, itemId]
     );
 
@@ -218,8 +218,8 @@ router.post('/sync/:itemId', async (req, res) => {
              (transaction_id, account_id, amount, date, name, merchant_name, pending, raw_plaid_data)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            ON CONFLICT (transaction_id) DO UPDATE
-             SET amount = EXCLUDED.amount, pending = EXCLUDED.pending,
-                 merchant_name = EXCLUDED.merchant_name, updated_at = NOW()`,
+             SET amount = excluded.amount, pending = excluded.pending,
+                 merchant_name = excluded.merchant_name, updated_at = datetime('now')`,
           [tx.transaction_id, tx.account_id, tx.amount, tx.date,
            tx.name, tx.merchant_name || null, tx.pending, JSON.stringify(tx)]
         );
@@ -227,7 +227,7 @@ router.post('/sync/:itemId', async (req, res) => {
       for (const tx of modified) {
         await db.query(
           `UPDATE transactions SET amount = $1, pending = $2, merchant_name = $3,
-             raw_plaid_data = $4, updated_at = NOW()
+             raw_plaid_data = $4, updated_at = datetime('now')
            WHERE transaction_id = $5`,
           [tx.amount, tx.pending, tx.merchant_name || null, JSON.stringify(tx), tx.transaction_id]
         );
@@ -246,7 +246,7 @@ router.post('/sync/:itemId', async (req, res) => {
     // Mark item as needing re-auth if Plaid says so
     if (err.response?.data?.error_code === 'ITEM_LOGIN_REQUIRED') {
       await db.query(
-        "UPDATE plaid_items SET status = 'item_login_required', updated_at = NOW() WHERE item_id = $1",
+        "UPDATE plaid_items SET status = 'item_login_required', updated_at = datetime('now') WHERE item_id = $1",
         [req.params.itemId]
       ).catch(() => {});
     }
@@ -288,14 +288,14 @@ router.post('/webhook', async (req, res) => {
   if (webhook_code === 'SYNC_UPDATES_AVAILABLE') {
     // Flag item for sync — client polls /api/plaid/items for status
     await db.query(
-      "UPDATE plaid_items SET updated_at = NOW() WHERE item_id = $1",
+      "UPDATE plaid_items SET updated_at = datetime('now') WHERE item_id = $1",
       [item_id]
     ).catch(() => {});
   }
 
   if (webhook_code === 'PENDING_EXPIRATION' || webhook_code === 'ERROR') {
     await db.query(
-      "UPDATE plaid_items SET status = 'item_login_required', updated_at = NOW() WHERE item_id = $1",
+      "UPDATE plaid_items SET status = 'item_login_required', updated_at = datetime('now') WHERE item_id = $1",
       [item_id]
     ).catch(() => {});
   }
