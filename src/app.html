@@ -2700,10 +2700,13 @@ function migrateTransactions() {
       }
     }
     const amount = Math.abs(tx.amount);
-    // Only infer type if the transaction has no valid type or a negative amount.
-    // Don't re-classify transactions that already have a correct type set by Plaid.
-    const needsTypeAmountFix = (!tx.type && !tx.plaidTxId) || tx.amount < 0;
-    const inferredType = needsTypeAmountFix ? inferTxType(tx.desc, tx.amount, tx.category) : tx.type;
+    // Always re-classify Plaid transactions using category/vendor rules — they are reliable.
+    // Category-based rules take precedence over whatever was previously stored.
+    // Only preserve type for manually-entered transactions (no plaidTxId).
+    const inferredType = tx.plaidTxId
+      ? inferTxType(tx.desc, tx.amount, tx.category)
+      : (tx.type || 'debit');
+    const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
     if (needsTypeAmountFix || needsModeFix) {
       changed = true;
