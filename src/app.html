@@ -78,6 +78,13 @@
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
               body: JSON.stringify({ message: payload.message, history: hist, financialContext: payload.financialContext })
             }).then(function(r) {
+              if (!r.ok) {
+                return r.json().then(function(d) {
+                  if (self._cbError) self._cbError(d.error || 'Server error ' + r.status);
+                }).catch(function() {
+                  if (self._cbError) self._cbError('Server error ' + r.status);
+                });
+              }
               var reader = r.body.getReader(), dec = new TextDecoder(), buf = '', full = '';
               function pump() {
                 return reader.read().then(function(d) {
