@@ -3062,7 +3062,7 @@ function incomePageList() {
   return list;
 }
 function debtPageList() {
-  let list = filteredDebts();
+  let list = getEffectiveDebts();
   const {search, sortBy, dateFrom, dateTo} = debtFilters;
   if (search) list = list.filter(d => d.name.toLowerCase().includes(search) || (d.type||'').toLowerCase().includes(search));
   if (dateFrom || dateTo) list = list.filter(d => {
@@ -4170,7 +4170,7 @@ function renderPLCharts() {
 function renderBalanceSheet() {
   const period = reportPeriods.balance || 'lastmonth';
   const accs = filteredAccounts();
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   // Positive-balance accounts = assets; negative-balance Plaid accounts = liabilities
   const currentAssets = accs.filter(a=>['checking','savings'].includes(a.type) && a.balance > 0).reduce((s,a)=>s+a.balance,0);
   const ltAssets = accs.filter(a=>!['checking','savings'].includes(a.type) && a.balance > 0).reduce((s,a)=>s+a.balance,0);
@@ -4805,7 +4805,7 @@ function payoffDateStr(months) {
 function renderStrategyComparison() {
   const el = document.getElementById('strategy-comparison');
   if (!el) return;
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length) { el.innerHTML = '<div class="empty" style="padding:16px">Add debts to see comparison.</div>'; return; }
 
   const avOrder = [...debts].sort((a, b) => b.rate - a.rate);
@@ -4848,7 +4848,7 @@ function onExtraPaymentChange(val) {
 function renderExtraPaymentResult(extra) {
   const el = document.getElementById('extra-pmt-result');
   if (!el) return;
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length) { el.innerHTML = ''; return; }
   extra = parseInt(extra) || 0;
   const ordered = state.strategy === 'avalanche'
@@ -4870,7 +4870,7 @@ function renderExtraPaymentResult(extra) {
 function renderLumpSumResult() {
   const el = document.getElementById('lump-sum-result');
   if (!el) return;
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length) { el.innerHTML = ''; return; }
   const lump = parseFloat(document.getElementById('lump-sum-input').value) || 0;
   if (lump <= 0) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Enter a lump sum amount to see the impact.</div>'; return; }
@@ -4892,7 +4892,7 @@ function renderLumpSumResult() {
 function renderConsolidationResult() {
   const el = document.getElementById('consolidation-result');
   if (!el) return;
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Add debts to model consolidation.</div>'; return; }
   const rate = parseFloat(document.getElementById('consolidation-rate').value) || 0;
   const term = parseInt(document.getElementById('consolidation-term').value) || 60;
@@ -4920,7 +4920,7 @@ function renderConsolidationResult() {
 let customPayoffOrder = null;
 
 function initCustomOrder() {
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length) return;
   const ids = debts.map(d => d.id);
   if (!customPayoffOrder || customPayoffOrder.length !== ids.length || !ids.every(id => customPayoffOrder.includes(id))) {
@@ -4931,7 +4931,7 @@ function initCustomOrder() {
 function renderCustomOrderList() {
   const el = document.getElementById('custom-order-list');
   if (!el) return;
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length) { el.innerHTML = '<div style="color:var(--muted);font-size:13px">Add debts to set a custom payoff order.</div>'; return; }
   initCustomOrder();
   const ordered = customPayoffOrder.map(id => debts.find(d => d.id === id)).filter(Boolean);
@@ -4983,7 +4983,7 @@ function toggleAmortization() {
 
 function populateAmortizationSelect() {
   const sel = document.getElementById('amort-debt-select');
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   const cur = sel.value;
   sel.innerHTML = '<option value="">Select a debt...</option>' +
     debts.map(d => `<option value="${d.id}" ${d.id === cur ? 'selected' : ''}>${e(d.name)} (${fmt(d.balance)})</option>`).join('');
@@ -5029,7 +5029,7 @@ function renderAmortizationTable() {
 function renderAdvancedPlanner() {
   const sec = document.getElementById('debt-planner-section');
   if (!sec) return;
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   if (!debts.length && plaidAccountDebt() === 0) { sec.style.display = 'none'; return; }
   sec.style.display = '';
   renderStrategyComparison();
@@ -6921,7 +6921,7 @@ function renderDebtCategoryChart() {
   const ctx = document.getElementById('debt-category-chart').getContext('2d');
   const debtChartArea = ctx.canvas.closest('.chart-area');
   destroyChart('debtCat');
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   const plaidDebts = filteredAccounts()
     .filter(a => a.balance < 0)
     .map(a => ({ type: a.type === 'credit' ? 'Credit Card' : a.type === 'loan' ? 'Loan' : 'Other Debt', balance: Math.abs(a.balance), name: a.name }));
@@ -9359,7 +9359,7 @@ function buildFinancialContext() {
   const mode = state.mode;
   const mi = effectiveMonthlyIncome();
   const me = effectiveMonthlyExpenses();
-  const debts = filteredDebts();
+  const debts = getEffectiveDebts();
   const totalDebtAmt = debts.reduce((s, d) => s + (parseFloat(d.balance) || 0), 0) + plaidAccountDebt();
   const accounts = filteredAccounts();
   const totalAssetAmt = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
@@ -9788,7 +9788,7 @@ async function loadAiNetWorthForecast() {
     const assets = totalAssets();
     const mi = effectiveMonthlyIncome();
     const me = effectiveMonthlyExpenses();
-    const debts = filteredDebts().map(d => ({ balance: d.balance, apr: d.rate, minPayment: d.payment, name: d.name }));
+    const debts = getEffectiveDebts().map(d => ({ balance: d.balance, apr: d.rate, minPayment: d.payment, name: d.name }));
     const result = await window.electronAPI.ai.projectNetWorth({ assets, debts, monthlyIncome: mi, monthlyExpenses: me, monthlySavingsRate, annualIncomeGrowthPct, horizonMonths: [_aiNwHorizon] });
     if (result && result.error) throw new Error(result.error);
     if (!result || !result.monthly) throw new Error('No projection data');
