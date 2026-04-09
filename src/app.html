@@ -8883,7 +8883,7 @@ function renderIncomeInsights() {
   const smoothed = monthData.length > 0 ? totalIncome / monthData.length : 0;
 
   const now = new Date();
-  const thisMonthIncome = incomeForMonth(now.getMonth() + 1, now.getFullYear());
+  const thisMonthIncome = incomeForMonth(now.getMonth() + 1, now.getFullYear(), true) || effectiveMonthlyIncome();
   const variance = thisMonthIncome - smoothed;
   const pct = smoothed > 0 ? ((variance / smoothed) * 100) : 0;
   const isLowMonth = smoothed > 0 && thisMonthIncome < smoothed * 0.8;
@@ -9002,7 +9002,7 @@ function updateIncomeSmoothingBanner() {
   if (!monthData.length) { banner.style.display = 'none'; return; }
   const smoothed = monthData.reduce((s, m) => s + m.income, 0) / monthData.length;
   const now = new Date();
-  const thisMonthIncome = incomeForMonth(now.getMonth() + 1, now.getFullYear());
+  const thisMonthIncome = incomeForMonth(now.getMonth() + 1, now.getFullYear(), true) || effectiveMonthlyIncome();
   const isLow = smoothed > 0 && thisMonthIncome < smoothed * 0.8;
   if (isLow) {
     banner.style.display = 'flex';
