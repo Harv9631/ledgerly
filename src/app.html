@@ -1009,7 +1009,8 @@
         <option value="">All types</option><option value="credit">Credits (in)</option><option value="debit">Debits (out)</option>
       </select>
       <select id="tx-filter-cat" onchange="renderTransactions()"><option value="">All categories</option></select>
-      <input type="month" id="tx-filter-month" onchange="renderTransactions()" style="min-width:140px">
+      <input type="month" id="tx-filter-month" onchange="renderTransactions()" oninput="renderTransactions()" style="min-width:140px">
+      <button class="btn btn-sm btn-ghost" onclick="document.getElementById('tx-filter-month').value='';renderTransactions()" title="Clear month filter" style="padding:5px 8px">✕</button>
       <select id="tx-sort" onchange="renderTransactions()" style="min-width:130px">
         <option value="date-desc" selected>Date (Newest)</option>
         <option value="date-asc">Date (Oldest)</option>
