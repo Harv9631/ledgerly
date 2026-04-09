@@ -2681,7 +2681,7 @@ function migrateBudgets() {
 function inferCategoryFromDesc(desc) {
   var d = (desc||'').toUpperCase();
   if (/\bDEEL\b|\bGUSTO\b|\bADP\b|\bPAYCHEX\b|\bDIRECT DEP/.test(d)) return 'Payroll & Wages';
-  if (/\bSHELL\b|\bBP \b|\bEXXON|\bCHEVRON|\bSUNOCO|\bMOBIL\b|\bCITGO|\bARCO\b/.test(d)) return 'Gas & Fuel';
+  if (/SHELL|EXXON|CHEVRON|SUNOCO|MOBIL|CITGO|\bARCO\b|\bBP[\/ ]|GAS STATION|QUIKTRIP|WAWA|SPEEDWAY|CIRCLE K/.test(d)) return 'Gas & Fuel';
   if (/DISCOUNT TIRE|FIRESTONE|JIFFY LUBE|AUTOZONE|O.REILLY|NAPA AUTO|ADVANCE AUTO|MIDAS|PEP BOYS|VALVOLINE/.test(d)) return 'Vehicle Maintenance';
   if (/\bTOYOTA\b|\bHONDA\b|\bFORD \b|\bGMC \b|\bCHEVY\b|\bKIA \b|\bHYUNDAI\b/.test(d)) return 'Auto Payment';
   if (/PUBLIX|KROGER|SAFEWAY|WHOLE FOODS|TRADER JOE|ALDI\b|COSTCO|SAM.S CLUB|FOOD LION|SPROUTS|WEGMANS|HEB \b|ALBERTSON/.test(d)) return 'Groceries';
