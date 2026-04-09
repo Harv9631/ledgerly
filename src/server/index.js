@@ -23,6 +23,17 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', env: process.env.PLAID_ENV || 'sandbox' });
 });
 
+// Serve login.html with Supabase config injected so keys stay in env vars
+app.get('/login', (_req, res) => {
+  const fs   = require('fs');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'login.html'), 'utf8');
+  const config = `<script>
+    window.__SUPABASE_URL__      = ${JSON.stringify(process.env.SUPABASE_URL || '')};
+    window.__SUPABASE_ANON_KEY__ = ${JSON.stringify(process.env.SUPABASE_ANON_KEY || '')};
+  </script>`;
+  res.send(html.replace('</head>', config + '</head>'));
+});
+
 // Serve frontend static files (enables plaid-link.html from HTTP origin)
 app.use(express.static(path.join(__dirname, '..')));
 
