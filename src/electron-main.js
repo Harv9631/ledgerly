@@ -513,11 +513,17 @@ function startBackendServer() {
     // Server already running — nothing to do
   });
   check.on('error', () => {
-    // Server not running — spawn it
+    // Server not running — spawn it.
+    // In packaged builds the server lives in extraResources (process.resourcesPath);
+    // in development it sits next to electron-main.js (__dirname).
     const { spawn } = require('child_process');
-    const serverScript = path.join(__dirname, 'server', 'index.js');
+    const serverBase = app.isPackaged
+      ? process.resourcesPath
+      : __dirname;
+    const serverScript = path.join(serverBase, 'server', 'index.js');
+    const serverCwd    = path.join(serverBase, 'server');
     serverProcess = spawn(process.execPath, [serverScript], {
-      cwd: path.join(__dirname, 'server'),
+      cwd: serverCwd,
       stdio: 'ignore',
       env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PLAID_SDK_CACHE_DIR: app.getPath('userData') }
     });

@@ -40,10 +40,24 @@
     },
     "files": [
       "app.html",
+      "style.css",
+      "icon.ico",
       "electron-main.js",
       "preload.js",
       "plaid-link.html",
       "!node_modules/.cache"
+    ],
+    "extraResources": [
+      {
+        "from": "server",
+        "to": "server",
+        "filter": ["**/*", "!.env", "!node_modules/.cache"]
+      },
+      {
+        "from": "domains",
+        "to": "domains",
+        "filter": ["**/*"]
+      }
     ]
   },
   "devDependencies": {
