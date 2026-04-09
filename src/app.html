@@ -54,7 +54,7 @@
         ai: {
           getConfig: function() { return Promise.resolve({}); },
           setConfig: function() { return Promise.resolve({ ok: true }); },
-          getRateLimit: function() { return Promise.resolve({ ok: true }); },
+          getRateLimit: function() { return Promise.resolve({ ok: true, count: 0 }); },
           getHistory: function(id) {
             try { return Promise.resolve(JSON.parse(localStorage.getItem('ai_hist_' + (id||'default')) || '[]')); }
             catch { return Promise.resolve([]); }
@@ -1837,7 +1837,7 @@
         <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="handleBackupFile(event)">
       </div>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+    <div id="ai-settings-desktop" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Assistant (Claude)</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Enter your Anthropic API key to enable the AI financial assistant. Get a key at <strong>console.anthropic.com</strong>.</p>
       <div class="form-group">
@@ -1847,6 +1847,14 @@
       <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
         <button class="btn btn-primary" onclick="saveAiConfig()">Save API Key</button>
         <span id="ai-config-status" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div id="ai-settings-web" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Assistant (Claude)</div>
+      <p style="color:var(--muted);font-size:13px">AI is enabled and configured on the server. No setup required.</p>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+        <span style="color:var(--green);font-size:13px">&#10003; AI Active</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearChatHistory();alert('Chat history cleared.')">Clear Chat History</button>
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
@@ -8477,6 +8485,12 @@ async function syncAllPlaidItems() {
   saveState();
   renderAll();
   await renderPlaidLinkedAccounts();
+  // Auto-sync transactions on first load (e.g. new browser, no local data)
+  if (filteredTx().length === 0 && items.length > 0) {
+    for (const item of items) {
+      await syncPlaidItem(item.item_id);
+    }
+  }
 }
 
 async function syncPlaidItem(itemId, btn) {
@@ -9037,10 +9051,17 @@ function exportAmortizationCsv() {
 
 })();
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
-// Show sign-out section only in browser (web app) mode
-if (!window._isElectron && sessionStorage.getItem('sb_token')) {
+// Show web-specific UI when running in browser (not Electron)
+if (!window.electronAPI || sessionStorage.getItem('sb_token')) {
   const webSection = document.getElementById('web-auth-section');
   if (webSection) webSection.style.display = '';
+}
+if (sessionStorage.getItem('sb_token')) {
+  // Running as web app — swap AI settings to web version
+  const d = document.getElementById('ai-settings-desktop');
+  const w = document.getElementById('ai-settings-web');
+  if (d) d.style.display = 'none';
+  if (w) w.style.display = '';
 }
 
 // ── AI CHAT ───────────────────────────────────────────────────────────────────
