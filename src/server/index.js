@@ -2,6 +2,29 @@
 
 require('dotenv').config();
 
+// When spawned by Electron, Plaid credentials arrive as env vars.
+// Persist them to .env so standalone web server runs also have them.
+(function persistCredentials() {
+  const fs = require('fs'), path = require('path');
+  const envFile = path.join(__dirname, '.env');
+  const id  = process.env.PLAID_CLIENT_ID;
+  const sec = process.env.PLAID_SECRET;
+  const env = process.env.PLAID_ENV;
+  if (!id || !sec) return; // nothing to persist
+  try {
+    let content = '';
+    try { content = fs.readFileSync(envFile, 'utf8'); } catch {}
+    const set = (text, key, val) => {
+      const re = new RegExp('^' + key + '=.*$', 'm');
+      return re.test(text) ? text.replace(re, key + '=' + val) : text + '\n' + key + '=' + val;
+    };
+    content = set(content, 'PLAID_CLIENT_ID', id);
+    content = set(content, 'PLAID_SECRET', sec);
+    if (env) content = set(content, 'PLAID_ENV', env);
+    fs.writeFileSync(envFile, content.trimStart());
+  } catch {}
+})();
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
