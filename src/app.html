@@ -53,13 +53,61 @@
           getConfig: function() { return Promise.resolve({}); },
           setConfig: function() { return Promise.resolve({ ok: true }); },
           getRateLimit: function() { return Promise.resolve({ ok: true }); },
-          getHistory: function() { return Promise.resolve([]); },
-          clearHistory: function() { return Promise.resolve({ ok: true }); },
+          getHistory: function(id) {
+            try { return Promise.resolve(JSON.parse(localStorage.getItem('ai_hist_' + (id||'default')) || '[]')); }
+            catch { return Promise.resolve([]); }
+          },
+          clearHistory: function(id) {
+            localStorage.removeItem('ai_hist_' + (id||'default'));
+            return Promise.resolve({ ok: true });
+          },
           getAlerts: function() { return Promise.resolve([]); },
           getFeatures: function() { return Promise.resolve(null); },
           deleteAllData: function() { return Promise.resolve({ ok: true }); },
-          chat: function() {}, onChunk: function() {}, onDone: function() {},
-          onError: function() {}, removeListeners: function() {},
+          // SSE streaming chat
+          _cbChunk: null, _cbDone: null, _cbError: null,
+          chat: function(payload) {
+            var self = window.electronAPI.ai;
+            var histKey = 'ai_hist_' + (payload.conversationId || 'default');
+            var hist = [];
+            try { hist = JSON.parse(localStorage.getItem(histKey) || '[]'); } catch {}
+            fetch(origin + '/api/ai/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+              body: JSON.stringify({ message: payload.message, history: hist, financialContext: payload.financialContext })
+            }).then(function(r) {
+              var reader = r.body.getReader(), dec = new TextDecoder(), buf = '', full = '';
+              function pump() {
+                return reader.read().then(function(d) {
+                  if (d.done) {
+                    hist.push({ role: 'user', content: payload.message });
+                    hist.push({ role: 'assistant', content: full });
+                    if (hist.length > 40) hist = hist.slice(-40);
+                    localStorage.setItem(histKey, JSON.stringify(hist));
+                    return;
+                  }
+                  buf += dec.decode(d.value, { stream: true });
+                  var lines = buf.split('\n');
+                  buf = lines.pop();
+                  lines.forEach(function(l) {
+                    if (!l.startsWith('data: ')) return;
+                    try {
+                      var ev = JSON.parse(l.slice(6));
+                      if (ev.type === 'chunk' && self._cbChunk) { full += ev.text; self._cbChunk(ev.text); }
+                      else if (ev.type === 'done' && self._cbDone) self._cbDone(ev);
+                      else if (ev.type === 'error' && self._cbError) self._cbError(ev.error);
+                    } catch {}
+                  });
+                  return pump();
+                });
+              }
+              return pump();
+            }).catch(function(e) { if (self._cbError) self._cbError(e.message); });
+          },
+          onChunk: function(cb) { window.electronAPI.ai._cbChunk = cb; },
+          onDone: function(cb) { window.electronAPI.ai._cbDone = cb; },
+          onError: function(cb) { window.electronAPI.ai._cbError = cb; },
+          removeListeners: function() { var a = window.electronAPI.ai; a._cbChunk = null; a._cbDone = null; a._cbError = null; },
           categorizeTransactions: function() { return Promise.resolve(null); },
           forecastCashFlow: function() { return Promise.resolve(null); },
           detectSubscriptionsAI: function() { return Promise.resolve(null); },
