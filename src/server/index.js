@@ -134,6 +134,171 @@ app.get('/plaid-sdk.js', (_req, res) => {
   res.status(503).send('// Plaid SDK not yet cached. Retry or use CDN fallback.');
 });
 
+// AI feature routes — dispatches to domain modules
+// POST /api/ai/:feature  { ...payload }
+const TX_CATEGORIES = ['Groceries','Dining','Transport','Entertainment','Shopping','Healthcare','Utilities','Rent/Housing','Insurance','Travel','Subscriptions','Education','Marketing','Payroll','Software','Income','Transfer','COGS','Personal Care & Beauty','Fitness & Sports','Pets','Childcare & Family','Gifts & Donations','Home Improvement & Maintenance','Investments & Savings','Taxes','Professional Services','Office Supplies','Equipment & Hardware','Contractor & Freelance','Shipping & Fulfillment','Inventory Purchases','Meals & Entertainment (Business)','Bank Fees & Financial Charges','Other'];
+
+const aiDomainPath = path.join(__dirname, '..', 'domains', 'ai');
+
+app.post('/api/ai/:feature', requireAuth, async (req, res) => {
+  const feature = req.params.feature;
+  const payload = req.body || {};
+
+  try {
+    switch (feature) {
+
+      case 'categorize-transactions': {
+        const { transactions } = payload;
+        if (!transactions || !transactions.length) return res.json([]);
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return res.status(503).json({ error: 'No Anthropic API key configured.' });
+        const { default: Anthropic } = require('@anthropic-ai/sdk');
+        const client = new Anthropic({ apiKey });
+        const categoryList = TX_CATEGORIES.join(', ');
+        const lines = transactions.map((t, i) => `${i + 1}. ${t.desc}`).join('\n');
+        const prompt = `You are a financial transaction categorizer. Classify each transaction description into exactly one of these categories:\n${categoryList}\n\nRespond with ONLY a JSON array of objects in this exact format, one per transaction, in order:\n[{"id":"<id>","category":"<category>"},...]\n\nTransactions:\n${lines}`;
+        const idMap = transactions.map(t => t.id);
+        const response = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          messages: [{ role: 'user', content: prompt }]
+        });
+        const text = response.content[0]?.text || '[]';
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (!jsonMatch) return res.json([]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        return res.json(parsed.map((item, i) => ({
+          id: idMap[i] || item.id,
+          category: TX_CATEGORIES.includes(item.category) ? item.category : 'Other'
+        })));
+      }
+
+      case 'forecast-cashflow': {
+        const { forecastCashFlow } = require(path.join(aiDomainPath, 'cashFlowForecaster'));
+        const { transactions = [], ...opts } = payload;
+        const result = forecastCashFlow(transactions, opts);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'detect-subscriptions': {
+        const { detectSubscriptions } = require(path.join(aiDomainPath, 'subscriptionDetector'));
+        const { transactions = [], ...opts } = payload;
+        const result = detectSubscriptions(transactions, opts);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'categorize-taxes': {
+        const { categorizeTaxes } = require(path.join(aiDomainPath, 'taxCategorizer'));
+        const { transactions = [], ...opts } = payload;
+        const result = categorizeTaxes(transactions, opts);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'project-net-worth': {
+        const { projectNetWorth } = require(path.join(aiDomainPath, 'netWorthProjector'));
+        const result = projectNetWorth(payload);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'advise-goals': {
+        const { adviseGoals } = require(path.join(aiDomainPath, 'goalAdvisor'));
+        const result = adviseGoals(payload);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'parse-search-query': {
+        const { query, transactionSchema } = payload;
+        if (!query || typeof query !== 'string') return res.status(400).json({ error: 'query string is required' });
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) return res.status(503).json({ error: 'No Anthropic API key configured.' });
+        const { default: Anthropic } = require('@anthropic-ai/sdk');
+        const client = new Anthropic({ apiKey });
+        const schemaHint = transactionSchema
+          ? `\nTransaction fields available: ${JSON.stringify(transactionSchema)}`
+          : '\nTransaction fields: date (YYYY-MM-DD), amount (negative=expense), merchant_name, category, account_id';
+        const message = await client.messages.create({
+          model: 'claude-haiku-4-5',
+          max_tokens: 512,
+          messages: [{
+            role: 'user',
+            content: `Parse this transaction search query into a structured JSON filter object.${schemaHint}\n\nReturn ONLY valid JSON with these optional fields: { minAmount, maxAmount, merchant, category, startDate, endDate, isRecurring, accountId }.\n\nQuery: "${query}"`
+          }]
+        });
+        const text = message.content[0]?.text ?? '';
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return res.json({ ok: true, filter: {}, rawResponse: text });
+        return res.json({ ok: true, filter: JSON.parse(jsonMatch[0]), query });
+      }
+
+      case 'advise-budget': {
+        const { adviseBudget } = require(path.join(aiDomainPath, 'budgetAdvisor'));
+        const result = adviseBudget(payload);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'suggest-mileage': {
+        const { suggestMileage } = require(path.join(aiDomainPath, 'mileageSuggestor'));
+        const { transactions = [], ...opts } = payload;
+        const result = suggestMileage(transactions, opts);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'analyze-transaction': {
+        const { analyzeTransaction, pushAlerts } = require(path.join(aiDomainPath, 'anomalyAlerts'));
+        const { transaction, ...ctx } = payload;
+        if (!transaction?.transaction_id) return res.status(400).json({ error: 'transaction.transaction_id is required' });
+        const _buf = [];
+        const alerts = analyzeTransaction(transaction, ctx);
+        pushAlerts(alerts, { push: a => _buf.push(a) });
+        return res.json({ ok: true, alerts });
+      }
+
+      case 'detect-trends': {
+        const { detectTrends } = require(path.join(aiDomainPath, 'trendDetection'));
+        const { transactions = [], ...opts } = payload;
+        const trends = detectTrends(transactions, opts);
+        return res.json({ ok: true, trends });
+      }
+
+      case 'debt-optimizer': {
+        const { optimizeDebtPayoff } = require(path.join(aiDomainPath, 'debtOptimizer'));
+        const result = optimizeDebtPayoff(payload);
+        return res.json({ ok: true, ...result });
+      }
+
+      case 'queue-transaction': {
+        // For web, process synchronously via pipeline rather than queue
+        const { transaction, context = {} } = payload;
+        if (!transaction || !transaction.transaction_id) {
+          return res.status(400).json({ error: 'transaction.transaction_id is required' });
+        }
+        // Enqueue is fire-and-forget in desktop; for web just acknowledge
+        return res.json({ queued: true, queueDepth: 0 });
+      }
+
+      case 'reprocess': {
+        const { reprocessAll } = require(path.join(aiDomainPath, 'pipeline'));
+        const storage = {
+          async loadTransactions() { return []; },
+          async saveFeatures() {},
+          getFeatures() { return null; },
+          getAllFeatures() { return []; },
+          clearFeatures() {},
+          async loadAccountContext() { return {}; },
+        };
+        const result = await reprocessAll(storage, { batchSize: payload.batchSize ?? 100 });
+        return res.json({ ok: true, ...result });
+      }
+
+      default:
+        return res.status(404).json({ error: `Unknown AI feature: ${feature}` });
+    }
+  } catch (err) {
+    console.error(`[AI] /api/ai/${feature} error:`, err.message);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // Plaid proxy routes — protected by auth
 app.use('/api/plaid', requireAuth, plaidRoutes);
 
