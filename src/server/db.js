@@ -108,4 +108,24 @@ function query(sql, params = []) {
   return Promise.resolve({ rows: [], rowCount: 0 });
 }
 
-module.exports = { query };
+// ── User app state (cross-browser persistence) ──────────────────────────────
+// Stores the full Ledgerly localStorage state blob per user so data
+// is available on any browser/device after login.
+
+function getUserState(userId) {
+  try {
+    const data = load();
+    return (data.user_states || {})[userId] || null;
+  } catch { return null; }
+}
+
+function saveUserState(userId, appState) {
+  try {
+    const data = load();
+    data.user_states = data.user_states || {};
+    data.user_states[userId] = appState;
+    save(data);
+  } catch {}
+}
+
+module.exports = { query, getUserState, saveUserState };

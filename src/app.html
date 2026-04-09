@@ -11,6 +11,7 @@
       if (window.electronAPI) return; // Electron already defined it
       var token = sessionStorage.getItem('sb_token');
       if (!token) { window.location.replace('/login'); return; }
+      window._webToken = token; // exposed for server sync below
       var origin = window.location.origin;
       function apiFetch(path, opts) {
         opts = opts || {};
@@ -9051,6 +9052,48 @@ function exportAmortizationCsv() {
 
 })();
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
+
+// ── WEB STATE SYNC ─────────────────────────────────────────────────────────────
+// When running as web app, load state from server on startup and push changes back.
+// This makes data available on any browser/device after login.
+if (window._webToken) {
+  const _syncOrigin = window.location.origin;
+  const _syncHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + window._webToken };
+
+  // Load from server on startup — merge server state into local
+  fetch(_syncOrigin + '/api/user/state', { headers: _syncHeaders })
+    .then(r => r.json())
+    .then(data => {
+      if (data.state && typeof data.state === 'object') {
+        // Server wins for all array data — local cache is overwritten by server truth
+        const merged = { ...state, ...data.state };
+        state = merged;
+        saveState();
+        renderAll();
+        // After restoring state, sync Plaid items to refresh balances
+        syncAllPlaidItems();
+      } else {
+        // No server data yet — sync Plaid items and push current state
+        syncAllPlaidItems();
+      }
+    })
+    .catch(() => { syncAllPlaidItems(); }); // offline fallback — use localStorage
+
+  // Debounced push: save to server 3s after last local saveState() call
+  let _serverSyncTimer = null;
+  const _origSaveState = saveState;
+  saveState = function() {
+    _origSaveState();
+    clearTimeout(_serverSyncTimer);
+    _serverSyncTimer = setTimeout(function() {
+      fetch(_syncOrigin + '/api/user/state', {
+        method: 'PUT',
+        headers: _syncHeaders,
+        body: JSON.stringify({ state: state })
+      }).catch(() => {}); // fire-and-forget, ignore errors
+    }, 3000);
+  };
+}
 // Show web-specific UI when running in browser (not Electron)
 if (!window.electronAPI || sessionStorage.getItem('sb_token')) {
   const webSection = document.getElementById('web-auth-section');

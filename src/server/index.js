@@ -307,6 +307,23 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
   }
 });
 
+// User app state — cross-browser persistence
+// GET  /api/user/state  → returns stored state blob for this user
+// PUT  /api/user/state  → saves state blob for this user
+const { getUserState, saveUserState } = require('./db');
+
+app.get('/api/user/state', requireAuth, (req, res) => {
+  const state = getUserState(req.user.id);
+  res.json({ state });
+});
+
+app.put('/api/user/state', requireAuth, (req, res) => {
+  const { state } = req.body;
+  if (!state || typeof state !== 'object') return res.status(400).json({ error: 'state object required' });
+  saveUserState(req.user.id, state);
+  res.json({ ok: true });
+});
+
 // Plaid proxy routes — protected by auth
 app.use('/api/plaid', requireAuth, plaidRoutes);
 
