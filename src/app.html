@@ -2964,6 +2964,20 @@ function spendingForMonth(month, year) {
   txs.forEach(t => { map[t.category] = (map[t.category]||0) + Math.abs(t.amount); });
   return map;
 }
+// Look up spending for a budget category with fuzzy matching.
+// Handles renamed categories: 'Dining' matches 'Dining & Restaurants', etc.
+function getSpentForCategory(spending, cat) {
+  if (!cat) return 0;
+  const exact = spending[cat];
+  if (exact) return exact;
+  const catL = cat.toLowerCase();
+  let total = 0;
+  Object.keys(spending).forEach(k => {
+    const kL = k.toLowerCase();
+    if (kL.startsWith(catL) || catL.startsWith(kL)) total += spending[k];
+  });
+  return total;
+}
 function incomeForMonth(month, year, actualOnly = false) {
   const start = new Date(year, month - 1, 1);
   const end = new Date(year, month, 0);
@@ -6600,9 +6614,9 @@ function renderBudget() {
   });
 
   const totalBudgeted = budgets.reduce((s,b) => s + effectiveLimits[b.id], 0);
-  const totalSpent = budgets.reduce((s,b) => s + (spending[b.category]||0), 0);
+  const totalSpent = budgets.reduce((s,b) => s + (getSpentForCategory(spending, b.category)), 0);
   const totalOver = Math.max(0, totalSpent - totalBudgeted);
-  const onBudgetCount = budgets.filter(b => (spending[b.category]||0) <= effectiveLimits[b.id]).length;
+  const onBudgetCount = budgets.filter(b => (getSpentForCategory(spending, b.category)) <= effectiveLimits[b.id]).length;
 
   document.getElementById('budget-summary-cards').innerHTML = `
     <div class="card"><div class="card-label">Total Budgeted</div><div class="card-value blue">${fmt(totalBudgeted)}</div><div class="card-sub">${budgets.length} categories</div></div>
@@ -6630,7 +6644,7 @@ function renderBudget() {
   // Budget grid
   const grid = document.getElementById('budget-grid');
   grid.innerHTML = budgets.map(b => {
-    const spent = spending[b.category]||0;
+    const spent = getSpentForCategory(spending, b.category);
     const effLimit = effectiveLimits[b.id];
     const rolloverAmt = b.rollover ? getRolloverAmount(b.category, budgetViewMonth, budgetViewYear) : 0;
     const pct = Math.min(100, effLimit > 0 ? Math.round((spent/effLimit)*100) : 0);
@@ -6653,7 +6667,7 @@ function renderBudget() {
   const bvaEl = document.getElementById('budget-vs-actual');
   if (budgets.length) {
     const rows = budgets.map(b => {
-      const spent = spending[b.category]||0;
+      const spent = getSpentForCategory(spending, b.category);
       const effLimit = effectiveLimits[b.id];
       const diff = effLimit - spent;
       const pct = effLimit > 0 ? Math.round(spent/effLimit*100) : 0;
@@ -6756,10 +6770,10 @@ function renderDashBudgetWidget() {
   const spending = spendingForMonth(month, year);
   const top = budgets.slice().sort((a,b) => b.limit - a.limit).slice(0, 5);
   const totalBudgeted = budgets.reduce((s,b)=>s+b.limit,0);
-  const totalSpent = budgets.reduce((s,b)=>s+(spending[b.category]||0),0);
+  const totalSpent = budgets.reduce((s,b)=>s+(getSpentForCategory(spending, b.category)),0);
   const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const bars = top.map(b => {
-    const spent = spending[b.category]||0;
+    const spent = getSpentForCategory(spending, b.category);
     const pct = Math.min(100, b.limit > 0 ? Math.round(spent/b.limit*100) : 0);
     const over = spent > b.limit;
     return `<div style="margin-bottom:10px">
@@ -6926,7 +6940,7 @@ function renderFinancialHealthScore() {
   const spending = spendingForMonth(curMonth, curYear);
   let budgetScore = null;
   if (budgets.length > 0) {
-    const nonOverspent = budgets.filter(b => (spending[b.category] || 0) <= b.limit).length;
+    const nonOverspent = budgets.filter(b => (getSpentForCategory(spending, b.category)) <= b.limit).length;
     budgetScore = (nonOverspent / budgets.length) * 20;
   }
 
