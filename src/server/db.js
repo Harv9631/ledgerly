@@ -15,6 +15,9 @@ const path = require('path');
 const dbDir  = process.env.DB_PATH || __dirname;
 const dbFile = path.join(dbDir, 'ledgerly-data.json');
 
+// Ensure the data directory exists (important when using Railway volumes)
+try { require('fs').mkdirSync(dbDir, { recursive: true }); } catch {}
+
 function load() {
   try { return JSON.parse(fs.readFileSync(dbFile, 'utf8')); }
   catch { return { plaid_items: [] }; }
