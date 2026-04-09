@@ -3161,8 +3161,10 @@ function deleteExpense(id) { state.expenses = state.expenses.filter(x => x.id !=
 // ── DEBT ──────────────────────────────────────────────────────────────────────
 function saveDebt() {
   const name = document.getElementById('dbt-name').value.trim();
-  const balance = parseFloat(document.getElementById('dbt-balance').value);
-  if (!name || isNaN(balance) || balance < 0) { alert('Fill in required fields.'); return; }
+  const balanceRaw = document.getElementById('dbt-balance').value;
+  const balance = parseFloat(balanceRaw);
+  if (!name) { alert('Debt Name is required.'); return; }
+  if (balanceRaw === '' || isNaN(balance) || balance < 0) { alert('Current Balance is required and must be a positive number.'); return; }
   const original = parseFloat(document.getElementById('dbt-original').value) || balance;
   state.debts.push({ id:uid(), name, type:document.getElementById('dbt-type').value, balance, original, rate:parseFloat(document.getElementById('dbt-rate').value)||0, payment:parseFloat(document.getElementById('dbt-payment').value)||0, dueDay:parseInt(document.getElementById('dbt-due').value)||null, mode:state.mode, dateAdded:new Date().toISOString().slice(0,10) });
   saveState(); closeModal('debt');
