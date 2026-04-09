@@ -9362,9 +9362,11 @@ function buildFinancialContext() {
 
   const txCreditsTotal = txCredits(recentTxs);
   const txDebitsTotal  = txDebits(recentTxs);
+  const incSrc = monthlyIncome() > 0 ? 'manual entries' : '3-month avg from transactions';
+  const expSrc = monthlyExpenses() > 0 ? 'manual entries' : '3-month avg from transactions';
   let ctx = `Financial Mode: ${mode === 'personal' ? 'Personal' : 'Business'}
-Monthly Income: $${mi.toFixed(2)} (3-month avg from transactions)
-Monthly Expenses: $${me.toFixed(2)} (3-month avg from transactions)
+Monthly Income: $${mi.toFixed(2)} (${incSrc})
+Monthly Expenses: $${me.toFixed(2)} (${expSrc})
 Monthly Cash Flow: $${(mi - me).toFixed(2)}
 Total Assets (tracked accounts): $${totalAssetAmt.toFixed(2)}
 Total Debt: $${totalDebtAmt.toFixed(2)}
