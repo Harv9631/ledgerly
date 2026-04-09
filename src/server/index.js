@@ -34,6 +34,12 @@ app.get('/login', (_req, res) => {
   res.send(html.replace('</head>', config + '</head>'));
 });
 
+// Serve Supabase SDK locally so login page doesn't depend on CDN
+app.get('/supabase.js', (_req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.sendFile(path.join(__dirname, 'node_modules/@supabase/supabase-js/dist/umd/supabase.js'));
+});
+
 // Serve frontend static files (enables plaid-link.html from HTTP origin)
 app.use(express.static(path.join(__dirname, '..')));
 
