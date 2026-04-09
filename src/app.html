@@ -9418,8 +9418,8 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
   if (goals.length > 0) {
     ctx += `\n\nFinancial Goals:`;
     goals.forEach(g => {
-      const pct = g.target > 0 ? Math.round(((g.current||0) / g.target) * 100) : 0;
-      ctx += `\n  - ${g.name}: $${(g.current||0).toFixed(2)} / $${(g.target||0).toFixed(2)} (${pct}%)`;
+      const pct = g.targetAmount > 0 ? Math.round(((g.currentAmount||0) / g.targetAmount) * 100) : 0;
+      ctx += `\n  - ${g.name}: $${(g.currentAmount||0).toFixed(2)} / $${(g.targetAmount||0).toFixed(2)} (${pct}%)`;
     });
   }
 
