@@ -3976,7 +3976,9 @@ function renderDashCategoryChart() {
   const tag = document.getElementById('dash-cat-period-tag');
   if (tag) tag.textContent = periodLabel;
   const labels = Object.keys(spending).sort((a,b)=>spending[b]-spending[a]).slice(0,7);
-  if (!labels.length) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); return; }
+  const dashCatChartArea = ctx.canvas.closest('.chart-area');
+  if (!labels.length) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if (dashCatChartArea) dashCatChartArea.style.display = 'none'; return; }
+  if (dashCatChartArea) dashCatChartArea.style.display = '';
   charts.dashcat = new Chart(ctx,{type:'bar',data:{
     labels, datasets:[{data:labels.map(l=>spending[l]),backgroundColor:PALETTE,borderRadius:6}]
   },options:{...baseChartOpts('bar'),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},indexAxis:'y'}});
@@ -4043,7 +4045,9 @@ function renderTxCategoryChart(txs) {
   const map = {};
   debits.forEach(t => { map[t.category] = (map[t.category]||0) + Math.abs(t.amount); });
   const labels = Object.keys(map).sort((a,b)=>map[b]-map[a]).slice(0,10);
-  if (!labels.length) { ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); return; }
+  const txCatChartArea = ctx.canvas.closest('.chart-area');
+  if (!labels.length) { ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); if (txCatChartArea) txCatChartArea.style.display = 'none'; return; }
+  if (txCatChartArea) txCatChartArea.style.display = '';
   charts.txcat = new Chart(ctx,{type:'bar',data:{
     labels, datasets:[{data:labels.map(l=>map[l]),backgroundColor:PALETTE,borderRadius:5}]
   },options:{...baseChartOpts('bar'), maintainAspectRatio:false}});
@@ -6292,10 +6296,13 @@ function renderIncome() {
   const allInc = filteredIncome();
   const inc = incomePageList();
   const allMonthly = allInc.reduce((s,i)=>s+toMonthly(i.amount,i.freq),0);
+  const hasCredits = filteredTx().some(function(t){return t.type==='credit';});
+  const dispMonthly = allMonthly > 0 ? allMonthly : effectiveMonthlyIncome();
+  const sourcesLabel = allInc.length > 0 ? allInc.length : (hasCredits ? 'Plaid' : 0);
   document.getElementById('income-summary-cards').innerHTML = `
-    <div class="card"><div class="card-label">Sources</div><div class="card-value blue">${allInc.length}</div></div>
-    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value green">${fmt(allMonthly)}</div></div>
-    <div class="card"><div class="card-label">Annual Total</div><div class="card-value green">${fmt(allMonthly*12)}</div></div>
+    <div class="card"><div class="card-label">Sources</div><div class="card-value blue">${sourcesLabel}</div></div>
+    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value green">${fmt(dispMonthly)}</div></div>
+    <div class="card"><div class="card-label">Annual Total</div><div class="card-value green">${fmt(dispMonthly*12)}</div></div>
   `;
   const filtMonthly = inc.reduce((s,i)=>s+toMonthly(i.amount,i.freq),0);
   const isFiltered = incomeFilters.search || incomeFilters.dateFrom || incomeFilters.dateTo;
@@ -6313,8 +6320,9 @@ function renderIncome() {
   `).join('');
   const empty = document.getElementById('income-empty');
   const tw = document.querySelector('#page-income .table-wrap');
-  empty.style.display = inc.length ? 'none' : 'block';
-  tw.style.display = inc.length ? '' : 'none';
+  const hasCredits = filteredTx().some(function(t){return t.type==='credit';});
+  empty.style.display = (inc.length || hasCredits) ? 'none' : 'block';
+  tw.style.display = (inc.length || hasCredits) ? '' : 'none';
 }
 
 function renderExpenses() {
@@ -6323,11 +6331,13 @@ function renderExpenses() {
   const totalMonthly = all.reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
   const fixedTotal = all.filter(x=>x.expType==='Fixed').reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
   const varTotal = all.filter(x=>x.expType==='Variable').reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
+  const hasDebits = filteredTx().some(function(t){return t.type==='debit';});
+  const dispExpMonthly = totalMonthly > 0 ? totalMonthly : effectiveMonthlyExpenses();
   document.getElementById('expense-summary-cards').innerHTML = `
-    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value red">${fmt(totalMonthly)}</div></div>
+    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value red">${fmt(dispExpMonthly)}</div></div>
     <div class="card"><div class="card-label">Fixed</div><div class="card-value">${fmt(fixedTotal)}</div></div>
     <div class="card"><div class="card-label">Variable</div><div class="card-value yellow">${fmt(varTotal)}</div></div>
-    <div class="card"><div class="card-label">Annual Total</div><div class="card-value red">${fmt(totalMonthly*12)}</div></div>
+    <div class="card"><div class="card-label">Annual Total</div><div class="card-value red">${fmt(dispExpMonthly*12)}</div></div>
   `;
   document.getElementById('expense-table-body').innerHTML = show.map(x=>{
     const rcpt = getReceipt(x.id);
@@ -6343,8 +6353,9 @@ function renderExpenses() {
     ${rcptCell}
     <td><button class="btn btn-danger" onclick="deleteExpense('${x.id}')">Remove</button></td></tr>`;
   }).join('');
-  document.getElementById('expense-empty').style.display = show.length ? 'none' : 'block';
-  document.querySelector('#page-expenses .table-wrap').style.display = show.length ? '' : 'none';
+  const hasDebits = filteredTx().some(function(t){return t.type==='debit';});
+  document.getElementById('expense-empty').style.display = (show.length || hasDebits) ? 'none' : 'block';
+  document.querySelector('#page-expenses .table-wrap').style.display = (show.length || hasDebits) ? '' : 'none';
 }
 
 function renderDebt() {
@@ -8873,7 +8884,7 @@ function renderIncomeInsights() {
   const smoothed = monthData.length > 0 ? totalIncome / monthData.length : 0;
 
   const now = new Date();
-  const thisMonthIncome = incomeForMonth(now.getMonth() + 1, now.getFullYear());
+  const thisMonthIncome = incomeForMonth(now.getMonth() + 1, now.getFullYear(), true) || effectiveMonthlyIncome();
   const variance = thisMonthIncome - smoothed;
   const pct = smoothed > 0 ? ((variance / smoothed) * 100) : 0;
   const isLowMonth = smoothed > 0 && thisMonthIncome < smoothed * 0.8;
@@ -9352,9 +9363,11 @@ function buildFinancialContext() {
 
   const txCreditsTotal = txCredits(recentTxs);
   const txDebitsTotal  = txDebits(recentTxs);
+  const _incSrc = monthlyIncome() > 0 ? 'manual entries' : '3-month avg from transactions';
+  const _expSrc = monthlyExpenses() > 0 ? 'manual entries' : '3-month avg from transactions';
   let ctx = `Financial Mode: ${mode === 'personal' ? 'Personal' : 'Business'}
-Monthly Income: $${mi.toFixed(2)} (3-month avg from transactions)
-Monthly Expenses: $${me.toFixed(2)} (3-month avg from transactions)
+Monthly Income: $${mi.toFixed(2)} (${_incSrc})
+Monthly Expenses: $${me.toFixed(2)} (${_expSrc})
 Monthly Cash Flow: $${(mi - me).toFixed(2)}
 Total Assets (tracked accounts): $${totalAssetAmt.toFixed(2)}
 Total Debt: $${totalDebtAmt.toFixed(2)}
