@@ -1,6 +1,8 @@
 'use strict';
 
+// Load own .env first, then fall back to parent src/.env
 require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env'), override: false });
 
 // When spawned by Electron, Plaid credentials arrive as env vars.
 // Persist them to .env so standalone web server runs also have them.

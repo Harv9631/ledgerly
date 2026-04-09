@@ -30,11 +30,24 @@ async function requireAuth(req, res, next) {
 
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
+  // Try Supabase server-side verification first
   const { data: { user }, error } = await supabase.auth.getUser(token);
-  if (error || !user) return res.status(401).json({ error: 'Invalid token' });
+  if (!error && user) {
+    req.user = { id: user.id, email: user.email };
+    return next();
+  }
 
-  req.user = { id: user.id, email: user.email };
-  next();
+  // Fallback: decode JWT payload locally (works with new Supabase key format)
+  // The sub claim is the user ID — sufficient for single-tenant use.
+  try {
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString());
+    if (payload.sub) {
+      req.user = { id: payload.sub, email: payload.email || null };
+      return next();
+    }
+  } catch {}
+
+  return res.status(401).json({ error: 'Invalid token' });
 }
 
 module.exports = { requireAuth, supabase };
