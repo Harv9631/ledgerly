@@ -4,6 +4,116 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ledgerly</title>
+  <script>
+    // Web API shim — runs before any other script so window.electronAPI is always defined
+    // in browser context before any function checks it.
+    (function() {
+      if (window.electronAPI) return; // Electron already defined it
+      var token = sessionStorage.getItem('sb_token');
+      if (!token) { window.location.replace('/login'); return; }
+      window._webToken = token; // exposed for server sync below
+      var origin = window.location.origin;
+      function apiFetch(path, opts) {
+        opts = opts || {};
+        return fetch(origin + path, {
+          method: opts.method || 'GET',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: opts.body ? JSON.stringify(opts.body) : undefined
+        }).then(function(r) { return r.json(); });
+      }
+      var plaidReady = false;
+      if (!document.querySelector('script[src*="link-initialize"]')) {
+        var plaidScript = document.createElement('script');
+        plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+        plaidScript.onload = function() { plaidReady = true; };
+        document.head.appendChild(plaidScript);
+      } else { plaidReady = true; }
+      function openPlaidLink(linkToken) {
+        return new Promise(function(resolve) {
+          if (!plaidReady || typeof Plaid === 'undefined') { resolve({ cancelled: true }); return; }
+          Plaid.create({ token: linkToken,
+            onSuccess: function(pt, meta) { resolve({ success: true, public_token: pt, metadata: meta }); },
+            onExit: function() { resolve({ cancelled: true }); }
+          }).open();
+        });
+      }
+      window.electronAPI = {
+        plaid: {
+          getConfig:        function() { return Promise.resolve({ serverUrl: origin }); },
+          setConfig:        function() { return Promise.resolve({ ok: true }); },
+          createLinkToken:  function() { return apiFetch('/api/plaid/link-token', { method: 'POST' }); },
+          openLink:         function(t) { return openPlaidLink(t); },
+          exchangeToken:    function(p,m) { return apiFetch('/api/plaid/exchange-token', { method: 'POST', body: { public_token: p, metadata: m } }); },
+          syncAccounts:     function(id) { return apiFetch('/api/plaid/accounts/' + id); },
+          syncTransactions: function(id,r) { return apiFetch('/api/plaid/sync/' + id + (r ? '?reset=true' : ''), { method: 'POST', body: {} }); },
+          getLinkedItems:   function() { return apiFetch('/api/plaid/items'); },
+          removeItem:       function(id) { return apiFetch('/api/plaid/items/' + id, { method: 'DELETE' }); },
+          getCredentials:   function() { return Promise.resolve(null); },
+          setCredentials:   function() { return Promise.resolve({ ok: true }); },
+          hasCredentials:   function() { return Promise.resolve(true); }
+        },
+        ai: {
+          getConfig: function() { return Promise.resolve({}); },
+          setConfig: function() { return Promise.resolve({ ok: true }); },
+          getRateLimit: function() { return Promise.resolve({ ok: true, count: 0 }); },
+          getHistory: function(id) {
+            try { return Promise.resolve(JSON.parse(localStorage.getItem('ai_hist_' + (id||'default')) || '[]')); }
+            catch { return Promise.resolve([]); }
+          },
+          clearHistory: function(id) {
+            localStorage.removeItem('ai_hist_' + (id||'default'));
+            return Promise.resolve({ ok: true });
+          },
+          getAlerts: function() { return Promise.resolve([]); },
+          getFeatures: function() { return Promise.resolve(null); },
+          deleteAllData: function() { return Promise.resolve({ ok: true }); },
+          // SSE streaming chat
+          _cbChunk: null, _cbDone: null, _cbError: null,
+          chat: function(payload) {
+            var self = window.electronAPI.ai;
+            var histKey = 'ai_hist_' + (payload.conversationId || 'default');
+            var hist = [];
+            try { hist = JSON.parse(localStorage.getItem(histKey) || '[]'); } catch {}
+            fetch(origin + '/api/ai/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+              body: JSON.stringify({ message: payload.message, history: hist, financialContext: payload.financialContext })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+              if (data.error) {
+                if (self._cbError) self._cbError(data.error);
+                return;
+              }
+              var text = data.text || '';
+              if (self._cbChunk) self._cbChunk(text);
+              hist.push({ role: 'user', content: payload.message });
+              hist.push({ role: 'assistant', content: text });
+              if (hist.length > 40) hist = hist.slice(-40);
+              localStorage.setItem(histKey, JSON.stringify(hist));
+              if (self._cbDone) self._cbDone(data);
+            }).catch(function(e) { if (self._cbError) self._cbError(e.message); });
+          },
+          onChunk: function(cb) { window.electronAPI.ai._cbChunk = cb; },
+          onDone: function(cb) { window.electronAPI.ai._cbDone = cb; },
+          onError: function(cb) { window.electronAPI.ai._cbError = cb; },
+          removeListeners: function() { var a = window.electronAPI.ai; a._cbChunk = null; a._cbDone = null; a._cbError = null; },
+          categorizeTransactions: function(transactions) { return apiFetch('/api/ai/categorize-transactions', { method: 'POST', body: { transactions: transactions } }); },
+          forecastCashFlow: function(payload) { return apiFetch('/api/ai/forecast-cashflow', { method: 'POST', body: payload || {} }); },
+          detectSubscriptionsAI: function(payload) { return apiFetch('/api/ai/detect-subscriptions', { method: 'POST', body: payload || {} }); },
+          taxSummary: function(payload) { return apiFetch('/api/ai/categorize-taxes', { method: 'POST', body: payload || {} }); },
+          projectNetWorth: function(payload) { return apiFetch('/api/ai/project-net-worth', { method: 'POST', body: payload || {} }); },
+          goalAdvice: function(payload) { return apiFetch('/api/ai/advise-goals', { method: 'POST', body: payload || {} }); },
+          parseSearchQuery: function(payload) { return apiFetch('/api/ai/parse-search-query', { method: 'POST', body: payload || {} }); },
+          budgetAdvice: function(payload) { return apiFetch('/api/ai/advise-budget', { method: 'POST', body: payload || {} }); },
+          suggestMileage: function(payload) { return apiFetch('/api/ai/suggest-mileage', { method: 'POST', body: payload || {} }); },
+          analyzeTransaction: function(payload) { return apiFetch('/api/ai/analyze-transaction', { method: 'POST', body: payload || {} }); },
+          detectTrends: function(payload) { return apiFetch('/api/ai/detect-trends', { method: 'POST', body: payload || {} }); },
+          debtOptimizer: function(payload) { return apiFetch('/api/ai/debt-optimizer', { method: 'POST', body: payload || {} }); },
+          queueTransaction: function(t, ctx) { return apiFetch('/api/ai/queue-transaction', { method: 'POST', body: { transaction: t, context: ctx || {} } }); },
+          reprocess: function(opts) { return apiFetch('/api/ai/reprocess', { method: 'POST', body: opts || {} }); }
+        }
+      };
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1696,6 +1806,11 @@
     <span class="section-title">Settings</span>
   </div>
   <div style="max-width:680px">
+    <div id="web-auth-section" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Account</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Signed in via Ledgerly web.</p>
+      <button class="btn btn-danger" onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'">Sign Out</button>
+    </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Backup &amp; Restore</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Export all your Ledgerly data as a single JSON file, or restore from a previous backup.</p>
@@ -1723,7 +1838,7 @@
         <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="handleBackupFile(event)">
       </div>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+    <div id="ai-settings-desktop" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Assistant (Claude)</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Enter your Anthropic API key to enable the AI financial assistant. Get a key at <strong>console.anthropic.com</strong>.</p>
       <div class="form-group">
@@ -1733,6 +1848,14 @@
       <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
         <button class="btn btn-primary" onclick="saveAiConfig()">Save API Key</button>
         <span id="ai-config-status" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div id="ai-settings-web" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Assistant (Claude)</div>
+      <p style="color:var(--muted);font-size:13px">AI is enabled and configured on the server. No setup required.</p>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+        <span style="color:var(--green);font-size:13px">&#10003; AI Active</span>
+        <button class="btn btn-ghost btn-sm" onclick="clearChatHistory();alert('Chat history cleared.')">Clear Chat History</button>
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
@@ -1747,6 +1870,30 @@
       <div style="display:flex;align-items:center;gap:12px">
         <button class="btn btn-danger" onclick="eraseAiData()">Erase AI Data</button>
         <span id="ai-erase-status" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Plaid API Credentials</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Enter your Plaid API credentials to enable bank connections. Get your keys at <strong>dashboard.plaid.com</strong>.</p>
+      <div class="form-group">
+        <label>Client ID</label>
+        <input type="text" id="plaid-client-id" placeholder="Plaid Client ID" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Secret Key</label>
+        <input type="password" id="plaid-secret" placeholder="Plaid Secret" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Environment</label>
+        <select id="plaid-environment">
+          <option value="development">Development (real banks, limited items)</option>
+          <option value="sandbox">Sandbox (test data only)</option>
+          <option value="production">Production (requires Plaid approval)</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+        <button class="btn btn-primary" onclick="savePlaidCredentials()">Save Credentials</button>
+        <span id="plaid-creds-status" style="font-size:13px"></span>
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
@@ -1765,6 +1912,41 @@
 </div>
 
 </main>
+
+<!-- First-Run Setup Modal -->
+<div id="setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:36px;width:480px;max-width:95vw;box-shadow:var(--shadow-lg)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px">Welcome to Ledgerly</div>
+      <div style="font-size:14px;color:var(--muted)">Enter your Plaid API credentials to connect your bank accounts.</div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Get your free credentials at <strong style="color:var(--text)">dashboard.plaid.com</strong> → Team Settings → Keys</div>
+    <div class="form-group">
+      <label>Client ID</label>
+      <input type="text" id="setup-client-id" placeholder="Plaid Client ID" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Secret Key</label>
+      <input type="password" id="setup-secret" placeholder="Plaid Secret" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Environment</label>
+      <select id="setup-environment">
+        <option value="development">Development (real banks)</option>
+        <option value="sandbox">Sandbox (test data)</option>
+        <option value="production">Production</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;background:var(--blue-dim);border:1px solid rgba(88,166,255,.2);border-radius:8px;padding:10px 14px">
+      Your credentials are encrypted and stored locally. They are never sent anywhere except to Plaid's own servers.
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveSetupCredentials()">Connect & Start</button>
+      <button class="btn btn-ghost" onclick="dismissSetupModal()" title="Skip — you can add credentials later in Settings">Skip for now</button>
+    </div>
+    <div id="setup-status" style="font-size:13px;margin-top:12px;text-align:center"></div>
+  </div>
+</div>
 
 <!-- Floating AI Chat Button (visible on all pages except ai-chat) -->
 <button class="chat-fab" id="chat-fab" onclick="showPage('ai-chat')" title="Ask AI" style="display:none">
@@ -2518,10 +2700,13 @@ function migrateTransactions() {
       }
     }
     const amount = Math.abs(tx.amount);
-    // Only infer type if the transaction has no valid type or a negative amount.
-    // Don't re-classify transactions that already have a correct type set by Plaid.
-    const needsTypeAmountFix = (!tx.type && !tx.plaidTxId) || tx.amount < 0;
-    const inferredType = needsTypeAmountFix ? inferTxType(tx.desc, tx.amount, tx.category) : tx.type;
+    // Always re-classify Plaid transactions using category/vendor rules — they are reliable.
+    // Category-based rules take precedence over whatever was previously stored.
+    // Only preserve type for manually-entered transactions (no plaidTxId).
+    const inferredType = tx.plaidTxId
+      ? inferTxType(tx.desc, tx.amount, tx.category)
+      : (tx.type || 'debit');
+    const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
     if (needsTypeAmountFix || needsModeFix) {
       changed = true;
@@ -2868,7 +3053,7 @@ function showPage(name) {
   if (page) page.classList.add('active');
   document.querySelectorAll('.tab').forEach(t => { const tn = t.textContent.toLowerCase().trim().replace(/\s+/g,'-'); if (tn === name || (name==='reports' && t.textContent.trim()==='Reports')) t.classList.add('active'); });
   renderAll();
-  if (name === 'settings' && window.electronAPI) loadPlaidConfig();
+  if (name === 'settings' && window.electronAPI) { loadPlaidConfig(); loadPlaidCredentials(); }
   if (name === 'calendar') renderCalendar();
   if (name === 'insights') renderInsights();
   if (name === 'income-insights') renderIncomeInsights();
@@ -2979,8 +3164,10 @@ function deleteExpense(id) { state.expenses = state.expenses.filter(x => x.id !=
 // ── DEBT ──────────────────────────────────────────────────────────────────────
 function saveDebt() {
   const name = document.getElementById('dbt-name').value.trim();
-  const balance = parseFloat(document.getElementById('dbt-balance').value);
-  if (!name || isNaN(balance) || balance < 0) { alert('Fill in required fields.'); return; }
+  const balanceRaw = document.getElementById('dbt-balance').value;
+  const balance = parseFloat(balanceRaw);
+  if (!name) { alert('Debt Name is required.'); return; }
+  if (balanceRaw === '' || isNaN(balance) || balance < 0) { alert('Current Balance is required and must be a positive number.'); return; }
   const original = parseFloat(document.getElementById('dbt-original').value) || balance;
   state.debts.push({ id:uid(), name, type:document.getElementById('dbt-type').value, balance, original, rate:parseFloat(document.getElementById('dbt-rate').value)||0, payment:parseFloat(document.getElementById('dbt-payment').value)||0, dueDay:parseInt(document.getElementById('dbt-due').value)||null, mode:state.mode, dateAdded:new Date().toISOString().slice(0,10) });
   saveState(); closeModal('debt');
@@ -5641,12 +5828,9 @@ function addNotification(type, title, message, dedupeKey) {
 
 function sendOsNotification(title, body) {
   try {
+    // Only send if permission already granted — never auto-request (blocked by browsers outside user gestures)
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification(title, { body, icon: 'icon.ico' });
-    } else if (typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
-      Notification.requestPermission().then(p => {
-        if (p === 'granted') new Notification(title, { body, icon: 'icon.ico' });
-      });
     }
   } catch(err) { /* Notification API may be unavailable */ }
 }
@@ -8079,6 +8263,73 @@ function renderSettings() {
   }
 }
 
+// ── PLAID CREDENTIALS ─────────────────────────────────────────────────────────
+
+async function loadPlaidCredentials() {
+  if (!window.electronAPI) return;
+  try {
+    const creds = await window.electronAPI.plaid.getCredentials();
+    if (!creds) return;
+    const clientIdEl = document.getElementById('plaid-client-id');
+    const envEl = document.getElementById('plaid-environment');
+    if (clientIdEl) clientIdEl.value = creds.clientId || '';
+    if (envEl && creds.environment) envEl.value = creds.environment;
+    const status = document.getElementById('plaid-creds-status');
+    if (status && creds.hasSecret) status.innerHTML = '<span style="color:var(--green)">&#10003; Credentials saved</span>';
+  } catch {}
+}
+
+async function savePlaidCredentials() {
+  if (!window.electronAPI) return;
+  const clientId = (document.getElementById('plaid-client-id') || {}).value || '';
+  const secret   = (document.getElementById('plaid-secret') || {}).value || '';
+  const environment = (document.getElementById('plaid-environment') || {}).value || 'development';
+  if (!clientId || !secret) { alert('Please enter both Client ID and Secret.'); return; }
+  try {
+    await window.electronAPI.plaid.setCredentials({ clientId, secret, environment });
+    const status = document.getElementById('plaid-creds-status');
+    if (status) status.innerHTML = '<span style="color:var(--green)">&#10003; Credentials saved — server restarting…</span>';
+    document.getElementById('plaid-secret').value = '';
+  } catch (err) {
+    alert('Error saving credentials: ' + (err && err.message ? err.message : err));
+  }
+}
+
+// ── FIRST-RUN SETUP MODAL ──────────────────────────────────────────────────────
+
+async function checkFirstRun() {
+  if (!window.electronAPI) return;
+  try {
+    const has = await window.electronAPI.plaid.hasCredentials();
+    if (!has) {
+      const modal = document.getElementById('setup-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+  } catch {}
+}
+
+function dismissSetupModal() {
+  const modal = document.getElementById('setup-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveSetupCredentials() {
+  const clientId = (document.getElementById('setup-client-id') || {}).value || '';
+  const secret   = (document.getElementById('setup-secret') || {}).value || '';
+  const environment = (document.getElementById('setup-environment') || {}).value || 'development';
+  if (!clientId || !secret) {
+    document.getElementById('setup-status').innerHTML = '<span style="color:var(--red)">Please enter both Client ID and Secret.</span>';
+    return;
+  }
+  document.getElementById('setup-status').innerHTML = '<span style="color:var(--muted)">Saving…</span>';
+  try {
+    await window.electronAPI.plaid.setCredentials({ clientId, secret, environment });
+    dismissSetupModal();
+  } catch (err) {
+    document.getElementById('setup-status').innerHTML = '<span style="color:var(--red)">Error: ' + (err && err.message ? err.message : err) + '</span>';
+  }
+}
+
 // ── PLAID ─────────────────────────────────────────────────────────────────────
 async function savePlaidConfig() {
   const serverUrl = (document.getElementById('plaid-server-url') || {}).value || '';
@@ -8244,6 +8495,12 @@ async function syncAllPlaidItems() {
   saveState();
   renderAll();
   await renderPlaidLinkedAccounts();
+  // Auto-sync transactions on first load (e.g. new browser, no local data)
+  if (filteredTx().length === 0 && items.length > 0) {
+    for (const item of items) {
+      await syncPlaidItem(item.item_id);
+    }
+  }
 }
 
 async function syncPlaidItem(itemId, btn) {
@@ -8367,6 +8624,44 @@ async function renderPlaidLinkedAccounts() {
     }).join('') +
     '</div>';
 }
+
+// Web API shim is in <head> — do not reassign window.electronAPI here.
+// The redirect fallback below handles the case where the user is not logged in.
+(function() { const token = sessionStorage.getItem('sb_token');
+  if (!token && !window.electronAPI) { window.location.href = '/login'; return; }
+  const origin = window.location.origin;
+
+  async function apiFetch(path, opts = {}) {
+    const res = await fetch(origin + path, {
+      method: opts.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+        ...(opts.headers || {})
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    return res.json();
+  }
+
+  // Plaid Link in browser: use link-initialize.js from CDN directly
+  // (no Cloudflare issues in a real browser, unlike Electron)
+  let _plaidHandler = null;
+  function openPlaidLink(linkToken) {
+    return new Promise((resolve) => {
+      if (typeof Plaid === 'undefined') {
+        resolve({ cancelled: true, error: 'Plaid SDK not loaded' }); return;
+      }
+      _plaidHandler = Plaid.create({
+        token: linkToken,
+        onSuccess: (public_token, metadata) => resolve({ success: true, public_token, metadata }),
+        onExit: () => resolve({ cancelled: true })
+      });
+      _plaidHandler.open();
+    });
+  }
+
+})();
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState();
@@ -8765,7 +9060,77 @@ function exportAmortizationCsv() {
   if (!lastDigest || Date.now() - lastDigest.ts > weekMs) { generateWeeklyDigest(); }
 
 })();
-if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); }
+if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
+
+// ── SUBSCRIPTION CHECK (web only) ──────────────────────────────────────────────
+if (window._webToken) {
+  fetch(window.location.origin + '/api/stripe/status', {
+    headers: { 'Authorization': 'Bearer ' + window._webToken }
+  }).then(r => r.json()).then(data => {
+    if (!data.active) {
+      // Not subscribed — redirect to upgrade page
+      // Allow a grace period via ?subscribed=1 after checkout completes
+      const params = new URLSearchParams(window.location.search);
+      if (!params.get('subscribed')) {
+        window.location.href = '/upgrade';
+      }
+    }
+  }).catch(() => {}); // if check fails, allow access (don't block on network error)
+}
+
+// ── WEB STATE SYNC ─────────────────────────────────────────────────────────────
+// When running as web app, load state from server on startup and push changes back.
+// This makes data available on any browser/device after login.
+if (window._webToken) {
+  const _syncOrigin = window.location.origin;
+  const _syncHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + window._webToken };
+
+  // Load from server on startup — merge server state into local
+  fetch(_syncOrigin + '/api/user/state', { headers: _syncHeaders })
+    .then(r => r.json())
+    .then(data => {
+      if (data.state && typeof data.state === 'object') {
+        // Server wins for all array data — local cache is overwritten by server truth
+        const merged = { ...state, ...data.state };
+        state = merged;
+        saveState();
+        renderAll();
+        // After restoring state, sync Plaid items to refresh balances
+        syncAllPlaidItems();
+      } else {
+        // No server data yet — sync Plaid items and push current state
+        syncAllPlaidItems();
+      }
+    })
+    .catch(() => { syncAllPlaidItems(); }); // offline fallback — use localStorage
+
+  // Debounced push: save to server 3s after last local saveState() call
+  let _serverSyncTimer = null;
+  const _origSaveState = saveState;
+  saveState = function() {
+    _origSaveState();
+    clearTimeout(_serverSyncTimer);
+    _serverSyncTimer = setTimeout(function() {
+      fetch(_syncOrigin + '/api/user/state', {
+        method: 'PUT',
+        headers: _syncHeaders,
+        body: JSON.stringify({ state: state })
+      }).catch(() => {}); // fire-and-forget, ignore errors
+    }, 3000);
+  };
+}
+// Show web-specific UI when running in browser (not Electron)
+if (!window.electronAPI || sessionStorage.getItem('sb_token')) {
+  const webSection = document.getElementById('web-auth-section');
+  if (webSection) webSection.style.display = '';
+}
+if (sessionStorage.getItem('sb_token')) {
+  // Running as web app — swap AI settings to web version
+  const d = document.getElementById('ai-settings-desktop');
+  const w = document.getElementById('ai-settings-web');
+  if (d) d.style.display = 'none';
+  if (w) w.style.display = '';
+}
 
 // ── AI CHAT ───────────────────────────────────────────────────────────────────
 
@@ -8777,8 +9142,8 @@ const CHAT_RATE_LIMIT = 50;
 function buildFinancialContext() {
   const n = now();
   const mode = state.mode;
-  const mi = monthlyIncome();
-  const me = monthlyExpenses();
+  const mi = effectiveMonthlyIncome();
+  const me = effectiveMonthlyExpenses();
   const debts = filteredDebts();
   const totalDebtAmt = debts.reduce((s, d) => s + (parseFloat(d.balance) || 0), 0);
   const accounts = filteredAccounts();
@@ -8795,13 +9160,16 @@ function buildFinancialContext() {
   const goals = (state.goals || []).filter(g => g.mode === mode);
   const savings = (state.savingsBuckets || []).filter(s => s.mode === mode);
 
+  const txCreditsTotal = txCredits(recentTxs);
+  const txDebitsTotal  = txDebits(recentTxs);
   let ctx = `Financial Mode: ${mode === 'personal' ? 'Personal' : 'Business'}
-Monthly Income: $${mi.toFixed(2)}
-Monthly Expenses: $${me.toFixed(2)}
+Monthly Income: $${mi.toFixed(2)} (3-month avg from transactions)
+Monthly Expenses: $${me.toFixed(2)} (3-month avg from transactions)
 Monthly Cash Flow: $${(mi - me).toFixed(2)}
 Total Assets (tracked accounts): $${totalAssetAmt.toFixed(2)}
 Total Debt: $${totalDebtAmt.toFixed(2)}
-Net Worth: $${(totalAssetAmt - totalDebtAmt).toFixed(2)}`;
+Net Worth: $${(totalAssetAmt - totalDebtAmt).toFixed(2)}
+Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $${txDebitsTotal.toFixed(2)} | Net: $${(txCreditsTotal - txDebitsTotal).toFixed(2)}`;
 
   if (debts.length > 0) {
     ctx += `\n\nDebts (${debts.length}):`;
@@ -9066,10 +9434,12 @@ async function loadCashFlowForecast() {
   el.style.display = '';
   el.innerHTML = `<div class="chart-area"><div class="chart-title">✨ Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Loading forecast…</div></div>`;
   try {
-    // Forecaster expects signed amounts (negative = expense, positive = income) and merchant_name
+    // Forecaster only needs a few fields — trim to reduce payload size
     const txs = filteredTx().map(t => ({
-      ...t,
+      transaction_id: t.plaidTxId || t.id,
+      date: t.date,
       merchant_name: t.desc,
+      account_id: t.plaidAccountId || '',
       amount: t.type === 'credit' ? Math.abs(t.amount) : -Math.abs(t.amount)
     }));
     const currentBalance = totalAssets() - totalDebt();
