@@ -6348,79 +6348,26 @@ function renderTransactions() {
   const bulkCatSel = document.getElementById('tx-bulk-cat');
   if (bulkCatSel) bulkCatSel.innerHTML = '<option value="">— choose —</option>' + getEffectiveCategories().map(c=>`<option>${e(c)}</option>`).join('');
 
-  // Clean up raw Plaid descriptions for display
-  function cleanTxDesc(raw) {
-    return (raw || '')
-      .replace(/\s{2,}/g, ' ')
-      .replace(/\b\d{6,}\b/g, '')       // long reference numbers
-      .replace(/\*+\S+/g, '')            // card refs: *1234
-      .replace(/\s{2,}/g, ' ')
-      .trim()
-      // Title-case if all-caps
-      .replace(/^[A-Z][A-Z\s\/\-&.,']+$/, s =>
-        s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
-      ) || raw || '';
-  }
-
-  // Group filtered transactions by date for display
-  const cats = getEffectiveCategories();
-  const byDate = {};
-  filtered.forEach(t => {
-    const d = t.date || 'Unknown';
-    if (!byDate[d]) byDate[d] = [];
-    byDate[d].push(t);
-  });
-  const dateKeys = Object.keys(byDate).sort((a,b) =>
-    sortBy === 'date-asc' ? a.localeCompare(b) : b.localeCompare(a)
-  );
-
-  const rows = [];
-  dateKeys.forEach(date => {
-    const dayTxs = byDate[date];
-    const dayIn  = dayTxs.filter(t=>t.type==='credit').reduce((s,t)=>s+t.amount,0);
-    const dayOut = dayTxs.filter(t=>t.type==='debit').reduce((s,t)=>s+Math.abs(t.amount),0);
-    const dayLabel = (() => {
-      try {
-        const d = new Date(date + 'T12:00:00');
-        const today = new Date(); today.setHours(0,0,0,0);
-        const yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
-        const dt = new Date(date + 'T12:00:00'); dt.setHours(0,0,0,0);
-        if (dt.getTime()===today.getTime()) return 'Today';
-        if (dt.getTime()===yesterday.getTime()) return 'Yesterday';
-        return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
-      } catch { return date; }
-    })();
-    const summParts = [];
-    if (dayIn > 0)  summParts.push(`<span style="color:var(--green)">+${fmt(dayIn)}</span>`);
-    if (dayOut > 0) summParts.push(`<span style="color:var(--red)">-${fmt(dayOut)}</span>`);
-    rows.push(`<tr style="background:var(--surface2)">
-      <td colspan="2" style="padding:6px 12px;font-size:12px;font-weight:700;color:var(--text);letter-spacing:.03em">${e(dayLabel)}</td>
-      <td colspan="6" style="padding:6px 12px;font-size:12px;text-align:right">${summParts.join(' &nbsp; ')}</td>
-      <td style="padding:6px 12px;font-size:11px;color:var(--muted);text-align:right">${dayTxs.length} txn${dayTxs.length!==1?'s':''}</td>
-    </tr>`);
-    dayTxs.forEach(t => {
-      const rcpt = getReceipt(t.id);
-      const rcptCell = rcpt
-        ? `<td style="white-space:nowrap"><img class="receipt-thumb" src="${rcpt.startsWith('data:application/pdf') ? 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A//www.w3.org/2000/svg%22 width%3D%2234%22 height%3D%2234%22%3E%3Crect width%3D%2234%22 height%3D%2234%22 fill%3D%22%23374151%22 rx%3D%224%22/%3E%3Ctext x%3D%2250%25%22 y%3D%2255%25%22 font-size%3D%2210%22 fill%3D%22%23e8eaf6%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22%3EPDF%3C/text%3E%3C/svg%3E' : rcpt}" onclick="viewReceiptById('${t.id}')" title="View receipt"> <button class="btn btn-danger btn-sm" onclick="deleteTxReceipt('${t.id}',event)" title="Remove receipt">✕</button></td>`
-        : `<td><button class="receipt-attach-btn" onclick="openTxReceiptPicker('${t.id}')">📎 Attach</button></td>`;
-      const checked = _txSelected.has(t.id) ? 'checked' : '';
-      const displayDesc = cleanTxDesc(t.desc);
-      rows.push(`<tr>
-        <td><input type="checkbox" class="tx-row-check" data-id="${t.id}" ${checked} onchange="txToggleSelect('${t.id}')"></td>
-        <td style="white-space:nowrap;color:var(--muted);font-size:11px;padding-left:20px">${e(t.date)}</td>
-        <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e(t.desc)}">${e(displayDesc)}</td>
-        <td><span class="badge badge-blue">${e(t.category)}</span></td>
-        <td class="${t.type==='credit'?'tx-amount-pos':'tx-amount-neg'}">${t.type==='credit'?'+':'-'}${fmt(Math.abs(t.amount))}</td>
-        <td><button class="btn btn-sm ${t.type==='credit'?'badge-green':'badge-red'}" onclick="toggleTxType('${t.id}')" title="Click to flip type" style="border:none;cursor:pointer;padding:2px 8px;border-radius:4px">${t.type==='credit'?'Credit':'Debit'}</button></td>
-        <td><select onchange="changeTxCategory('${t.id}',this.value)" style="padding:2px 5px;font-size:11px;width:auto">
-          ${cats.map(c=>`<option ${c===t.category?'selected':''}>${e(c)}</option>`).join('')}
-        </select></td>
-        ${rcptCell}
-        <td><button class="btn btn-danger btn-sm" onclick="deleteTransaction('${t.id}')">✕</button></td>
-      </tr>`);
-    });
-  });
-  document.getElementById('tx-table-body').innerHTML = rows.join('');
+  document.getElementById('tx-table-body').innerHTML = filtered.map(t=>{
+    const rcpt = getReceipt(t.id);
+    const rcptCell = rcpt
+      ? `<td style="white-space:nowrap"><img class="receipt-thumb" src="${rcpt.startsWith('data:application/pdf') ? 'data:image/svg+xml,%3Csvg xmlns%3D%22http%3A//www.w3.org/2000/svg%22 width%3D%2234%22 height%3D%2234%22%3E%3Crect width%3D%2234%22 height%3D%2234%22 fill%3D%22%23374151%22 rx%3D%224%22/%3E%3Ctext x%3D%2250%25%22 y%3D%2255%25%22 font-size%3D%2210%22 fill%3D%22%23e8eaf6%22 text-anchor%3D%22middle%22 dominant-baseline%3D%22middle%22%3EPDF%3C/text%3E%3C/svg%3E' : rcpt}" onclick="viewReceiptById('${t.id}')" title="View receipt"> <button class="btn btn-danger btn-sm" onclick="deleteTxReceipt('${t.id}',event)" title="Remove receipt">✕</button></td>`
+      : `<td><button class="receipt-attach-btn" onclick="openTxReceiptPicker('${t.id}')">📎 Attach</button></td>`;
+    const checked = _txSelected.has(t.id) ? 'checked' : '';
+    return `<tr>
+      <td><input type="checkbox" class="tx-row-check" data-id="${t.id}" ${checked} onchange="txToggleSelect('${t.id}')"></td>
+      <td style="white-space:nowrap;color:var(--muted)">${e(t.date)}</td>
+      <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e(t.desc)}">${e(t.desc)}</td>
+      <td><span class="badge badge-blue">${e(t.category)}</span></td>
+      <td class="${t.type==='credit'?'tx-amount-pos':'tx-amount-neg'}">${t.type==='credit'?'+':'-'}${fmt(Math.abs(t.amount))}</td>
+      <td><button class="btn btn-sm ${t.type==='credit'?'badge-green':'badge-red'}" onclick="toggleTxType('${t.id}')" title="Click to flip type" style="border:none;cursor:pointer;padding:2px 8px;border-radius:4px">${t.type==='credit'?'Credit':'Debit'}</button></td>
+      <td><select onchange="changeTxCategory('${t.id}',this.value)" style="padding:2px 5px;font-size:11px;width:auto">
+        ${getEffectiveCategories().map(c=>`<option ${c===t.category?'selected':''}>${e(c)}</option>`).join('')}
+      </select></td>
+      ${rcptCell}
+      <td><button class="btn btn-danger btn-sm" onclick="deleteTransaction('${t.id}')">✕</button></td>
+    </tr>`;
+  }).join('');
   _txUpdateBulkBar();
   const catChartArea = document.getElementById('tx-cat-chart-area');
   if (catChartArea) catChartArea.style.display = catF ? 'none' : '';
