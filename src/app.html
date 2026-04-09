@@ -3923,11 +3923,22 @@ function parsePdfTransactions(text) {
 }
 
 // ── DEBT COMPUTATIONS ─────────────────────────────────────────────────────────
+function getEffectiveDebts() {
+  const manual = filteredDebts();
+  if (manual.length) return manual;
+  // Fallback: synthetic debts from Plaid credit/loan accounts
+  return filteredAccounts().filter(a=>a.balance<0).map(a=>({
+    id: a.id, name: a.name, balance: Math.abs(a.balance),
+    rate: a.type==='credit' ? 20 : 6, // default APR
+    payment: Math.max(25, Math.abs(a.balance)*0.02), // 2% min payment
+    mode: a.mode
+  }));
+}
 function debtFreeMonths() {
-  const debts = filteredDebts(); if (!debts.length) return null;
-  const pmt = monthlyPayment(); if (pmt <= 0) return null;
-  let bal = totalDebt(), months = 0;
-  while (bal > 0 && months < 1200) { bal += debts.reduce((s,d) => s+d.balance*(d.rate/100/12),0)-pmt; months++; if (bal<0) bal=0; }
+  const debts = getEffectiveDebts(); if (!debts.length) return null;
+  const pmt = debts.reduce((s,d)=>s+d.payment,0); if (pmt <= 0) return null;
+  let bal = debts.reduce((s,d)=>s+d.balance,0), months = 0;
+  while (bal > 0 && months < 1200) { bal += debts.reduce((s,d)=>s+d.balance*(d.rate/100/12),0)-pmt; months++; if (bal<0) bal=0; }
   return months < 1200 ? months : null;
 }
 function totalRemainingInterest() { const m = debtFreeMonths(); return m ? Math.max(0, monthlyPayment()*m - totalDebt()) : 0; }
@@ -4012,8 +4023,8 @@ function renderCashflowTrendChart() {
 function renderPayoffChart() {
   const ctx = document.getElementById('payoff-chart').getContext('2d');
   destroyChart('payoff');
-  const debts = filteredDebts(); if (!debts.length) return;
-  const pmt = monthlyPayment(); if (pmt<=0) return;
+  const debts = getEffectiveDebts(); if (!debts.length) return;
+  const pmt = debts.reduce((s,d)=>s+d.payment,0); if (pmt<=0) return;
   const labels=[], balances=[];
   let balance = totalDebt();
   const months = Math.min(debtFreeMonths()||60, 60);
