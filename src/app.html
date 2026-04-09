@@ -2678,6 +2678,32 @@ function migrateBudgets() {
   if (changed) saveState();
 }
 
+function inferCategoryFromDesc(desc) {
+  var d = (desc||'').toUpperCase();
+  if (/\bDEEL\b|\bGUSTO\b|\bADP\b|\bPAYCHEX\b|\bDIRECT DEP/.test(d)) return 'Payroll & Wages';
+  if (/\bSHELL\b|\bBP \b|\bEXXON|\bCHEVRON|\bSUNOCO|\bMOBIL\b|\bCITGO|\bARCO\b/.test(d)) return 'Gas & Fuel';
+  if (/DISCOUNT TIRE|FIRESTONE|JIFFY LUBE|AUTOZONE|O.REILLY|NAPA AUTO|ADVANCE AUTO|MIDAS|PEP BOYS|VALVOLINE/.test(d)) return 'Vehicle Maintenance';
+  if (/\bTOYOTA\b|\bHONDA\b|\bFORD \b|\bGMC \b|\bCHEVY\b|\bKIA \b|\bHYUNDAI\b/.test(d)) return 'Auto Payment';
+  if (/PUBLIX|KROGER|SAFEWAY|WHOLE FOODS|TRADER JOE|ALDI\b|COSTCO|SAM.S CLUB|FOOD LION|SPROUTS|WEGMANS|HEB \b|ALBERTSON/.test(d)) return 'Groceries';
+  if (/MCDONALD|CHICK.FIL|BURGER KING|WENDY|TACO BELL|SUBWAY|DOMINO|PIZZA HUT|PAPA JOHN|CHIPOTLE|POPEYES|FIVE GUYS|PANERA|SONIC \b|ARBY/.test(d)) return 'Fast Food';
+  if (/STARBUCKS|DUTCH BROS|DUNKIN|COFFEE/.test(d)) return 'Coffee & Drinks';
+  if (/PETCO|PETSMART|PET SUPPLIES|CHEWY/.test(d)) return 'Pets';
+  if (/\bCVS\b|WALGREEN|RITE AID|PHARMACY/.test(d)) return 'Pharmacy';
+  if (/UNITED HEALTH|CIGNA|AETNA|BLUE CROSS|HUMANA|ANTHEM|OSCAR HEALTH/.test(d)) return 'Health Insurance';
+  if (/PLANET FITNESS|ANYTIME FITNESS|LA FITNESS|24 HOUR FITNESS|ORANGETHEORY|EQUINOX/.test(d)) return 'Gym & Fitness';
+  if (/NETFLIX|HULU|DISNEY|HBO\b|SPOTIFY|APPLE MUSIC|YOUTUBE PREMIUM|AMAZON PRIME|PEACOCK|PARAMOUNT/.test(d)) return 'Streaming & Subscriptions';
+  if (/TRADINGVIEW|THINKORSWIM|FIDELITY|SCHWAB|ROBINHOOD|COINBASE|WEBULL|ETRADE/.test(d)) return 'Investments & Savings';
+  if (/\bUPS\b|\bFEDEX\b|\bUSPS\b|\bDHL\b/.test(d)) return 'Shipping & Fulfillment';
+  if (/\bUBER\b|\bLYFT\b/.test(d)) return 'Rideshare & Taxi';
+  if (/GOOGLE ONE|ICLOUD|MICROSOFT 365|ADOBE|DROPBOX|ZOOM|SLACK|GITHUB/.test(d)) return 'Software & SaaS';
+  if (/GEICO|ALLSTATE|STATE FARM|PROGRESSIVE|NATIONWIDE|USAA|LIBERTY MUTUAL/.test(d)) return 'Auto Insurance';
+  if (/GREAT CLIPS|SUPERCUTS|SALON|SPA \b|NAIL \b/.test(d)) return 'Personal Care & Beauty';
+  if (/TARGET\b|WALMART|AMAZON|BEST BUY|IKEA|DOLLAR/.test(d)) return 'Shopping';
+  if (/AT&T|\bATT\b|\bVERIZON\b|\bT-MOBILE\b|\bSPRINT\b/.test(d)) return 'Phone';
+  if (/XFINITY|COMCAST|SPECTRUM|COX |OPTIMUM|DIRECTV/.test(d)) return 'Internet & Cable';
+  return null;
+}
+
 function migrateTransactions() {
   if (!state.transactions || !state.transactions.length) return;
   let changed = false;
@@ -2708,11 +2734,15 @@ function migrateTransactions() {
       : (tx.type || 'debit');
     const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
-    if (needsTypeAmountFix || needsModeFix) {
+    // Fix wrong categories for Plaid transactions using description-based override
+    const betterCat = tx.plaidTxId ? inferCategoryFromDesc(tx.desc) : null;
+    const needsCatFix = betterCat && tx.category !== betterCat;
+    if (needsTypeAmountFix || needsModeFix || needsCatFix) {
       changed = true;
       const update = {};
       if (needsTypeAmountFix) { update.amount = amount; update.type = inferredType; }
       if (needsModeFix) { update.mode = state.mode; }
+      if (needsCatFix) { update.category = betterCat; }
       return { ...tx, ...update };
     }
     return tx;
