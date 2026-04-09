@@ -4,6 +4,80 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ledgerly</title>
+  <script>
+    // Web API shim — runs before any other script so window.electronAPI is always defined
+    // in browser context before any function checks it.
+    (function() {
+      if (window.electronAPI) return; // Electron already defined it
+      var token = sessionStorage.getItem('sb_token');
+      if (!token) { window.location.replace('/login'); return; }
+      var origin = window.location.origin;
+      function apiFetch(path, opts) {
+        opts = opts || {};
+        return fetch(origin + path, {
+          method: opts.method || 'GET',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: opts.body ? JSON.stringify(opts.body) : undefined
+        }).then(function(r) { return r.json(); });
+      }
+      var plaidReady = false;
+      var plaidScript = document.createElement('script');
+      plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+      plaidScript.onload = function() { plaidReady = true; };
+      document.head.appendChild(plaidScript);
+      function openPlaidLink(linkToken) {
+        return new Promise(function(resolve) {
+          if (!plaidReady || typeof Plaid === 'undefined') { resolve({ cancelled: true }); return; }
+          Plaid.create({ token: linkToken,
+            onSuccess: function(pt, meta) { resolve({ success: true, public_token: pt, metadata: meta }); },
+            onExit: function() { resolve({ cancelled: true }); }
+          }).open();
+        });
+      }
+      window.electronAPI = {
+        plaid: {
+          getConfig:        function() { return Promise.resolve({ serverUrl: origin }); },
+          setConfig:        function() { return Promise.resolve({ ok: true }); },
+          createLinkToken:  function() { return apiFetch('/api/plaid/link-token', { method: 'POST' }); },
+          openLink:         function(t) { return openPlaidLink(t); },
+          exchangeToken:    function(p,m) { return apiFetch('/api/plaid/exchange-token', { method: 'POST', body: { public_token: p, metadata: m } }); },
+          syncAccounts:     function(id) { return apiFetch('/api/plaid/accounts/' + id); },
+          syncTransactions: function(id,r) { return apiFetch('/api/plaid/sync/' + id + (r ? '?reset=true' : ''), { method: 'POST', body: {} }); },
+          getLinkedItems:   function() { return apiFetch('/api/plaid/items'); },
+          removeItem:       function(id) { return apiFetch('/api/plaid/items/' + id, { method: 'DELETE' }); },
+          getCredentials:   function() { return Promise.resolve(null); },
+          setCredentials:   function() { return Promise.resolve({ ok: true }); },
+          hasCredentials:   function() { return Promise.resolve(true); }
+        },
+        ai: {
+          getConfig: function() { return Promise.resolve({}); },
+          setConfig: function() { return Promise.resolve({ ok: true }); },
+          getRateLimit: function() { return Promise.resolve({ ok: true }); },
+          getHistory: function() { return Promise.resolve([]); },
+          clearHistory: function() { return Promise.resolve({ ok: true }); },
+          getAlerts: function() { return Promise.resolve([]); },
+          getFeatures: function() { return Promise.resolve(null); },
+          deleteAllData: function() { return Promise.resolve({ ok: true }); },
+          chat: function() {}, onChunk: function() {}, onDone: function() {},
+          onError: function() {}, removeListeners: function() {},
+          categorizeTransactions: function() { return Promise.resolve(null); },
+          forecastCashFlow: function() { return Promise.resolve(null); },
+          detectSubscriptionsAI: function() { return Promise.resolve(null); },
+          taxSummary: function() { return Promise.resolve(null); },
+          projectNetWorth: function() { return Promise.resolve(null); },
+          goalAdvice: function() { return Promise.resolve(null); },
+          parseSearchQuery: function() { return Promise.resolve(null); },
+          budgetAdvice: function() { return Promise.resolve(null); },
+          suggestMileage: function() { return Promise.resolve(null); },
+          analyzeTransaction: function() { return Promise.resolve(null); },
+          detectTrends: function() { return Promise.resolve(null); },
+          debtOptimizer: function() { return Promise.resolve(null); },
+          queueTransaction: function() { return Promise.resolve(null); },
+          reprocess: function() { return Promise.resolve(null); }
+        }
+      };
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -8495,13 +8569,8 @@ async function renderPlaidLinkedAccounts() {
     '</div>';
 }
 
-// ── WEB API SHIM ──────────────────────────────────────────────────────────────
-// When running in a browser (not Electron), inject a window.electronAPI shim
-// that makes HTTP requests to the server with the Supabase auth token.
-(function() {
-  if (window.electronAPI) return; // Already in Electron — nothing to do
-
-  const token = sessionStorage.getItem('sb_token');
+// (Web API shim is in <head> — runs before any code checks window.electronAPI)
+(function() { const token = sessionStorage.getItem('sb_token');
   if (!token) { window.location.href = '/login'; return; }
 
   const origin = window.location.origin;
