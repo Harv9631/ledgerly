@@ -4994,7 +4994,7 @@ function renderAmortizationTable() {
   const sel = document.getElementById('amort-debt-select');
   const wrap = document.getElementById('amortization-table-wrap');
   if (!sel || !sel.value) { if (wrap) wrap.innerHTML = ''; return; }
-  const debt = filteredDebts().find(d => d.id === sel.value);
+  const debt = getEffectiveDebts().find(d => d.id === sel.value);
   if (!debt) { wrap.innerHTML = ''; return; }
   const r = (debt.rate || 0) / 100 / 12;
   const pmt = debt.payment || 0;
@@ -5124,7 +5124,7 @@ function renderCalendar() {
   const calEnd   = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(daysInMonth).padStart(2,'0');
   filteredTx().filter(t => t.date >= calStart && t.date <= calEnd).forEach(tx => {
     const day = parseInt(tx.date.slice(8, 10), 10);
-    addEvent(day, tx.type === 'credit' ? 'income' : 'paid', tx.description || tx.name || '—', Math.abs(parseFloat(tx.amount)||0));
+    addEvent(day, tx.type === 'credit' ? 'income' : 'paid', tx.desc || '—', Math.abs(parseFloat(tx.amount)||0));
   });
 
   // Build daily balance projection
@@ -5290,7 +5290,7 @@ function generateInsights() {
   for (let i = 0; i < recent.length; i++) {
     for (let j = i + 1; j < recent.length; j++) {
       const a = recent[i], b = recent[j];
-      if (a.amount === b.amount && (a.description||'').toLowerCase() === (b.description||'').toLowerCase()) {
+      if (a.amount === b.amount && (a.desc||'').toLowerCase() === (b.desc||'').toLowerCase()) {
         const diff = Math.abs(new Date(a.date) - new Date(b.date)) / 86400000;
         if (diff <= 3) dupes.push([a, b]);
       }
@@ -6013,7 +6013,7 @@ function checkAlerts() {
     const recentCutoff = Date.now() - 7 * 86400000;
     filteredTx().filter(t => t.type === 'debit' && Math.abs(parseFloat(t.amount)||0) >= threshold && new Date(t.date).getTime() >= recentCutoff).forEach(t => {
       const key = 'large_tx_' + t.id;
-      if (addNotification('large_tx', 'Large Transaction Detected', fmt(Math.abs(parseFloat(t.amount))) + ' — ' + e(t.description || t.name || 'Unknown') + ' on ' + t.date + '.', key)) added++;
+      if (addNotification('large_tx', 'Large Transaction Detected', fmt(Math.abs(parseFloat(t.amount))) + ' — ' + e(t.desc || 'Unknown') + ' on ' + t.date + '.', key)) added++;
     });
   }
 
