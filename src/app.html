@@ -1696,6 +1696,11 @@
     <span class="section-title">Settings</span>
   </div>
   <div style="max-width:680px">
+    <div id="web-auth-section" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Account</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Signed in via Ledgerly web.</p>
+      <button class="btn btn-danger" onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'">Sign Out</button>
+    </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Backup &amp; Restore</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Export all your Ledgerly data as a single JSON file, or restore from a previous backup.</p>
@@ -8490,6 +8495,101 @@ async function renderPlaidLinkedAccounts() {
     '</div>';
 }
 
+// ── WEB API SHIM ──────────────────────────────────────────────────────────────
+// When running in a browser (not Electron), inject a window.electronAPI shim
+// that makes HTTP requests to the server with the Supabase auth token.
+(function() {
+  if (window.electronAPI) return; // Already in Electron — nothing to do
+
+  const token = sessionStorage.getItem('sb_token');
+  if (!token) { window.location.href = '/login'; return; }
+
+  const origin = window.location.origin;
+
+  async function apiFetch(path, opts = {}) {
+    const res = await fetch(origin + path, {
+      method: opts.method || 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+        ...(opts.headers || {})
+      },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    return res.json();
+  }
+
+  // Plaid Link in browser: use link-initialize.js from CDN directly
+  // (no Cloudflare issues in a real browser, unlike Electron)
+  let _plaidHandler = null;
+  function openPlaidLink(linkToken) {
+    return new Promise((resolve) => {
+      if (typeof Plaid === 'undefined') {
+        resolve({ cancelled: true, error: 'Plaid SDK not loaded' }); return;
+      }
+      _plaidHandler = Plaid.create({
+        token: linkToken,
+        onSuccess: (public_token, metadata) => resolve({ success: true, public_token, metadata }),
+        onExit: () => resolve({ cancelled: true })
+      });
+      _plaidHandler.open();
+    });
+  }
+
+  // Load Plaid Link SDK for browser use
+  const plaidScript = document.createElement('script');
+  plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+  document.head.appendChild(plaidScript);
+
+  window.electronAPI = {
+    plaid: {
+      getConfig:        ()                  => Promise.resolve({ serverUrl: origin }),
+      setConfig:        ()                  => Promise.resolve({ ok: true }),
+      createLinkToken:  ()                  => apiFetch('/api/plaid/link-token', { method: 'POST' }),
+      openLink:         (tok)               => openPlaidLink(tok),
+      exchangeToken:    (pub, meta)         => apiFetch('/api/plaid/exchange-token', { method: 'POST', body: { public_token: pub, metadata: meta } }),
+      syncAccounts:     (itemId)            => apiFetch('/api/plaid/accounts/' + itemId),
+      syncTransactions: (itemId, reset)     => apiFetch('/api/plaid/sync/' + itemId + (reset ? '?reset=true' : ''), { method: 'POST', body: {} }),
+      getLinkedItems:   ()                  => apiFetch('/api/plaid/items'),
+      removeItem:       (itemId)            => apiFetch('/api/plaid/items/' + itemId, { method: 'DELETE' }),
+      getCredentials:   ()                  => Promise.resolve(null),
+      setCredentials:   ()                  => Promise.resolve({ ok: true }),
+      hasCredentials:   ()                  => Promise.resolve(true)
+    },
+    ai: {
+      getConfig:    () => Promise.resolve({}),
+      setConfig:    () => Promise.resolve({ ok: true }),
+      getRateLimit: () => Promise.resolve({ ok: true }),
+      getHistory:   () => Promise.resolve([]),
+      clearHistory: () => Promise.resolve({ ok: true }),
+      getAlerts:    () => Promise.resolve([]),
+      getFeatures:  () => Promise.resolve(null),
+      deleteAllData:() => Promise.resolve({ ok: true }),
+      // Streaming chat not yet wired for web — stub
+      chat:              () => {},
+      onChunk:           () => {},
+      onDone:            () => {},
+      onError:           () => {},
+      removeListeners:   () => {},
+      // AI analysis features stubbed — will wire to server later
+      categorizeTransactions: () => Promise.resolve(null),
+      forecastCashFlow:       () => Promise.resolve(null),
+      detectSubscriptionsAI:  () => Promise.resolve(null),
+      taxSummary:             () => Promise.resolve(null),
+      projectNetWorth:        () => Promise.resolve(null),
+      goalAdvice:             () => Promise.resolve(null),
+      parseSearchQuery:       () => Promise.resolve(null),
+      budgetAdvice:           () => Promise.resolve(null),
+      suggestMileage:         () => Promise.resolve(null),
+      analyzeTransaction:     () => Promise.resolve(null),
+      detectTrends:           () => Promise.resolve(null),
+      debtOptimizer:          () => Promise.resolve(null),
+      queueTransaction:       () => Promise.resolve(null),
+      reprocess:              () => Promise.resolve(null),
+    }
+  };
+})();
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 loadState();
 // Restore mode button and mileage tab visibility from persisted state
@@ -8888,6 +8988,11 @@ function exportAmortizationCsv() {
 
 })();
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
+// Show sign-out section only in browser (web app) mode
+if (!window._isElectron && sessionStorage.getItem('sb_token')) {
+  const webSection = document.getElementById('web-auth-section');
+  if (webSection) webSection.style.display = '';
+}
 
 // ── AI CHAT ───────────────────────────────────────────────────────────────────
 
