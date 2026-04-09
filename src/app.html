@@ -21,10 +21,12 @@
         }).then(function(r) { return r.json(); });
       }
       var plaidReady = false;
-      var plaidScript = document.createElement('script');
-      plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-      plaidScript.onload = function() { plaidReady = true; };
-      document.head.appendChild(plaidScript);
+      if (!document.querySelector('script[src*="link-initialize"]')) {
+        var plaidScript = document.createElement('script');
+        plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
+        plaidScript.onload = function() { plaidReady = true; };
+        document.head.appendChild(plaidScript);
+      } else { plaidReady = true; }
       function openPlaidLink(linkToken) {
         return new Promise(function(resolve) {
           if (!plaidReady || typeof Plaid === 'undefined') { resolve({ cancelled: true }); return; }
@@ -5823,12 +5825,9 @@ function addNotification(type, title, message, dedupeKey) {
 
 function sendOsNotification(title, body) {
   try {
+    // Only send if permission already granted — never auto-request (blocked by browsers outside user gestures)
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
       new Notification(title, { body, icon: 'icon.ico' });
-    } else if (typeof Notification !== 'undefined' && Notification.permission !== 'denied') {
-      Notification.requestPermission().then(p => {
-        if (p === 'granted') new Notification(title, { body, icon: 'icon.ico' });
-      });
     }
   } catch(err) { /* Notification API may be unavailable */ }
 }
