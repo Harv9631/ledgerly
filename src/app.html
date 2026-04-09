@@ -457,9 +457,51 @@
     .digest-stat { text-align: center; }
     .digest-stat .ds-val { font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
     .digest-stat .ds-label { font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 500; }
+
+    /* ── Mobile responsive ────────────────────────────────────────────────── */
+    #nav-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:99; }
+    #hamburger { display:none; position:fixed; top:12px; left:12px; z-index:101; background:var(--sidebar-bg); border:none; border-radius:8px; padding:8px 10px; cursor:pointer; color:#fff; font-size:18px; line-height:1; }
+    @media (max-width:680px) {
+      #hamburger { display:block; }
+      nav { position:fixed; left:-220px; top:0; height:100vh; z-index:100; transition:left .25s; }
+      nav.open { left:0; }
+      nav.open ~ #nav-overlay { display:block; }
+      main { width:100%; padding:56px 12px 80px; }
+      .dash-2col, .dash-3col, .report-grid, .report-grid-3, .account-cards, .budget-grid { grid-template-columns:1fr !important; }
+      .cards { grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); }
+      .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .page-header { flex-direction:column; align-items:flex-start; }
+      .page-header-actions { width:100%; }
+      .tx-filters { flex-wrap:wrap; }
+      #dash-kpi-cards { grid-template-columns:1fr 1fr !important; }
+      .chat-fab { bottom:70px; }
+      /* bottom nav bar */
+      #mobile-bottom-nav { display:flex !important; }
+    }
+    #mobile-bottom-nav {
+      display:none; position:fixed; bottom:0; left:0; right:0; height:58px;
+      background:var(--sidebar-bg); border-top:1px solid rgba(255,255,255,.1);
+      z-index:98; justify-content:space-around; align-items:center; padding:0 4px;
+    }
+    .mbn-btn { background:none; border:none; color:rgba(255,255,255,.6); cursor:pointer;
+      font-family:inherit; font-size:10px; font-weight:500; display:flex; flex-direction:column;
+      align-items:center; gap:2px; padding:6px 10px; border-radius:8px; min-width:48px; }
+    .mbn-btn:active, .mbn-btn.active { color:#3fb950; }
+    .mbn-btn svg { width:20px; height:20px; fill:currentColor; }
   </style>
 </head>
 <body>
+
+<button id="hamburger" onclick="toggleMobileNav()">&#9776;</button>
+<div id="nav-overlay" onclick="toggleMobileNav()"></div>
+
+<div id="mobile-bottom-nav">
+  <button class="mbn-btn" onclick="mobileNav('dashboard')"><svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>Dash</button>
+  <button class="mbn-btn" onclick="mobileNav('transactions')"><svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>Txns</button>
+  <button class="mbn-btn" onclick="mobileNav('accounts')"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Accounts</button>
+  <button class="mbn-btn" onclick="mobileNav('budget')"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>Budget</button>
+  <button class="mbn-btn" onclick="mobileNav('ai-chat')"><svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>AI</button>
+</div>
 
 <nav>
   <div class="logo">
@@ -9154,6 +9196,24 @@ function exportAmortizationCsv() {
 
 })();
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
+
+// ── Mobile navigation ──────────────────────────────────────────────────────
+function toggleMobileNav() {
+  const nav = document.querySelector('nav');
+  nav.classList.toggle('open');
+}
+function mobileNav(page) {
+  showPage(page);
+  document.querySelector('nav').classList.remove('open');
+  // Update active state on bottom nav buttons
+  document.querySelectorAll('.mbn-btn').forEach(function(b) { b.classList.remove('active'); });
+  const map = {dashboard:0,transactions:1,accounts:2,budget:3,'ai-chat':4};
+  const idx = map[page];
+  if (idx !== undefined) {
+    const btns = document.querySelectorAll('.mbn-btn');
+    if (btns[idx]) btns[idx].classList.add('active');
+  }
+}
 
 // ── SUBSCRIPTION CHECK (web only) ──────────────────────────────────────────────
 if (window._webToken) {
