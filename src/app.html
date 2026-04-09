@@ -1750,6 +1750,30 @@
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Plaid API Credentials</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Enter your Plaid API credentials to enable bank connections. Get your keys at <strong>dashboard.plaid.com</strong>.</p>
+      <div class="form-group">
+        <label>Client ID</label>
+        <input type="text" id="plaid-client-id" placeholder="Plaid Client ID" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Secret Key</label>
+        <input type="password" id="plaid-secret" placeholder="Plaid Secret" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Environment</label>
+        <select id="plaid-environment">
+          <option value="development">Development (real banks, limited items)</option>
+          <option value="sandbox">Sandbox (test data only)</option>
+          <option value="production">Production (requires Plaid approval)</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+        <button class="btn btn-primary" onclick="savePlaidCredentials()">Save Credentials</button>
+        <span id="plaid-creds-status" style="font-size:13px"></span>
+      </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Bank Connection (Plaid)</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Connect your bank accounts via the Ledgerly server. Enter the URL of your Ledgerly server below.</p>
       <div class="form-group">
@@ -1765,6 +1789,41 @@
 </div>
 
 </main>
+
+<!-- First-Run Setup Modal -->
+<div id="setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:36px;width:480px;max-width:95vw;box-shadow:var(--shadow-lg)">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px">Welcome to Ledgerly</div>
+      <div style="font-size:14px;color:var(--muted)">Enter your Plaid API credentials to connect your bank accounts.</div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Get your free credentials at <strong style="color:var(--text)">dashboard.plaid.com</strong> → Team Settings → Keys</div>
+    <div class="form-group">
+      <label>Client ID</label>
+      <input type="text" id="setup-client-id" placeholder="Plaid Client ID" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Secret Key</label>
+      <input type="password" id="setup-secret" placeholder="Plaid Secret" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Environment</label>
+      <select id="setup-environment">
+        <option value="development">Development (real banks)</option>
+        <option value="sandbox">Sandbox (test data)</option>
+        <option value="production">Production</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;background:var(--blue-dim);border:1px solid rgba(88,166,255,.2);border-radius:8px;padding:10px 14px">
+      Your credentials are encrypted and stored locally. They are never sent anywhere except to Plaid's own servers.
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveSetupCredentials()">Connect & Start</button>
+      <button class="btn btn-ghost" onclick="dismissSetupModal()" title="Skip — you can add credentials later in Settings">Skip for now</button>
+    </div>
+    <div id="setup-status" style="font-size:13px;margin-top:12px;text-align:center"></div>
+  </div>
+</div>
 
 <!-- Floating AI Chat Button (visible on all pages except ai-chat) -->
 <button class="chat-fab" id="chat-fab" onclick="showPage('ai-chat')" title="Ask AI" style="display:none">
@@ -2864,7 +2923,7 @@ function showPage(name) {
   if (page) page.classList.add('active');
   document.querySelectorAll('.tab').forEach(t => { const tn = t.textContent.toLowerCase().trim().replace(/\s+/g,'-'); if (tn === name || (name==='reports' && t.textContent.trim()==='Reports')) t.classList.add('active'); });
   renderAll();
-  if (name === 'settings' && window.electronAPI) loadPlaidConfig();
+  if (name === 'settings' && window.electronAPI) { loadPlaidConfig(); loadPlaidCredentials(); }
   if (name === 'calendar') renderCalendar();
   if (name === 'insights') renderInsights();
   if (name === 'income-insights') renderIncomeInsights();
@@ -8075,6 +8134,73 @@ function renderSettings() {
   }
 }
 
+// ── PLAID CREDENTIALS ─────────────────────────────────────────────────────────
+
+async function loadPlaidCredentials() {
+  if (!window.electronAPI) return;
+  try {
+    const creds = await window.electronAPI.plaid.getCredentials();
+    if (!creds) return;
+    const clientIdEl = document.getElementById('plaid-client-id');
+    const envEl = document.getElementById('plaid-environment');
+    if (clientIdEl) clientIdEl.value = creds.clientId || '';
+    if (envEl && creds.environment) envEl.value = creds.environment;
+    const status = document.getElementById('plaid-creds-status');
+    if (status && creds.hasSecret) status.innerHTML = '<span style="color:var(--green)">&#10003; Credentials saved</span>';
+  } catch {}
+}
+
+async function savePlaidCredentials() {
+  if (!window.electronAPI) return;
+  const clientId = (document.getElementById('plaid-client-id') || {}).value || '';
+  const secret   = (document.getElementById('plaid-secret') || {}).value || '';
+  const environment = (document.getElementById('plaid-environment') || {}).value || 'development';
+  if (!clientId || !secret) { alert('Please enter both Client ID and Secret.'); return; }
+  try {
+    await window.electronAPI.plaid.setCredentials({ clientId, secret, environment });
+    const status = document.getElementById('plaid-creds-status');
+    if (status) status.innerHTML = '<span style="color:var(--green)">&#10003; Credentials saved — server restarting…</span>';
+    document.getElementById('plaid-secret').value = '';
+  } catch (err) {
+    alert('Error saving credentials: ' + (err && err.message ? err.message : err));
+  }
+}
+
+// ── FIRST-RUN SETUP MODAL ──────────────────────────────────────────────────────
+
+async function checkFirstRun() {
+  if (!window.electronAPI) return;
+  try {
+    const has = await window.electronAPI.plaid.hasCredentials();
+    if (!has) {
+      const modal = document.getElementById('setup-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+  } catch {}
+}
+
+function dismissSetupModal() {
+  const modal = document.getElementById('setup-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveSetupCredentials() {
+  const clientId = (document.getElementById('setup-client-id') || {}).value || '';
+  const secret   = (document.getElementById('setup-secret') || {}).value || '';
+  const environment = (document.getElementById('setup-environment') || {}).value || 'development';
+  if (!clientId || !secret) {
+    document.getElementById('setup-status').innerHTML = '<span style="color:var(--red)">Please enter both Client ID and Secret.</span>';
+    return;
+  }
+  document.getElementById('setup-status').innerHTML = '<span style="color:var(--muted)">Saving…</span>';
+  try {
+    await window.electronAPI.plaid.setCredentials({ clientId, secret, environment });
+    dismissSetupModal();
+  } catch (err) {
+    document.getElementById('setup-status').innerHTML = '<span style="color:var(--red)">Error: ' + (err && err.message ? err.message : err) + '</span>';
+  }
+}
+
 // ── PLAID ─────────────────────────────────────────────────────────────────────
 async function savePlaidConfig() {
   const serverUrl = (document.getElementById('plaid-server-url') || {}).value || '';
@@ -8761,7 +8887,7 @@ function exportAmortizationCsv() {
   if (!lastDigest || Date.now() - lastDigest.ts > weekMs) { generateWeeklyDigest(); }
 
 })();
-if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); }
+if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
 
 // ── AI CHAT ───────────────────────────────────────────────────────────────────
 

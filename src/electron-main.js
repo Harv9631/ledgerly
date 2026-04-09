@@ -51,6 +51,53 @@ function createWindow() {
 }
 
 // --- Plaid backend proxy helpers ---
+// --- Plaid credential storage (safeStorage-encrypted) ---
+
+function getPlaidCredentialsPath() {
+  return path.join(app.getPath('userData'), 'plaid-credentials.json');
+}
+
+function readPlaidCredentials() {
+  try {
+    const data = JSON.parse(fs.readFileSync(getPlaidCredentialsPath(), 'utf8'));
+    if (data.encrypted && safeStorage.isEncryptionAvailable()) {
+      return JSON.parse(safeStorage.decryptString(Buffer.from(data.encrypted, 'base64')));
+    }
+    return data; // plaintext fallback
+  } catch { return null; }
+}
+
+function savePlaidCredentials(creds) {
+  let data;
+  if (safeStorage.isEncryptionAvailable()) {
+    const encrypted = safeStorage.encryptString(JSON.stringify(creds));
+    data = { encrypted: encrypted.toString('base64') };
+  } else {
+    data = creds;
+  }
+  fs.writeFileSync(getPlaidCredentialsPath(), JSON.stringify(data, null, 2));
+}
+
+ipcMain.handle('plaid:get-credentials', () => {
+  const creds = readPlaidCredentials();
+  if (!creds) return null;
+  // Return config without the secret for display (mask it)
+  return { clientId: creds.clientId, environment: creds.environment, hasSecret: !!creds.secret };
+});
+
+ipcMain.handle('plaid:set-credentials', (_event, creds) => {
+  savePlaidCredentials(creds);
+  // Restart the backend server so it picks up the new credentials
+  if (serverProcess) { try { serverProcess.kill(); } catch {} serverProcess = null; }
+  setTimeout(startBackendServer, 500);
+  return { ok: true };
+});
+
+ipcMain.handle('plaid:has-credentials', () => {
+  const creds = readPlaidCredentials();
+  return !!(creds && creds.clientId && creds.secret);
+});
+
 // All Plaid calls go through the Ledgerly server. No credentials on the client.
 
 function getLedgerlyServerUrl() {
@@ -525,7 +572,18 @@ function startBackendServer() {
     serverProcess = spawn(process.execPath, [serverScript], {
       cwd: serverCwd,
       stdio: 'ignore',
-      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', PLAID_SDK_CACHE_DIR: app.getPath('userData'), DB_PATH: app.getPath('userData') }
+      env: (() => {
+        const creds = readPlaidCredentials() || {};
+        return {
+          ...process.env,
+          ELECTRON_RUN_AS_NODE: '1',
+          PLAID_SDK_CACHE_DIR: app.getPath('userData'),
+          DB_PATH: app.getPath('userData'),
+          PLAID_CLIENT_ID: creds.clientId  || process.env.PLAID_CLIENT_ID  || '',
+          PLAID_SECRET:    creds.secret     || process.env.PLAID_SECRET     || '',
+          PLAID_ENV:       creds.environment|| process.env.PLAID_ENV        || 'development',
+        };
+      })()
     });
     serverProcess.on('error', () => {}); // suppress spawn errors silently
   });

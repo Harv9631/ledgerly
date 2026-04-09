@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   plaid: {
     getConfig: () => ipcRenderer.invoke('plaid:get-config'),
     setConfig: (serverUrl) => ipcRenderer.invoke('plaid:set-config', { serverUrl }),
+    getCredentials: () => ipcRenderer.invoke('plaid:get-credentials'),
+    setCredentials: (creds) => ipcRenderer.invoke('plaid:set-credentials', creds),
+    hasCredentials: () => ipcRenderer.invoke('plaid:has-credentials'),
     createLinkToken: () => ipcRenderer.invoke('plaid:create-link-token'),
     openLink: (token) => ipcRenderer.invoke('plaid:open-link', token),
     exchangeToken: (publicToken, metadata) => ipcRenderer.invoke('plaid:exchange-token', publicToken, metadata),
