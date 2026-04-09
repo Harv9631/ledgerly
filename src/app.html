@@ -8601,10 +8601,10 @@ async function renderPlaidLinkedAccounts() {
     '</div>';
 }
 
-// (Web API shim is in <head> — runs before any code checks window.electronAPI)
+// Web API shim is in <head> — do not reassign window.electronAPI here.
+// The redirect fallback below handles the case where the user is not logged in.
 (function() { const token = sessionStorage.getItem('sb_token');
-  if (!token) { window.location.href = '/login'; return; }
-
+  if (!token && !window.electronAPI) { window.location.href = '/login'; return; }
   const origin = window.location.origin;
 
   async function apiFetch(path, opts = {}) {
@@ -8637,58 +8637,6 @@ async function renderPlaidLinkedAccounts() {
     });
   }
 
-  // Load Plaid Link SDK for browser use
-  const plaidScript = document.createElement('script');
-  plaidScript.src = 'https://cdn.plaid.com/link/v2/stable/link-initialize.js';
-  document.head.appendChild(plaidScript);
-
-  window.electronAPI = {
-    plaid: {
-      getConfig:        ()                  => Promise.resolve({ serverUrl: origin }),
-      setConfig:        ()                  => Promise.resolve({ ok: true }),
-      createLinkToken:  ()                  => apiFetch('/api/plaid/link-token', { method: 'POST' }),
-      openLink:         (tok)               => openPlaidLink(tok),
-      exchangeToken:    (pub, meta)         => apiFetch('/api/plaid/exchange-token', { method: 'POST', body: { public_token: pub, metadata: meta } }),
-      syncAccounts:     (itemId)            => apiFetch('/api/plaid/accounts/' + itemId),
-      syncTransactions: (itemId, reset)     => apiFetch('/api/plaid/sync/' + itemId + (reset ? '?reset=true' : ''), { method: 'POST', body: {} }),
-      getLinkedItems:   ()                  => apiFetch('/api/plaid/items'),
-      removeItem:       (itemId)            => apiFetch('/api/plaid/items/' + itemId, { method: 'DELETE' }),
-      getCredentials:   ()                  => Promise.resolve(null),
-      setCredentials:   ()                  => Promise.resolve({ ok: true }),
-      hasCredentials:   ()                  => Promise.resolve(true)
-    },
-    ai: {
-      getConfig:    () => Promise.resolve({}),
-      setConfig:    () => Promise.resolve({ ok: true }),
-      getRateLimit: () => Promise.resolve({ ok: true }),
-      getHistory:   () => Promise.resolve([]),
-      clearHistory: () => Promise.resolve({ ok: true }),
-      getAlerts:    () => Promise.resolve([]),
-      getFeatures:  () => Promise.resolve(null),
-      deleteAllData:() => Promise.resolve({ ok: true }),
-      // Streaming chat not yet wired for web — stub
-      chat:              () => {},
-      onChunk:           () => {},
-      onDone:            () => {},
-      onError:           () => {},
-      removeListeners:   () => {},
-      // AI analysis features stubbed — will wire to server later
-      categorizeTransactions: () => Promise.resolve(null),
-      forecastCashFlow:       () => Promise.resolve(null),
-      detectSubscriptionsAI:  () => Promise.resolve(null),
-      taxSummary:             () => Promise.resolve(null),
-      projectNetWorth:        () => Promise.resolve(null),
-      goalAdvice:             () => Promise.resolve(null),
-      parseSearchQuery:       () => Promise.resolve(null),
-      budgetAdvice:           () => Promise.resolve(null),
-      suggestMileage:         () => Promise.resolve(null),
-      analyzeTransaction:     () => Promise.resolve(null),
-      detectTrends:           () => Promise.resolve(null),
-      debtOptimizer:          () => Promise.resolve(null),
-      queueTransaction:       () => Promise.resolve(null),
-      reprocess:              () => Promise.resolve(null),
-    }
-  };
 })();
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
