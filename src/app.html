@@ -4078,8 +4078,8 @@ function computePL(period) {
   const credits = txCredits(txs);
   const allDebits = txDebits(txs);
   // From manual entries (monthly equivalent × months in period)
-  const miMonthly = monthlyIncome();
-  const meMonthly = monthlyExpenses();
+  const miMonthly = effectiveMonthlyIncome();
+  const meMonthly = effectiveMonthlyExpenses();
   if (state.mode === 'personal') {
     const revenue = credits > 0 ? credits : miMonthly;
     const opExpenses = allDebits > 0 ? allDebits : meMonthly;
@@ -4423,7 +4423,7 @@ function renderTaxSummary() {
   const yearEnd = new Date(taxYear, 11, 31, 23, 59, 59);
   const yearTxs = filteredTx().filter(t => { const d = new Date(t.date); return d >= yearStart && d <= yearEnd; });
   const txIncome = txCredits(yearTxs);
-  const annualIncome = txIncome > 0 ? txIncome : monthlyIncome() * 12;
+  const annualIncome = txIncome > 0 ? txIncome : effectiveMonthlyIncome() * 12;
 
   // Schedule C deductible expenses (business only)
   const schedCExp = filteredExpenses().filter(x => x.deductible === 'yes' && x.scheduleC);
@@ -4591,9 +4591,9 @@ function renderTaxSummary() {
 // ── MONTHLY REPORTS ───────────────────────────────────────────────────────────
 function getYearMonthlySummary(year) {
   const n = now();
-  const mi = monthlyIncome();
+  const mi = effectiveMonthlyIncome();
   const mp = monthlyPayment();
-  const me = monthlyExpenses();
+  const me = effectiveMonthlyExpenses();
   const lastMonth = (year === n.getFullYear()) ? n.getMonth() : 11;
   const result = [];
   for (let m = 0; m <= lastMonth; m++) {
@@ -5015,7 +5015,7 @@ function renderAdvancedPlanner() {
   const sec = document.getElementById('debt-planner-section');
   if (!sec) return;
   const debts = filteredDebts();
-  if (!debts.length) { sec.style.display = 'none'; return; }
+  if (!debts.length && plaidAccountDebt() === 0) { sec.style.display = 'none'; return; }
   sec.style.display = '';
   renderStrategyComparison();
   renderExtraPaymentResult(parseInt(document.getElementById('extra-pmt-slider').value) || 0);
@@ -5184,7 +5184,7 @@ function generateInsights() {
   function isDismissed(id) { return dismissedIds.includes(id); }
 
   // 1. Natural Language Summary
-  const mi = monthlyIncome(), me = monthlyExpenses(), td = totalDebt(), ta = totalAssets();
+  const mi = effectiveMonthlyIncome(), me = effectiveMonthlyExpenses(), td = totalDebt(), ta = totalAssets();
   const nw = ta - td;
   const txs = filteredTx();
   const lastMonthStart = new Date(n.getFullYear(), n.getMonth() - 1, 1);
@@ -5389,8 +5389,8 @@ function renderSavingsReport() {
     const monthTxs = txs.filter(t => txInRange(t, d, de));
     const inc = monthTxs.filter(t => t.type === 'credit').reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
     const exp = monthTxs.filter(t => t.type === 'debit').reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
-    const effInc = inc > 0 ? inc : toMonthly(monthlyIncome(), 'monthly');
-    const effExp = exp > 0 ? exp : toMonthly(monthlyExpenses(), 'monthly');
+    const effInc = inc > 0 ? inc : toMonthly(effectiveMonthlyIncome(), 'monthly');
+    const effExp = exp > 0 ? exp : toMonthly(effectiveMonthlyExpenses(), 'monthly');
     const sr = effInc > 0 ? Math.round(((effInc - effExp) / effInc) * 100) : 0;
     const lbl = d.toLocaleString('default', { month:'short', year:'2-digit' });
     labels.push(lbl);
@@ -5560,9 +5560,9 @@ function renderNwProjection() {
   if (!chartEl) return;
 
   const n = now();
-  const mi = monthlyIncome(), me = monthlyExpenses(), mp = monthlyPayment();
+  const mi = effectiveMonthlyIncome(), me = effectiveMonthlyExpenses(), mp = monthlyPayment();
   const currentNW = totalAssets() - totalDebt();
-  const monthlySavings = mi - me;
+  const monthlySavings = mi - me - mp;
   const months = _nwProjYears * 12;
   const labels = [], nwData = [], pessimData = [], optimData = [];
 
@@ -6075,8 +6075,8 @@ function generateWeeklyDigest() {
   const weekIncome = weekTxs.filter(t => t.type === 'credit').reduce((s, t) => s + Math.abs(parseFloat(t.amount)||0), 0);
   const weekSpend  = weekTxs.filter(t => t.type === 'debit').reduce((s, t)  => s + Math.abs(parseFloat(t.amount)||0), 0);
   const netWorth   = totalAssets() - totalDebt();
-  const miMonthly  = monthlyIncome();
-  const srPct      = miMonthly > 0 ? Math.max(0, Math.round(((miMonthly - monthlyExpenses()) / miMonthly) * 100)) : 0;
+  const miMonthly  = effectiveMonthlyIncome();
+  const srPct      = miMonthly > 0 ? Math.max(0, Math.round(((miMonthly - effectiveMonthlyExpenses()) / miMonthly) * 100)) : 0;
 
   // Skip digest if no financial data has been entered yet
   if (weekIncome === 0 && weekSpend === 0 && netWorth === 0 && miMonthly === 0) return;
@@ -6155,8 +6155,8 @@ function renderAlerts() {
       const wIncome = wTxs.filter(t => t.type === 'credit').reduce((s, t) => s + Math.abs(parseFloat(t.amount)||0), 0);
       const wSpend  = wTxs.filter(t => t.type === 'debit').reduce((s, t) => s + Math.abs(parseFloat(t.amount)||0), 0);
       const wNW     = totalAssets() - totalDebt();
-      const wMI     = monthlyIncome();
-      const wSR     = wMI > 0 ? Math.max(0, Math.round(((wMI - monthlyExpenses()) / wMI) * 100)) : 0;
+      const wMI     = effectiveMonthlyIncome();
+      const wSR     = wMI > 0 ? Math.max(0, Math.round(((wMI - effectiveMonthlyExpenses()) / wMI) * 100)) : 0;
       const periodEl = document.getElementById('digest-period');
       if (periodEl) periodEl.textContent = wStart.toLocaleDateString() + ' \u2013 ' + wEnd.toLocaleDateString();
       const statsEl = document.getElementById('digest-stats');
@@ -6247,7 +6247,7 @@ function renderAll() {
 }
 
 function renderSummaryCards() {
-  const mi = monthlyIncome(), me = monthlyExpenses(), td = totalDebt(), ta = totalAssets();
+  const mi = effectiveMonthlyIncome(), me = effectiveMonthlyExpenses(), td = totalDebt(), ta = totalAssets();
   const nw = ta - td;
   const n = now();
   const monthTxs = filteredTx().filter(t => txInRange(t, startOfMonth(n), endOfMonth(n)));
@@ -6378,8 +6378,8 @@ function renderDebt() {
       <td style="white-space:nowrap"><button class="btn btn-ghost btn-sm" onclick="openEditDebt('${d.id}')" style="margin-right:4px">Edit</button><button class="btn btn-danger" onclick="deleteDebt('${d.id}')">Remove</button></td>
     </tr>`;
   }).join('');
-  document.getElementById('debt-empty').style.display = debts.length ? 'none' : 'block';
-  document.querySelector('#page-debt .table-wrap').style.display = debts.length ? '' : 'none';
+  document.getElementById('debt-empty').style.display = (debts.length || plaidAccountDebt() > 0) ? 'none' : 'block';
+  document.querySelector('#page-debt .table-wrap').style.display = (debts.length || plaidAccountDebt() > 0) ? '' : 'none';
   renderPayoffChart();
   renderAdvancedPlanner();
 }
@@ -7107,7 +7107,7 @@ function exportTaxPDF() {
   const yearStart = new Date(yr, 0, 1), yearEnd = new Date(yr, 11, 31, 23, 59, 59);
   const yearTxs = filteredTx().filter(t => { const d = new Date(t.date); return d >= yearStart && d <= yearEnd; });
   const txIncome = txCredits(yearTxs);
-  const annualIncome = txIncome > 0 ? txIncome : monthlyIncome() * 12;
+  const annualIncome = txIncome > 0 ? txIncome : effectiveMonthlyIncome() * 12;
   const schedCExp = filteredExpenses().filter(x => x.deductible === 'yes' && x.scheduleC);
   const allDeductExp = filteredExpenses().filter(x => x.deductible === 'yes');
   const schedCTotal = schedCExp.reduce((s,x) => s + toMonthly(x.amount,x.freq)*12, 0);
@@ -7202,7 +7202,7 @@ function exportTaxCSV() {
   const yearStart = new Date(yr, 0, 1), yearEnd = new Date(yr, 11, 31, 23, 59, 59);
   const yearTxs = filteredTx().filter(t => { const d = new Date(t.date); return d >= yearStart && d <= yearEnd; });
   const txIncome = txCredits(yearTxs);
-  const annualIncome = txIncome > 0 ? txIncome : monthlyIncome() * 12;
+  const annualIncome = txIncome > 0 ? txIncome : effectiveMonthlyIncome() * 12;
   const schedCExp = filteredExpenses().filter(x => x.deductible === 'yes' && x.scheduleC);
   const allDeductExp = filteredExpenses().filter(x => x.deductible === 'yes');
   const schedCTotal = schedCExp.reduce((s,x) => s + toMonthly(x.amount,x.freq)*12, 0);
@@ -7293,7 +7293,7 @@ function exportReport() {
     filename = 'cashflow';
   } else if (id==='report-projection') {
     const startingBal = parseFloat(document.getElementById('proj-starting-balance')?.value || 0) || 0;
-    const monthlyInc = monthlyIncome(), monthlyExp = monthlyExpenses(), monthlyDebt = monthlyPayment();
+    const monthlyInc = effectiveMonthlyIncome(), monthlyExp = effectiveMonthlyExpenses(), monthlyDebt = monthlyPayment();
     const net = monthlyInc - monthlyExp - monthlyDebt;
     const now = new Date();
     const csvRows = [['Month','Income','Expenses','Net Cash Flow','Running Balance']];
@@ -9326,7 +9326,7 @@ function buildFinancialContext() {
   const mi = effectiveMonthlyIncome();
   const me = effectiveMonthlyExpenses();
   const debts = filteredDebts();
-  const totalDebtAmt = debts.reduce((s, d) => s + (parseFloat(d.balance) || 0), 0);
+  const totalDebtAmt = debts.reduce((s, d) => s + (parseFloat(d.balance) || 0), 0) + plaidAccountDebt();
   const accounts = filteredAccounts();
   const totalAssetAmt = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
   const ninetyDaysAgo = new Date(n.getTime() - 90 * 86400000).toISOString().slice(0, 10);
@@ -9747,11 +9747,11 @@ async function loadAiNetWorthForecast() {
   contentEl.innerHTML = '<span style="color:var(--muted);font-size:13px">Generating forecast…</span>';
   if (chartEl) chartEl.style.display = 'none';
   try {
-    const monthlySavingsRate = (parseFloat(document.getElementById('ai-nw-monthly-savings')?.value) || 500) / Math.max(1, monthlyIncome());
+    const monthlySavingsRate = (parseFloat(document.getElementById('ai-nw-monthly-savings')?.value) || 500) / Math.max(1, effectiveMonthlyIncome());
     const annualIncomeGrowthPct = (parseFloat(document.getElementById('ai-nw-income-growth')?.value) || 3) / 100;
     const assets = totalAssets();
-    const mi = monthlyIncome();
-    const me = monthlyExpenses();
+    const mi = effectiveMonthlyIncome();
+    const me = effectiveMonthlyExpenses();
     const debts = filteredDebts().map(d => ({ balance: d.balance, apr: d.rate, minPayment: d.payment, name: d.name }));
     const result = await window.electronAPI.ai.projectNetWorth({ assets, debts, monthlyIncome: mi, monthlyExpenses: me, monthlySavingsRate, annualIncomeGrowthPct, horizonMonths: [_aiNwHorizon] });
     if (result && result.error) throw new Error(result.error);
@@ -9794,7 +9794,7 @@ async function loadGoalAdvice() {
   advisorEl.style.display = '';
   contentEl.innerHTML = '<span style="color:var(--muted);font-size:13px">Analyzing goals…</span>';
   try {
-    const mi = monthlyIncome();
+    const mi = effectiveMonthlyIncome();
     const meArr = filteredExpenses().map(x => ({ category: x.category, amount: toMonthly(x.amount, x.freq) }));
     const debtMin = filteredDebts().reduce((s, d) => s + (parseFloat(d.payment) || 0), 0);
     const result = await window.electronAPI.ai.goalAdvice({ goals, monthlyIncome: mi, monthlyExpenses: meArr, monthlyDebtMinPayments: debtMin });
@@ -9873,7 +9873,7 @@ async function loadBudgetAdvice() {
   if (!el) return;
   if (!window.electronAPI) { el.style.display = 'none'; return; }
   try {
-    const currentMonthIncome = monthlyIncome();
+    const currentMonthIncome = effectiveMonthlyIncome();
     // Get prior 3 months income from transactions
     const n = now();
     const priorMonthlyIncomes = [];
@@ -9887,7 +9887,7 @@ async function loadBudgetAdvice() {
     }
     const budgetLimits = filteredBudgets().map(b => ({ category: b.category, limit: b.limit }));
     const debtMin = filteredDebts().reduce((s, d) => s + (parseFloat(d.payment) || 0), 0);
-    const me = monthlyExpenses();
+    const me = effectiveMonthlyExpenses();
     const result = await window.electronAPI.ai.budgetAdvice({ currentMonthIncome, priorMonthlyIncomes, budgetLimits, monthlyDebtMinPayments: debtMin, monthlyExpenses: me });
     if (result && result.error) throw new Error(result.error);
     if (!result || !result.actions) { el.style.display = 'none'; return; }
