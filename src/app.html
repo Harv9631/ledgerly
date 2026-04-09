@@ -1011,8 +1011,8 @@
       <select id="tx-filter-cat" onchange="renderTransactions()"><option value="">All categories</option></select>
       <input type="month" id="tx-filter-month" onchange="renderTransactions()" style="min-width:140px">
       <select id="tx-sort" onchange="renderTransactions()" style="min-width:130px">
-        <option value="date-desc">Date (Newest)</option>
-        <option value="date-asc" selected>Date (Oldest)</option>
+        <option value="date-desc" selected>Date (Newest)</option>
+        <option value="date-asc">Date (Oldest)</option>
         <option value="amount-desc">Amount (Highest)</option>
         <option value="amount-asc">Amount (Lowest)</option>
         <option value="category">Category A–Z</option>
@@ -6300,7 +6300,7 @@ function renderTransactions() {
     if (_txReceiptsOnly && !getReceipt(t.id)) return false;
     return true;
   });
-  const sortBy = (document.getElementById('tx-sort')||{}).value || 'date-asc';
+  const sortBy = (document.getElementById('tx-sort')||{}).value || 'date-desc';
   if (sortBy === 'date-desc') filtered.sort((a,b) => (b.date||'').localeCompare(a.date||''));
   else if (sortBy === 'amount-desc') filtered.sort((a,b) => Math.abs(b.amount) - Math.abs(a.amount));
   else if (sortBy === 'amount-asc') filtered.sort((a,b) => Math.abs(a.amount) - Math.abs(b.amount));
