@@ -15,9 +15,10 @@
       var origin = window.location.origin;
       function apiFetch(path, opts) {
         opts = opts || {};
+        var currentToken = sessionStorage.getItem('sb_token') || token; // refresh on each call
         return fetch(origin + path, {
           method: opts.method || 'GET',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentToken },
           body: opts.body ? JSON.stringify(opts.body) : undefined
         }).then(function(r) { return r.json(); });
       }
@@ -3795,6 +3796,7 @@ async function _runAiCategorize(txs) {
     for (let i = 0; i < txs.length; i += BATCH) {
       const batch = txs.slice(i, i + BATCH).map(t => ({ id: t.id, desc: t.desc }));
       const results = await window.electronAPI.ai.categorizeTransactions(batch);
+      if (!Array.isArray(results)) throw new Error((results && results.error) || 'Categorization failed');
       results.forEach(r => {
         const tx = state.transactions.find(t => t.id === r.id);
         if (tx && r.category) { tx.category = r.category; updated++; }
@@ -9284,7 +9286,7 @@ if (window._webToken) {
   fetch(window.location.origin + '/api/stripe/status', {
     headers: { 'Authorization': 'Bearer ' + window._webToken }
   }).then(r => r.json()).then(data => {
-    if (!data.active) {
+    if (data.active === false) { // only redirect when explicitly not active; undefined/missing = allow
       // Not subscribed — redirect to upgrade page
       // Allow a grace period via ?subscribed=1 after checkout completes
       const params = new URLSearchParams(window.location.search);
@@ -9300,7 +9302,8 @@ if (window._webToken) {
 // This makes data available on any browser/device after login.
 if (window._webToken) {
   const _syncOrigin = window.location.origin;
-  const _syncHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + window._webToken };
+  function _getSyncHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (sessionStorage.getItem('sb_token') || window._webToken) }; }
+  const _syncHeaders = _getSyncHeaders();
 
   // Load from server on startup — merge server state into local
   fetch(_syncOrigin + '/api/user/state', { headers: _syncHeaders })
