@@ -2452,7 +2452,9 @@ function inferTxType(desc, amount, category) {
   if (/\bDEEL\b/.test(d)) return 'credit';
   if (/\bDEBIT\b|DEBIT CARD|PURCHASE|WITHDRAWAL|WITHDRAW|CHECK PAID|NSF|OVERDRAFT|\bFEE\b|\bCHARGE\b|BILL PAY|ONLINE PMT|ATM WITHDRAWAL/.test(d)) return 'debit';
   if (/\bCREDIT\b|DIRECT DEP|DIRECT DEPOSIT|PAYROLL|REFUND|INTEREST PAID|DIVIDEND|MOBILE DEP|CHECK DEP|WIRE IN|ACH CREDIT|ZELLE IN/.test(d)) return 'credit';
-  return amount < 0 ? 'debit' : 'credit';
+  // Amounts are stored as Math.abs() so amount is always >= 0.
+  // Default to 'debit' (expenses are far more common than unrecognised income).
+  return 'debit';
 }
 
 function migrateAccounts() {
@@ -2515,9 +2517,11 @@ function migrateTransactions() {
         changed = true;
       }
     }
-    const inferredType = inferTxType(tx.desc, tx.amount, tx.category);
     const amount = Math.abs(tx.amount);
-    const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
+    // Only infer type if the transaction has no valid type or a negative amount.
+    // Don't re-classify transactions that already have a correct type set by Plaid.
+    const needsTypeAmountFix = (!tx.type && !tx.plaidTxId) || tx.amount < 0;
+    const inferredType = needsTypeAmountFix ? inferTxType(tx.desc, tx.amount, tx.category) : tx.type;
     const needsModeFix = !tx.mode;
     if (needsTypeAmountFix || needsModeFix) {
       changed = true;
@@ -3657,9 +3661,9 @@ function baseChartOpts(type) {
 function renderOverviewChart() {
   const ctx = document.getElementById('overview-chart').getContext('2d');
   destroyChart('overview');
-  const mi = monthlyIncome(), me = monthlyExpenses(), mp = monthlyPayment();
+  const mi = effectiveMonthlyIncome(), me = effectiveMonthlyExpenses(), mp = monthlyPayment();
   charts.overview = new Chart(ctx,{type:'bar',data:{
-    labels:['Monthly Income','Recurring Expenses','Debt Payments','Net Cash'],
+    labels:['Monthly Income','Monthly Expenses','Debt Payments','Net Cash'],
     datasets:[{data:[mi,me,mp,Math.max(0,mi-me-mp)],backgroundColor:[CHART_COLORS.green,CHART_COLORS.red,CHART_COLORS.orange,CHART_COLORS.blue],borderRadius:6}]
   },options:{...baseChartOpts('bar'),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}}}});
 }
