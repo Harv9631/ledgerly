@@ -3564,6 +3564,18 @@ function clearTransactions() {
 
 var _txCatApplyAllResolve = null;
 
+function cleanTxDesc(raw) {
+  var cleaned = (raw||'').replace(/\s{2,}/g,' ').replace(/\b\d{6,}\b/g,'').replace(/\*+\S+/g,'').trim();
+  if (/^[A-Z][A-Z\s\/\-&.,'0-9]+$/.test(cleaned)) return cleaned.toLowerCase().replace(/\b\w/g,function(c){return c.toUpperCase();});
+  return cleaned||raw||'';
+}
+function saveTxNote(id, note) {
+  var tx = state.transactions.find(function(t){return t.id===id;});
+  if (!tx) return;
+  tx.notes = (note||'').trim();
+  saveState();
+}
+
 function changeTxCategory(id, cat) {
   const tx = state.transactions.find(t => t.id===id);
   if (!tx || tx.category === cat) return;
