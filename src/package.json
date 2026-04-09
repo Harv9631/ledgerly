@@ -46,6 +46,7 @@
       "electron-main.js",
       "preload.js",
       "plaid-link.html",
+      "domains/**",
       "!node_modules/.cache"
     ],
     "extraResources": [
@@ -53,11 +54,6 @@
         "from": "server",
         "to": "server",
         "filter": ["**/*", "!.env", "!node_modules/.cache"]
-      },
-      {
-        "from": "domains",
-        "to": "domains",
-        "filter": ["**/*"]
       }
     ]
   },

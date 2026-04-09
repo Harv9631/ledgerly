@@ -5,9 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
-// domains/ lives in extraResources in packaged builds, next to __dirname in dev
-const domainsBase = app.isPackaged ? process.resourcesPath : __dirname;
-const { registerIpcHandlers, makeFileStorage, shutdown } = require(path.join(domainsBase, 'domains', 'ai', 'index'));
+const { registerIpcHandlers, makeFileStorage, shutdown } = require('./domains/ai/index');
 
 function createWindow() {
   const win = new BrowserWindow({
