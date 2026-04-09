@@ -6292,10 +6292,14 @@ function renderIncome() {
   const allInc = filteredIncome();
   const inc = incomePageList();
   const allMonthly = allInc.reduce((s,i)=>s+toMonthly(i.amount,i.freq),0);
+  // For Plaid-only users with no manual income, show effective monthly income
+  const hasTxCredits = filteredTx().some(t=>t.type==='credit');
+  const dispMonthly = allMonthly > 0 ? allMonthly : effectiveMonthlyIncome();
+  const sourcesLabel = allInc.length > 0 ? allInc.length : (hasTxCredits ? 'Plaid' : 0);
   document.getElementById('income-summary-cards').innerHTML = `
-    <div class="card"><div class="card-label">Sources</div><div class="card-value blue">${allInc.length}</div></div>
-    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value green">${fmt(allMonthly)}</div></div>
-    <div class="card"><div class="card-label">Annual Total</div><div class="card-value green">${fmt(allMonthly*12)}</div></div>
+    <div class="card"><div class="card-label">Sources</div><div class="card-value blue">${sourcesLabel}</div></div>
+    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value green">${fmt(dispMonthly)}</div></div>
+    <div class="card"><div class="card-label">Annual Total</div><div class="card-value green">${fmt(dispMonthly*12)}</div></div>
   `;
   const filtMonthly = inc.reduce((s,i)=>s+toMonthly(i.amount,i.freq),0);
   const isFiltered = incomeFilters.search || incomeFilters.dateFrom || incomeFilters.dateTo;
@@ -6313,8 +6317,8 @@ function renderIncome() {
   `).join('');
   const empty = document.getElementById('income-empty');
   const tw = document.querySelector('#page-income .table-wrap');
-  empty.style.display = inc.length ? 'none' : 'block';
-  tw.style.display = inc.length ? '' : 'none';
+  empty.style.display = (inc.length || hasTxCredits) ? 'none' : 'block';
+  tw.style.display = (inc.length || hasTxCredits) ? '' : 'none';
 }
 
 function renderExpenses() {
@@ -6323,11 +6327,13 @@ function renderExpenses() {
   const totalMonthly = all.reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
   const fixedTotal = all.filter(x=>x.expType==='Fixed').reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
   const varTotal = all.filter(x=>x.expType==='Variable').reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
+  const hasTxDebits = filteredTx().some(t=>t.type==='debit');
+  const dispExpMonthly = totalMonthly > 0 ? totalMonthly : effectiveMonthlyExpenses();
   document.getElementById('expense-summary-cards').innerHTML = `
-    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value red">${fmt(totalMonthly)}</div></div>
+    <div class="card"><div class="card-label">Monthly Total</div><div class="card-value red">${fmt(dispExpMonthly)}</div></div>
     <div class="card"><div class="card-label">Fixed</div><div class="card-value">${fmt(fixedTotal)}</div></div>
     <div class="card"><div class="card-label">Variable</div><div class="card-value yellow">${fmt(varTotal)}</div></div>
-    <div class="card"><div class="card-label">Annual Total</div><div class="card-value red">${fmt(totalMonthly*12)}</div></div>
+    <div class="card"><div class="card-label">Annual Total</div><div class="card-value red">${fmt(dispExpMonthly*12)}</div></div>
   `;
   document.getElementById('expense-table-body').innerHTML = show.map(x=>{
     const rcpt = getReceipt(x.id);
@@ -6343,8 +6349,8 @@ function renderExpenses() {
     ${rcptCell}
     <td><button class="btn btn-danger" onclick="deleteExpense('${x.id}')">Remove</button></td></tr>`;
   }).join('');
-  document.getElementById('expense-empty').style.display = show.length ? 'none' : 'block';
-  document.querySelector('#page-expenses .table-wrap').style.display = show.length ? '' : 'none';
+  document.getElementById('expense-empty').style.display = (show.length || hasTxDebits) ? 'none' : 'block';
+  document.querySelector('#page-expenses .table-wrap').style.display = (show.length || hasTxDebits) ? '' : 'none';
 }
 
 function renderDebt() {
