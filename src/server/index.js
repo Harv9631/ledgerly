@@ -54,7 +54,7 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// AI Chat — Server-Sent Events streaming endpoint
+// AI Chat — simple JSON endpoint (SSE buffered by Railway proxy, so use plain request/response)
 // POST /api/ai/chat  { message, history: [{role,content}], financialContext }
 app.post('/api/ai/chat', requireAuth, async (req, res) => {
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -82,25 +82,17 @@ ${financialContext || 'No financial data available yet.'}`;
     { role: 'user', content: message }
   ];
 
-  // Set up SSE
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders();
-
-  const send = (type, data) => res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
-
   try {
     const { default: Anthropic } = require('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
-    const stream = client.messages.stream({ model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages });
-    stream.on('text', (text) => send('chunk', { text }));
-    const final = await stream.finalMessage();
-    send('done', { usage: final.usage });
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages
+    });
+    const text = response.content[0]?.text || '';
+    res.json({ text, usage: response.usage });
   } catch (err) {
-    send('error', { error: err.message || 'AI error' });
+    res.status(500).json({ error: err.message || 'AI error' });
   }
-  res.end();
 });
 
 // Serve login.html with Supabase config injected so keys stay in env vars

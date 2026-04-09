@@ -77,40 +77,18 @@
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
               body: JSON.stringify({ message: payload.message, history: hist, financialContext: payload.financialContext })
-            }).then(function(r) {
-              if (!r.ok) {
-                return r.json().then(function(d) {
-                  if (self._cbError) self._cbError(d.error || 'Server error ' + r.status);
-                }).catch(function() {
-                  if (self._cbError) self._cbError('Server error ' + r.status);
-                });
+            }).then(function(r) { return r.json(); }).then(function(data) {
+              if (data.error) {
+                if (self._cbError) self._cbError(data.error);
+                return;
               }
-              var reader = r.body.getReader(), dec = new TextDecoder(), buf = '', full = '';
-              function pump() {
-                return reader.read().then(function(d) {
-                  if (d.done) {
-                    hist.push({ role: 'user', content: payload.message });
-                    hist.push({ role: 'assistant', content: full });
-                    if (hist.length > 40) hist = hist.slice(-40);
-                    localStorage.setItem(histKey, JSON.stringify(hist));
-                    return;
-                  }
-                  buf += dec.decode(d.value, { stream: true });
-                  var lines = buf.split('\n');
-                  buf = lines.pop();
-                  lines.forEach(function(l) {
-                    if (!l.startsWith('data: ')) return;
-                    try {
-                      var ev = JSON.parse(l.slice(6));
-                      if (ev.type === 'chunk' && self._cbChunk) { full += ev.text; self._cbChunk(ev.text); }
-                      else if (ev.type === 'done' && self._cbDone) self._cbDone(ev);
-                      else if (ev.type === 'error' && self._cbError) self._cbError(ev.error);
-                    } catch {}
-                  });
-                  return pump();
-                });
-              }
-              return pump();
+              var text = data.text || '';
+              if (self._cbChunk) self._cbChunk(text);
+              hist.push({ role: 'user', content: payload.message });
+              hist.push({ role: 'assistant', content: text });
+              if (hist.length > 40) hist = hist.slice(-40);
+              localStorage.setItem(histKey, JSON.stringify(hist));
+              if (self._cbDone) self._cbDone(data);
             }).catch(function(e) { if (self._cbError) self._cbError(e.message); });
           },
           onChunk: function(cb) { window.electronAPI.ai._cbChunk = cb; },
