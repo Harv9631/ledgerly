@@ -8871,10 +8871,44 @@ async function syncPlaidItem(itemId, btn) {
       if (removedIds.size) state.transactions = state.transactions.filter(t => !removedIds.has(t.plaidTxId));
       saveState();
       renderAll();
+      // Auto AI-categorize new transactions in the background
+      if ((txs.added || []).length > 0 && window.electronAPI && window.electronAPI.ai) {
+        _autoAiCategorize((txs.added || []).map(function(tx) { return tx.transaction_id; }));
+      }
     }
   } finally {
     await renderPlaidLinkedAccounts();
   }
+}
+
+// Auto AI-categorize newly synced transactions in the background.
+// Runs silently — doesn't block the UI or show errors to the user.
+async function _autoAiCategorize(plaidTxIds) {
+  try {
+    // Find the local transactions that match these Plaid tx IDs
+    var newTxs = state.transactions.filter(function(t) {
+      return t.plaidTxId && plaidTxIds.includes(t.plaidTxId);
+    });
+    if (!newTxs.length) return;
+    var BATCH = 50;
+    var updated = 0;
+    for (var i = 0; i < newTxs.length; i += BATCH) {
+      var batch = newTxs.slice(i, i + BATCH).map(function(t) { return { id: t.id, desc: t.desc }; });
+      try {
+        var results = await window.electronAPI.ai.categorizeTransactions(batch);
+        if (!Array.isArray(results)) continue;
+        results.forEach(function(r) {
+          var tx = state.transactions.find(function(t) { return t.id === r.id; });
+          if (tx && r.category && r.category !== 'Other') { tx.category = r.category; updated++; }
+        });
+      } catch(ex) { /* silent — don't interrupt user */ }
+    }
+    if (updated > 0) {
+      saveState();
+      renderAll();
+      console.log('[AI-CAT] Auto-categorized ' + updated + ' of ' + newTxs.length + ' new transactions');
+    }
+  } catch(ex) { console.log('[AI-CAT] Auto-categorize error:', ex.message); }
 }
 
 function toggleAccountExclusion(accountLocalId, plaidAccId) {
