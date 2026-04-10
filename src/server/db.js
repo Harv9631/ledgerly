@@ -40,13 +40,14 @@ function loadLocal() {
 }
 
 async function loadFromSupabase() {
-  if (!sbStorage) return null;
+  if (!sbStorage) { console.log('[DB] No Supabase storage client'); return null; }
   try {
     const { data, error } = await sbStorage.from(BUCKET).download(OBJECT);
-    if (error || !data) return null;
+    if (error) { console.log('[DB] Supabase download error:', error.message || JSON.stringify(error)); return null; }
+    if (!data) { console.log('[DB] Supabase returned no data'); return null; }
     const text = await data.text();
     return JSON.parse(text);
-  } catch { return null; }
+  } catch(e) { console.log('[DB] Supabase load exception:', e.message); return null; }
 }
 
 function load() {
@@ -56,21 +57,25 @@ function load() {
 function save(data) {
   const json = JSON.stringify(data, null, 2);
   try { fs.writeFileSync(dbFile, json); } catch {}
-  // Push to Supabase Storage asynchronously (fire-and-forget)
+  // Push to Supabase Storage asynchronously
   if (sbStorage) {
     const buf = Buffer.from(json, 'utf8');
     sbStorage.from(BUCKET).upload(OBJECT, buf, { contentType: 'application/json', upsert: true })
-      .catch(() => {});
+      .then(r => { if (r.error) console.log('[DB] Supabase upload error:', r.error.message || JSON.stringify(r.error)); })
+      .catch(e => console.log('[DB] Supabase upload exception:', e.message));
   }
 }
 
 // On server start: restore from Supabase if local file is missing
 (async function restoreFromSupabase() {
-  if (loadLocal()) return; // local file exists, nothing to restore
+  if (loadLocal()) { console.log('[DB] Local file found, no restore needed'); return; }
+  console.log('[DB] No local file, attempting Supabase restore...');
   const remote = await loadFromSupabase();
   if (remote) {
     try { fs.writeFileSync(dbFile, JSON.stringify(remote, null, 2)); } catch {}
     console.log('[DB] Restored data from Supabase Storage');
+  } else {
+    console.log('[DB] No Supabase data found, starting fresh');
   }
 })();
 
