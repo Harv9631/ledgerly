@@ -8903,6 +8903,17 @@ async function _autoAiCategorize(plaidTxIds) {
         });
       } catch(ex) { /* silent — don't interrupt user */ }
     }
+    // Apply user's auto-categorization rules AFTER AI — rules always win
+    var rules = state.txRules || [];
+    if (rules.length) {
+      newTxs.forEach(function(tx) {
+        var desc = (tx.desc || '').toLowerCase();
+        for (var ri = 0; ri < rules.length; ri++) {
+          var kw = rules[ri].keyword || rules[ri].desc || '';
+          if (kw && desc.includes(kw.toLowerCase())) { tx.category = rules[ri].category; updated++; break; }
+        }
+      });
+    }
     if (updated > 0) {
       saveState();
       renderAll();
