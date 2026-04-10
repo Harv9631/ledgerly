@@ -6308,6 +6308,7 @@ function renderAll() {
   renderAlerts();
   renderInsights();
   updateIncomeSmoothingBanner();
+  if (window.electronAPI) loadCashFlowForecast();
 }
 
 function renderSummaryCards() {
@@ -9808,9 +9809,8 @@ async function loadCashFlowForecast() {
   if (!el) return;
   if (!window.electronAPI) { el.style.display = 'none'; return; }
   el.style.display = '';
-  el.innerHTML = `<div class="chart-area"><div class="chart-title">✨ Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Loading forecast…</div></div>`;
+  el.innerHTML = `<div class="chart-area"><div class="chart-title">Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Loading forecast…</div></div>`;
   try {
-    // Forecaster only needs a few fields — trim to reduce payload size
     const txs = filteredTx().map(t => ({
       transaction_id: t.plaidTxId || t.id,
       date: t.date,
@@ -9819,32 +9819,44 @@ async function loadCashFlowForecast() {
       amount: t.type === 'credit' ? Math.abs(t.amount) : -Math.abs(t.amount)
     }));
     const currentBalance = totalAssets() - totalDebt();
-    const result = await window.electronAPI.ai.forecastCashFlow({ transactions: txs, currentBalance });
-    if (result && result.error) throw new Error(result.error);
-    if (!result || !result.summaries) throw new Error('No forecast data');
-    // If forecast shows no movement (all same balance), supplement with avg monthly net
+    // Use local computation if no transactions yet or API fails
     const avgNet = effectiveMonthlyIncome() - effectiveMonthlyExpenses() - monthlyPayment();
-    const s = result.summaries.map(b => {
-      const hasMovement = b.income > 0 || b.expenses > 0;
-      if (!hasMovement && avgNet !== 0) {
-        const months = b.days / 30;
-        return { ...b, balance: currentBalance + avgNet * months, income: Math.max(0, avgNet) * months, expenses: Math.max(0, -avgNet) * months, _estimated: true };
-      }
-      return b;
-    });
-    const warning = result.warnings && result.warnings.length
-      ? `<div style="color:var(--red);font-size:12px;margin-top:8px">⚠ ${e(result.warnings[0])}</div>` : '';
+    let s;
+    try {
+      const result = await window.electronAPI.ai.forecastCashFlow({ transactions: txs, currentBalance });
+      if (result && result.error) throw new Error(result.error);
+      if (!result || !result.summaries) throw new Error('No forecast data');
+      s = result.summaries.map(b => {
+        const hasMovement = b.income > 0 || b.expenses > 0;
+        if (!hasMovement && avgNet !== 0) {
+          const months = b.days / 30;
+          return { ...b, balance: currentBalance + avgNet * months, income: Math.max(0, avgNet) * months, expenses: Math.max(0, -avgNet) * months, _estimated: true };
+        }
+        return b;
+      });
+    } catch {
+      // Fallback: compute forecast locally from income/expense/debt averages
+      s = [30, 60, 90].map(days => {
+        const months = days / 30;
+        return { days, balance: currentBalance + avgNet * months, income: Math.max(0, avgNet) * months, expenses: Math.max(0, -avgNet) * months, _estimated: true };
+      });
+    }
+    // If no data at all, show a friendly message
+    if (!s.length || (currentBalance === 0 && avgNet === 0 && !txs.length)) {
+      el.innerHTML = `<div class="chart-area"><div class="chart-title">Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Add income, expenses, or link a bank account to see your forecast.</div></div>`;
+      return;
+    }
     el.innerHTML = `<div class="chart-area">
-      <div class="chart-title">✨ Cash Flow Forecast</div>
-      <div class="chart-sub">Projected balance based on ${s[0]&&s[0]._estimated?'3-month average':'recurring transactions'}</div>
+      <div class="chart-title">Cash Flow Forecast</div>
+      <div class="chart-sub">Projected balance based on ${s[0]&&s[0]._estimated?'monthly averages':'recurring transactions'}</div>
       <div class="cards" style="margin-top:12px">
         ${s.map(b => `<div class="card"><div class="card-label">${b.days}-Day${b._estimated?' <span style="font-size:9px;opacity:.6">est.</span>':''}</div>
           <div class="card-value ${b.balance >= 0 ? 'green' : 'red'}">${fmt(b.balance)}</div>
           <div class="card-sub">${b.income>0?'+'+fmt(b.income)+' in':''} ${b.expenses>0?'−'+fmt(b.expenses)+' out':''}</div></div>`).join('')}
-      </div>${warning}
+      </div>
     </div>`;
   } catch (err) {
-    el.innerHTML = `<div class="chart-area"><div class="chart-title">✨ Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">${e(err.message || 'Forecast unavailable')}</div></div>`;
+    el.innerHTML = `<div class="chart-area"><div class="chart-title">Cash Flow Forecast</div><div style="color:var(--muted);font-size:13px;padding:8px 0">Add income and expenses to see your forecast.</div></div>`;
   }
 }
 
@@ -10185,8 +10197,7 @@ const _origShowPage = showPage;
 })();
 
 if (window.electronAPI) { loadAiConfig(); document.getElementById('chat-fab').style.display = 'flex'; }
-// Load dashboard forecast on initial startup
-if (window.electronAPI) { setTimeout(loadCashFlowForecast, 500); }
+// Dashboard forecast now loads inside renderAll() after data is ready
 </script>
 </body>
 </html>
