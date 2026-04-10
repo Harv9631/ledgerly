@@ -44,6 +44,24 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '5mb' }));
 
+// DB debug — shows what Plaid items are stored and under which user IDs
+app.get('/debug/db', (_req, res) => {
+  try {
+    const { getUserState } = require('./db');
+    const fs = require('fs'), path = require('path');
+    const dbDir = process.env.DB_PATH || __dirname;
+    const dbFile = path.join(dbDir, 'ledgerly-data.json');
+    let data = {};
+    try { data = JSON.parse(fs.readFileSync(dbFile, 'utf8')); } catch {}
+    res.json({
+      fileExists: fs.existsSync(dbFile),
+      plaidItemCount: (data.plaid_items || []).length,
+      plaidItemUsers: [...new Set((data.plaid_items || []).map(i => i.user_id))],
+      userStateCount: Object.keys(data.user_states || {}).length,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // Health check
 app.get('/health', (_req, res) => {
   res.json({
