@@ -2812,6 +2812,17 @@ function loadState() {
   migrateDebts();
   migrateIncome();
   migrateExpenses();
+  // Backfill excludedPlaidIds from excludedAccountIds for accounts excluded before dual-storage
+  if ((state.excludedAccountIds || []).length > 0 && !(state.excludedPlaidIds || []).length) {
+    state.excludedPlaidIds = [];
+    (state.excludedAccountIds || []).forEach(function(localId) {
+      var acc = (state.accounts || []).find(function(a) { return a.id === localId; });
+      if (acc && acc.plaidAccountId && !state.excludedPlaidIds.includes(acc.plaidAccountId)) {
+        state.excludedPlaidIds.push(acc.plaidAccountId);
+      }
+    });
+    if (state.excludedPlaidIds.length) saveState();
+  }
 }
 function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
@@ -2965,8 +2976,10 @@ function filteredTx() {
 }
 function filteredAccounts(){
   const excludedLocalIds = new Set(state.excludedAccountIds || []);
+  const excludedPlaidIds = new Set(state.excludedPlaidIds || []);
   return state.accounts.filter(a => {
     if (excludedLocalIds.has(a.id)) return false;
+    if (a.plaidAccountId && excludedPlaidIds.has(a.plaidAccountId)) return false;
     if (a.isPlaid) return true; // Plaid bank accounts visible in both Personal and Business modes
     return a.mode === state.mode;
   });
