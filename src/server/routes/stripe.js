@@ -100,16 +100,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let event;
 
-  if (webhookSecret) {
-    const sig = req.headers['stripe-signature'];
-    try {
-      const stripe = getStripe();
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-      return res.status(400).send('Webhook signature verification failed');
-    }
-  } else {
-    try { event = JSON.parse(req.body); } catch { return res.status(400).send('Invalid JSON'); }
+  if (!webhookSecret) {
+    console.error('[STRIPE] STRIPE_WEBHOOK_SECRET not configured — rejecting webhook');
+    return res.status(503).send('Webhook not configured');
+  }
+
+  const sig = req.headers['stripe-signature'];
+  try {
+    const stripe = getStripe();
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    return res.status(400).send('Webhook signature verification failed');
   }
 
   const obj = event.data.object;
