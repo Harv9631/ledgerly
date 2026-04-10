@@ -3702,19 +3702,40 @@ function changeTxCategory(id, cat) {
     t.mode === tx.mode
   );
 
-  if (!matches.length) { renderTransactions(); return; }
-
-  // Auto-apply to all matching transactions — also save a rule for future imports
-  matches.forEach(function(t) { t.category = cat; });
-
-  // Save a rule so future synced transactions with the same desc get this category
+  // Save rule for future imports (single transaction only)
   state.txRules = state.txRules || [];
   var existingRule = state.txRules.find(function(r) { return (r.desc||'').trim().toLowerCase() === txDescNorm; });
   if (existingRule) { existingRule.category = cat; }
   else { state.txRules.push({ desc: tx.desc, descNorm: txDescNorm, category: cat, mode: tx.mode }); }
-
   saveState();
+
+  if (!matches.length) { renderTransactions(); return; }
+
+  // Show confirmation toast — don't auto-apply, let user decide
   renderTransactions();
+  setTimeout(function() {
+    var banner = document.createElement('div');
+    banner.id = 'tx-cat-toast';
+    banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-hi);border-radius:10px;padding:12px 18px;z-index:300;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:12px;font-size:13px;max-width:90vw';
+    banner.innerHTML = '<span><b>' + matches.length + '</b> other ' + (matches.length===1?'transaction':'transactions') + ' with this description found. Apply <b>' + cat + '</b> to all?</span>'+
+      '<button onclick="applyTxCatToAll(\''+id+'\',\''+cat+'\')" style="background:var(--grad);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap">Apply All</button>'+
+      '<button onclick="document.getElementById(\'tx-cat-toast\').remove()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px">Just this one</button>';
+    var old = document.getElementById('tx-cat-toast');
+    if (old) old.remove();
+    document.body.appendChild(banner);
+    setTimeout(function(){ if(document.getElementById('tx-cat-toast'))document.getElementById('tx-cat-toast').remove(); }, 8000);
+  }, 100);
+}
+
+function applyTxCatToAll(sourceId, cat) {
+  var src = state.transactions.find(function(t){return t.id===sourceId;});
+  if (!src) return;
+  var norm = (src.desc||'').trim().toLowerCase();
+  state.transactions.forEach(function(t){
+    if (t.id !== sourceId && (t.desc||'').trim().toLowerCase() === norm && t.mode === src.mode) t.category = cat;
+  });
+  saveState(); renderTransactions();
+  var toast = document.getElementById('tx-cat-toast'); if (toast) toast.remove();
 }
 
 // Bulk selection state
