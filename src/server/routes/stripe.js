@@ -134,10 +134,18 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
 });
 
 function findUserByCustomer(customerId) {
-  // Simple lookup — in production use a proper DB index
+  // Look up which user owns this Stripe customer ID by scanning user states
+  const fs = require('fs');
+  const dbDir = process.env.DB_PATH || path.join(__dirname, '..');
+  const dbFile = path.join(dbDir, 'ledgerly-data.json');
   try {
-    const { load } = require('../db');
-    // Not exported, so we skip for now — webhook metadata carries user_id
+    const data = JSON.parse(fs.readFileSync(dbFile, 'utf8'));
+    const states = data.user_states || {};
+    for (const [key, val] of Object.entries(states)) {
+      if (key.startsWith('stripe:') && val.customerId === customerId) {
+        return key.slice(7); // strip 'stripe:' prefix to get user ID
+      }
+    }
   } catch {}
   return null;
 }
