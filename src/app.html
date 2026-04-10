@@ -5880,6 +5880,12 @@ function deleteTxRule(id) {
 function renderTxRulesList() {
   const el = document.getElementById('tx-rules-list');
   if (!el) return;
+  // Migrate old-format rules (desc/descNorm) to new format (keyword/id)
+  (state.txRules || []).forEach(function(r) {
+    if (!r.id) r.id = uid();
+    if (!r.keyword && r.desc) r.keyword = r.desc;
+    if (!r.keyword && r.descNorm) r.keyword = r.descNorm;
+  });
   const rules = getTxRules();
   if (!rules.length) {
     el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px 0">No rules yet. Add a keyword → category rule below.</div>';
@@ -5889,11 +5895,11 @@ function renderTxRulesList() {
     '<thead><tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)">Keyword</th>' +
     '<th style="text-align:left;padding:6px 8px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border)">Category</th>' +
     '<th style="border-bottom:1px solid var(--border)"></th></tr></thead><tbody>' +
-    rules.map(r =>
-      '<tr><td style="padding:7px 8px;font-size:13px;font-weight:500">' + e(r.keyword) + '</td>' +
+    rules.map(function(r) {
+      return '<tr><td style="padding:7px 8px;font-size:13px;font-weight:500">' + e(r.keyword || '') + '</td>' +
       '<td style="padding:7px 8px;font-size:13px"><span class="badge badge-blue">' + e(r.category) + '</span></td>' +
-      '<td style="padding:4px 8px;text-align:right"><button class="btn btn-danger" onclick="deleteTxRule(\'' + r.id + '\')">✕</button></td></tr>'
-    ).join('') +
+      '<td style="padding:4px 8px;text-align:right"><button class="btn btn-danger" onclick="deleteTxRule(\'' + e(r.id) + '\')">✕</button></td></tr>';
+    }).join('') +
     '</tbody></table>';
 }
 
