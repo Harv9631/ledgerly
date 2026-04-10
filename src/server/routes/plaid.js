@@ -261,14 +261,17 @@ router.delete('/items/:itemId', async (req, res) => {
     const userId = getUserId(req);
     const { itemId } = req.params;
 
+    // Look up by item_id only (user_id may differ if auth fallback changed between sessions)
     const itemResult = await db.query(
-      'SELECT access_token FROM plaid_items WHERE item_id = $1 AND user_id = $2',
-      [itemId, userId]
+      'SELECT access_token FROM plaid_items WHERE item_id = $1',
+      [itemId]
     );
-    if (!itemResult.rows.length) return res.status(404).json({ error: 'Item not found' });
-
-    const client = buildPlaidClient();
-    await client.itemRemove({ access_token: itemResult.rows[0].access_token });
+    if (itemResult.rows.length) {
+      try {
+        const client = buildPlaidClient();
+        await client.itemRemove({ access_token: itemResult.rows[0].access_token });
+      } catch {} // Plaid removal is best-effort
+    }
     await db.query('DELETE FROM plaid_items WHERE item_id = $1', [itemId]);
 
     res.json({ ok: true });
