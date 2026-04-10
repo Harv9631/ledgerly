@@ -35,6 +35,21 @@ const stripeRoutes = require('./routes/stripe');
 const { requireAuth } = require('./auth');
 
 const app = express();
+
+// Per-user rate limiting for AI endpoints (50 requests/day per user)
+const _aiRateLimits = new Map();
+function checkAiRateLimit(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const key = userId + ':' + today;
+  const count = _aiRateLimits.get(key) || 0;
+  if (count >= 50) return false;
+  _aiRateLimits.set(key, count + 1);
+  // Clean up old entries daily
+  for (const k of _aiRateLimits.keys()) {
+    if (!k.endsWith(today)) _aiRateLimits.delete(k);
+  }
+  return true;
+}
 const PORT = process.env.PORT || 3210;
 
 // Middleware
@@ -73,6 +88,10 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
 
   const { message, history = [], financialContext } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
+
+  if (!checkAiRateLimit(req.user.id)) {
+    return res.status(429).json({ error: 'Daily limit reached (50 messages/day). Try again tomorrow.' });
+  }
 
   const systemPrompt = `You are a personal financial advisor assistant inside Ledgerly, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
 
