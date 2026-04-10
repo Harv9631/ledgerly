@@ -2665,7 +2665,7 @@ const DEFAULT_ALERTS_CONFIG = [
   { id:'goal_milestone', label:'Goal Milestone Notifications', desc:'Celebrate when goals hit 25%, 50%, 75%, or 100%.',              enabled:true,  threshold:0,    unit:'any'     },
   { id:'weekly_digest',  label:'Weekly Summary Digest',        desc:'Show an in-app weekly summary of spend, income, and net worth.',enabled:true,  threshold:0,    unit:'any'     },
 ];
-let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[] };
+let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[] };
 const STORAGE_KEY = 'ledgerly_v3';
 let reportPeriods = { pl:'lastmonth', balance:'lastmonth', cashflow:'lastmonth' };
 let budgetViewYear = new Date().getFullYear();
@@ -2823,6 +2823,22 @@ function loadState() {
     });
     if (state.excludedPlaidIds.length) saveState();
   }
+  // Backfill plaidAccountId on Plaid transactions that are missing it.
+  // Older syncs may not have stored account_id on each transaction.
+  // Match by plaidItemId: find the first Plaid account under the same item.
+  var _txBackfillChanged = false;
+  (state.transactions || []).forEach(function(t) {
+    if (t.plaidTxId && !t.plaidAccountId) {
+      // Try to find the account this transaction belongs to via plaidItemId on transaction
+      // or by finding any Plaid account (if only one exists, it must be that one)
+      var plaidAccounts = (state.accounts || []).filter(function(a) { return a.isPlaid && a.plaidAccountId; });
+      if (plaidAccounts.length === 1) {
+        t.plaidAccountId = plaidAccounts[0].plaidAccountId;
+        _txBackfillChanged = true;
+      }
+    }
+  });
+  if (_txBackfillChanged) saveState();
 }
 function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
 
@@ -2966,17 +2982,33 @@ function filteredDebts()   { return state.debts.filter(d => d.mode === state.mod
 function filteredTx() {
   const hidden = new Set(state.hiddenPlaidAccountIds || []);
   const excl = new Set(state.excludedPlaidIds || []);
+  const exclLocal = new Set(state.excludedAccountIds || []);
+  // Build a set of excluded plaid account IDs including those resolved from local IDs
+  // so transactions are filtered even if exclusion was done by local account ID only
+  if (exclLocal.size > 0) {
+    (state.accounts || []).forEach(a => {
+      if (exclLocal.has(a.id) && a.plaidAccountId) excl.add(a.plaidAccountId);
+    });
+  }
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
     if (t.plaidAccountId && excl.has(t.plaidAccountId)) return false;
     if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
+    // Also hide orphaned Plaid transactions (no plaidAccountId) when accounts are excluded
+    if (excl.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
     return true;
   });
 }
 function filteredAccounts(){
   const excludedLocalIds = new Set(state.excludedAccountIds || []);
   const excludedPlaidIds = new Set(state.excludedPlaidIds || []);
+  // Cross-reference: if a local ID is excluded, also exclude by its plaidAccountId
+  if (excludedLocalIds.size > 0) {
+    (state.accounts || []).forEach(a => {
+      if (excludedLocalIds.has(a.id) && a.plaidAccountId) excludedPlaidIds.add(a.plaidAccountId);
+    });
+  }
   return state.accounts.filter(a => {
     if (excludedLocalIds.has(a.id)) return false;
     if (a.plaidAccountId && excludedPlaidIds.has(a.plaidAccountId)) return false;
@@ -5148,17 +5180,18 @@ function renderCalendar() {
   }
 
   // Recurring income on their usual day
-  (state.income || []).filter(i => i.mode === state.mode).forEach(inc => {
+  const _calTxs = filteredTx();
+  filteredIncome().forEach(inc => {
     const dayNum = inc.dayOfMonth || 1;
     if (dayNum >= 1 && dayNum <= daysInMonth) {
-      const dateStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(dayNum).padStart(2,'0');
-      const isPaid = (state.transactions || []).some(t => t.type === 'credit' && Math.abs((parseFloat(t.amount)||0) - toMonthly(inc.amount, inc.freq)) < 1 && t.date && t.date.startsWith(calYear + '-' + String(calMonth + 1).padStart(2,'0')));
+      const monthPrefix = calYear + '-' + String(calMonth + 1).padStart(2,'0');
+      const isPaid = _calTxs.some(t => t.type === 'credit' && Math.abs((parseFloat(t.amount)||0) - toMonthly(inc.amount, inc.freq)) < 1 && t.date && t.date.startsWith(monthPrefix));
       addEvent(dayNum, isPaid ? 'paid' : 'income', inc.name, toMonthly(inc.amount, inc.freq));
     }
   });
 
   // Recurring expenses on their usual day
-  (state.expenses || []).filter(x => x.mode === state.mode).forEach(exp => {
+  filteredExpenses().forEach(exp => {
     const dayNum = exp.dayOfMonth || 1;
     if (dayNum >= 1 && dayNum <= daysInMonth) {
       addEvent(dayNum, 'expense', exp.name, toMonthly(exp.amount, exp.freq));
@@ -6823,7 +6856,7 @@ function renderUpcomingBillsWidget() {
   const todayDay = today.getDate();
   const thisMonth = today.getMonth();
   const thisYear = today.getFullYear();
-  const debts = (state.debts || []).filter(d => d.mode === state.mode && d.dueDay);
+  const debts = filteredDebts().filter(d => d.dueDay);
   if (!debts.length) { widget.innerHTML = ''; return; }
   const items = debts.map(d => {
     let dueDate = new Date(thisYear, thisMonth, d.dueDay);
@@ -8769,7 +8802,8 @@ async function syncAllPlaidItems() {
   renderAll();
   await renderPlaidLinkedAccounts();
   // Auto-sync transactions on first load (e.g. new browser, no local data)
-  if (filteredTx().length === 0 && items.length > 0) {
+  // Use state.transactions (not filteredTx) so excluded accounts don't trigger re-fetch.
+  if ((state.transactions || []).length === 0 && items.length > 0) {
     for (const item of items) {
       await syncPlaidItem(item.item_id);
     }
@@ -8800,7 +8834,8 @@ async function syncPlaidItem(itemId, btn) {
     }
     // Reset cursor if no transactions are stored locally — ensures a full re-fetch
     // after the user has cleared their transaction history.
-    const needsReset = filteredTx().length === 0;
+    // Use state.transactions (not filteredTx) so excluded accounts don't trigger re-fetch.
+    const needsReset = (state.transactions || []).length === 0;
     let txs;
     try { txs = await window.electronAPI.plaid.syncTransactions(itemId, needsReset); } catch(ex) { txs = null; }
     if (txs && !txs.error) {
