@@ -146,8 +146,13 @@ ipcMain.handle('plaid:get-config', async () => {
 
 ipcMain.handle('plaid:set-config', async (_event, { serverUrl }) => {
   try {
+    // Validate serverUrl is a valid HTTP(S) URL
+    const parsed = new URL(serverUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return { error: 'Server URL must use http or https' };
+    }
     const cfgPath = require('path').join(app.getPath('userData'), 'server-config.json');
-    fs.writeFileSync(cfgPath, JSON.stringify({ serverUrl }, null, 2));
+    fs.writeFileSync(cfgPath, JSON.stringify({ serverUrl: parsed.origin }, null, 2));
     return { ok: true };
   } catch (e) {
     return { error: e.message };
