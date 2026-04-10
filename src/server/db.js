@@ -100,6 +100,20 @@ function query(sql, params = []) {
     return Promise.resolve({ rows, rowCount: rows.length });
   }
 
+  // Migration: update user_id for legacy items
+  if (/UPDATE plaid_items SET user_id/.test(s)) {
+    const [newUserId, itemId] = params;
+    const data = load();
+    let changed = false;
+    (data.plaid_items || []).forEach(r => {
+      if (r.item_id === itemId && r.user_id === 'web-user-default') {
+        r.user_id = newUserId; changed = true;
+      }
+    });
+    if (changed) save(data);
+    return Promise.resolve({ rows: [], rowCount: changed ? 1 : 0 });
+  }
+
   if (/INSERT INTO plaid_items/.test(s)) {
     const [item_id, user_id, access_token, institution_id, institution_name] = params;
     const data = load();

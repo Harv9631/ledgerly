@@ -13,6 +13,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL      = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Use service role key for auth verification — bypasses RLS and works with all token formats
+const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_KEY
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, { auth: { autoRefreshToken: false, persistSession: false } })
+  : null;
 
 const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
   ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -20,7 +26,7 @@ const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
 
 async function requireAuth(req, res, next) {
   // Desktop / Electron mode — no auth required
-  if (!supabase) {
+  if (!supabase && !supabaseAdmin) {
     req.user = { id: req.headers['x-user-id'] || 'local', email: null };
     return next();
   }
@@ -30,10 +36,30 @@ async function requireAuth(req, res, next) {
 
   if (!token) return res.status(401).json({ error: 'Unauthorized' });
 
-  // Single-tenant web app: always use stable fixed ID so bank data is always found.
-  // Supabase UUID varies by token format; stable ID ensures consistency across sessions.
-  req.user = { id: 'web-user-default', email: null };
-  next();
+  // Try service-role client first (works with all Supabase key formats)
+  const client = supabaseAdmin || supabase;
+  try {
+    const { data: { user }, error } = await client.auth.getUser(token);
+    if (!error && user && user.id) {
+      req.user = { id: user.id, email: user.email };
+      return next();
+    }
+  } catch {}
+
+  // Fallback: decode JWT sub claim locally (stable Supabase UUID)
+  try {
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+      if (payload.sub) {
+        req.user = { id: payload.sub, email: payload.email || null };
+        return next();
+      }
+    }
+  } catch {}
+
+  // Last resort: reject unauthenticated requests
+  return res.status(401).json({ error: 'Invalid token' });
 }
 
 module.exports = { requireAuth, supabase };

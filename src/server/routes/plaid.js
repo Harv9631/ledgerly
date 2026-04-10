@@ -126,6 +126,7 @@ router.post('/exchange-token', async (req, res) => {
 
 // GET /api/plaid/items
 // List linked items for the current user
+// Auto-migrates legacy data from 'web-user-default' to the real user ID if needed
 router.get('/items', async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -134,6 +135,25 @@ router.get('/items', async (req, res) => {
        FROM plaid_items WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
+    // If no items found and user is not the legacy ID, check for legacy data to migrate
+    if (!result.rows.length && userId !== 'web-user-default') {
+      const legacy = await db.query(
+        `SELECT item_id, institution_id, institution_name, status, created_at
+         FROM plaid_items WHERE user_id = $1 ORDER BY created_at DESC`,
+        ['web-user-default']
+      );
+      if (legacy.rows.length) {
+        // Migrate legacy items to the real user ID
+        for (const item of legacy.rows) {
+          await db.query(
+            `UPDATE plaid_items SET user_id = $1 WHERE item_id = $2 AND user_id = 'web-user-default'`,
+            [userId, item.item_id]
+          ).catch(() => {});
+        }
+        console.log('[PLAID] Migrated', legacy.rows.length, 'items from web-user-default to', userId.slice(0, 8) + '...');
+        return res.json(legacy.rows);
+      }
+    }
     res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
