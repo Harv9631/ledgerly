@@ -10018,6 +10018,9 @@ const _origShowPage = showPage;
     origFn(name);
     const fab = document.getElementById('chat-fab');
     if (fab) fab.style.display = (name === 'ai-chat') ? 'none' : 'flex';
+    // Sync mobile bottom nav active state
+    const _mbnMap = {dashboard:0,transactions:1,accounts:2,budget:3,'ai-chat':4};
+    document.querySelectorAll('.mbn-btn').forEach(function(b,i){ b.classList.toggle('active', i === _mbnMap[name]); });
     if (name === 'ai-chat') loadAiConfig();
     if (name === 'settings') loadAiConfig();
     if (name === 'dashboard') loadCashFlowForecast();
