@@ -2990,6 +2990,18 @@ function filteredTx() {
       if (exclLocal.has(a.id) && a.plaidAccountId) excl.add(a.plaidAccountId);
     });
   }
+  // DEBUG: log exclusion state (remove after confirming fix works)
+  if (!filteredTx._logged) {
+    filteredTx._logged = true;
+    var plaidIds = new Set((state.transactions||[]).map(function(t){return t.plaidAccountId}).filter(Boolean));
+    console.log('[EXCL-DEBUG] excludedAccountIds:', JSON.stringify(state.excludedAccountIds));
+    console.log('[EXCL-DEBUG] excludedPlaidIds:', JSON.stringify(state.excludedPlaidIds));
+    console.log('[EXCL-DEBUG] resolved excl set:', JSON.stringify([...excl]));
+    console.log('[EXCL-DEBUG] unique plaidAccountIds in txs:', JSON.stringify([...plaidIds]));
+    console.log('[EXCL-DEBUG] total txs:', (state.transactions||[]).length, 'accounts:', (state.accounts||[]).length);
+    console.log('[EXCL-DEBUG] accounts:', JSON.stringify((state.accounts||[]).map(function(a){return {id:a.id&&a.id.substring(0,8),name:a.name,plaidAccountId:a.plaidAccountId}})));
+    setTimeout(function(){ filteredTx._logged = false; }, 5000);
+  }
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
