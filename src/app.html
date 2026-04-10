@@ -5176,21 +5176,29 @@ function renderCalendar() {
     events[day].push({ type, label, amount });
   }
 
-  // Recurring income on their usual day
+  // Actual transactions this month — add first so we know which days have real data
   const _calTxs = filteredTx();
+  const calStart = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-01';
+  const calEnd   = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(daysInMonth).padStart(2,'0');
+  const _daysWithTx = new Set();
+  _calTxs.filter(t => t.date >= calStart && t.date <= calEnd).forEach(tx => {
+    const day = parseInt(tx.date.slice(8, 10), 10);
+    _daysWithTx.add(day);
+    addEvent(day, tx.type === 'credit' ? 'income' : 'paid', tx.desc || '—', Math.abs(parseFloat(tx.amount)||0));
+  });
+
+  // Recurring income — only show on days WITHOUT actual transactions (avoids duplicates)
   filteredIncome().forEach(inc => {
     const dayNum = inc.dayOfMonth || 1;
-    if (dayNum >= 1 && dayNum <= daysInMonth) {
-      const monthPrefix = calYear + '-' + String(calMonth + 1).padStart(2,'0');
-      const isPaid = _calTxs.some(t => t.type === 'credit' && Math.abs((parseFloat(t.amount)||0) - toMonthly(inc.amount, inc.freq)) < 1 && t.date && t.date.startsWith(monthPrefix));
-      addEvent(dayNum, isPaid ? 'paid' : 'income', inc.name, toMonthly(inc.amount, inc.freq));
+    if (dayNum >= 1 && dayNum <= daysInMonth && !_daysWithTx.has(dayNum)) {
+      addEvent(dayNum, 'income', inc.name, toMonthly(inc.amount, inc.freq));
     }
   });
 
-  // Recurring expenses on their usual day
+  // Recurring expenses — only on days without actual transactions
   filteredExpenses().forEach(exp => {
     const dayNum = exp.dayOfMonth || 1;
-    if (dayNum >= 1 && dayNum <= daysInMonth) {
+    if (dayNum >= 1 && dayNum <= daysInMonth && !_daysWithTx.has(dayNum)) {
       addEvent(dayNum, 'expense', exp.name, toMonthly(exp.amount, exp.freq));
     }
   });
@@ -5198,20 +5206,22 @@ function renderCalendar() {
   // Subscriptions by nextBillingDate day
   (state.subscriptions || []).filter(s => s.mode === state.mode && s.status === 'active' && s.nextBillingDate).forEach(sub => {
     const d = new Date(sub.nextBillingDate);
-    if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
+    if (d.getFullYear() === calYear && d.getMonth() === calMonth && !_daysWithTx.has(d.getDate())) {
       addEvent(d.getDate(), 'subscription', sub.name, parseFloat(sub.amount)||0);
     }
   });
 
-  // Actual transactions this month
-  const calStart = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-01';
-  const calEnd   = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(daysInMonth).padStart(2,'0');
-  filteredTx().filter(t => t.date >= calStart && t.date <= calEnd).forEach(tx => {
-    const day = parseInt(tx.date.slice(8, 10), 10);
-    addEvent(day, tx.type === 'credit' ? 'income' : 'paid', tx.desc || '—', Math.abs(parseFloat(tx.amount)||0));
+  // Debt due dates
+  filteredDebts().filter(d => d.dueDay).forEach(debt => {
+    const dayNum = debt.dueDay;
+    if (dayNum >= 1 && dayNum <= daysInMonth && !_daysWithTx.has(dayNum)) {
+      addEvent(dayNum, 'expense', debt.name + ' payment', debt.payment || 0);
+    }
   });
 
   // Build daily balance projection
+  // Only projected events (income/expense/subscription) affect future balance.
+  // Actual transactions ("paid") are already reflected in totalAssets().
   const startingBal = totalAssets();
   const dailyBal = [];
   let runBal = startingBal;
@@ -5220,6 +5230,7 @@ function renderCalendar() {
     dayEvents.forEach(ev => {
       if (ev.type === 'income') runBal += ev.amount;
       else if (ev.type === 'expense' || ev.type === 'subscription') runBal -= ev.amount;
+      // 'paid' events are actual transactions — don't add to projection
     });
     dailyBal.push(runBal);
   }
