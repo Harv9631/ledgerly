@@ -5862,7 +5862,7 @@ function addTxRule() {
   const cat = document.getElementById('tx-rule-cat').value;
   if (!kw) { alert('Please enter a keyword.'); return; }
   if (!state.txRules) state.txRules = [];
-  if (state.txRules.find(r => r.keyword.toLowerCase() === kw.toLowerCase())) {
+  if (state.txRules.find(r => (r.keyword||'').toLowerCase() === kw.toLowerCase())) {
     alert('A rule for "' + kw + '" already exists.'); return;
   }
   state.txRules.push({ id: uid(), keyword: kw, category: cat });
@@ -5881,10 +5881,12 @@ function renderTxRulesList() {
   const el = document.getElementById('tx-rules-list');
   if (!el) return;
   // Migrate old-format rules (desc/descNorm) to new format (keyword/id)
-  (state.txRules || []).forEach(function(r) {
+  // Remove rules that have no usable keyword at all
+  state.txRules = (state.txRules || []).filter(function(r) {
     if (!r.id) r.id = uid();
     if (!r.keyword && r.desc) r.keyword = r.desc;
     if (!r.keyword && r.descNorm) r.keyword = r.descNorm;
+    return r.keyword || r.desc || r.descNorm;
   });
   const rules = getTxRules();
   if (!rules.length) {
