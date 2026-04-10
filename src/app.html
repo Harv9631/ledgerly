@@ -6706,7 +6706,7 @@ function renderBudget() {
     <div class="card"><div class="card-label">Total Budgeted</div><div class="card-value blue">${fmt(totalBudgeted)}</div><div class="card-sub">${budgets.length} categories</div></div>
     <div class="card"><div class="card-label">Spent This Month</div><div class="card-value ${totalSpent>totalBudgeted?'red':'green'}">${fmt(totalSpent)}</div><div class="card-sub">${totalBudgeted>0?Math.round(totalSpent/totalBudgeted*100):0}% of budget</div></div>
     <div class="card"><div class="card-label">Remaining</div><div class="card-value ${totalBudgeted-totalSpent<0?'red':'green'}">${fmt(Math.max(0,totalBudgeted-totalSpent))}</div></div>
-    ${totalOver>0?`<div class="card"><div class="card-label">Over Budget</div><div class="card-value red">${fmt(totalOver)}</div><div class="card-sub">${budgets.length-onBudgetCount} categories over</div></div>`:'<div class="card"><div class="card-label">On Budget</div><div class="card-value green">${onBudgetCount}/${budgets.length}</div><div class="card-sub">categories in range</div></div>'}
+    ${totalOver>0?`<div class="card"><div class="card-label">Over Budget</div><div class="card-value red">${fmt(totalOver)}</div><div class="card-sub">${budgets.length-onBudgetCount} categories over</div></div>`:`<div class="card"><div class="card-label">On Budget</div><div class="card-value green">${onBudgetCount}/${budgets.length}</div><div class="card-sub">categories in range</div></div>`}
   `;
 
   // Zero-based bar
