@@ -8736,6 +8736,14 @@ async function syncAllPlaidItems() {
     }
   }
   saveState();
+  // Push accounts to server immediately so refresh doesn't lose them (bypass 3s debounce)
+  if (window._webToken) {
+    fetch(window.location.origin + '/api/user/state', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (sessionStorage.getItem('sb_token') || window._webToken) },
+      body: JSON.stringify({ state: state })
+    }).catch(() => {});
+  }
   renderAll();
   await renderPlaidLinkedAccounts();
   // Auto-sync transactions on first load (e.g. new browser, no local data)
@@ -9373,8 +9381,11 @@ if (window._webToken) {
     .then(r => r.json())
     .then(data => {
       if (data.state && typeof data.state === 'object') {
-        // Server wins for all array data — local cache is overwritten by server truth
         const merged = { ...state, ...data.state };
+        // Keep local Plaid accounts if server has fewer (server may not have latest sync yet)
+        if ((state.accounts || []).filter(a=>a.isPlaid).length > (data.state.accounts || []).filter(a=>a.isPlaid).length) {
+          merged.accounts = state.accounts;
+        }
         state = merged;
         saveState();
         renderAll();
