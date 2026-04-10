@@ -2965,7 +2965,11 @@ function filteredTx() {
 }
 function filteredAccounts(){
   const excl = new Set(state.excludedPlaidIds || []);
-  return state.accounts.filter(a => a.mode === state.mode && !excl.has(a.plaidAccountId));
+  return state.accounts.filter(a => {
+    if (excl.has(a.plaidAccountId)) return false;
+    if (a.isPlaid) return true; // Plaid bank accounts visible in both Personal and Business modes
+    return a.mode === state.mode;
+  });
 }
 function filteredBudgets() { return state.budgets.filter(b => b.mode === state.mode); }
 function budgetsForMonth(month, year) { return filteredBudgets().filter(b => b.month === month && b.year === year); }
