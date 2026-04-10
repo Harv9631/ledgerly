@@ -68,13 +68,12 @@ function readPlaidCredentials() {
 }
 
 function savePlaidCredentials(creds) {
-  let data;
-  if (safeStorage.isEncryptionAvailable()) {
-    const encrypted = safeStorage.encryptString(JSON.stringify(creds));
-    data = { encrypted: encrypted.toString('base64') };
-  } else {
-    data = creds;
+  if (!safeStorage.isEncryptionAvailable()) {
+    console.warn('[SECURITY] safeStorage not available — Plaid credentials will not be saved. Enable OS keychain.');
+    return;
   }
+  const encrypted = safeStorage.encryptString(JSON.stringify(creds));
+  const data = { encrypted: encrypted.toString('base64') };
   fs.writeFileSync(getPlaidCredentialsPath(), JSON.stringify(data, null, 2));
 }
 
