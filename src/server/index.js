@@ -163,7 +163,7 @@ const TX_CATEGORIES = [
   'Rent & Mortgage','Home Improvement','Furniture & Appliances','Household Supplies','HOA Fees',
   'Electric & Gas','Water & Sewer','Internet & Cable','Phone',
   'Health Insurance','Doctor & Medical','Pharmacy','Dental & Vision','Gym & Fitness','Mental Health',
-  'Clothing & Apparel','Electronics','Personal Care & Beauty','Pets','Gifts & Donations','Books & Hobbies',
+  'Shopping','Clothing & Apparel','Electronics','Personal Care & Beauty','Pets','Gifts & Donations','Books & Hobbies',
   'Streaming & Subscriptions','Entertainment','Travel & Hotels','Flights','Vacation',
   'Childcare','Tuition & Student Loans','School Supplies',
   'Investments & Savings','Retirement','Credit Card Payment','Loan Payment','Life Insurance','Bank Fees',
