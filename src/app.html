@@ -6461,6 +6461,18 @@ function renderTransactions() {
     if (catF && t.category !== catF) return false;
     if (monthF && !t.date.startsWith(monthF)) return false;
     if (_txReceiptsOnly && !getReceipt(t.id)) return false;
+    // Apply AI smart search filter
+    if (_aiSearchFilter) {
+      const f = _aiSearchFilter;
+      const amt = Math.abs(t.amount);
+      if (f.merchant && !(t.desc||'').toLowerCase().includes(f.merchant.toLowerCase())) return false;
+      if (f.category && !(t.category||'').toLowerCase().includes(f.category.toLowerCase())) return false;
+      if (f.minAmount != null && amt < Math.abs(f.minAmount)) return false;
+      if (f.maxAmount != null && amt > Math.abs(f.maxAmount)) return false;
+      if (f.startDate && t.date < f.startDate) return false;
+      if (f.endDate && t.date > f.endDate) return false;
+      if (f.isRecurring != null && (t.plaidTxId ? false : true) !== f.isRecurring) return false;
+    }
     return true;
   });
   const sortBy = (document.getElementById('tx-sort')||{}).value || 'date-desc';
@@ -9925,8 +9937,8 @@ async function aiParseSearchQuery() {
     const parts = [];
     if (f.merchant) parts.push(`merchant: "${f.merchant}"`);
     if (f.category) parts.push(`category: "${f.category}"`);
-    if (f.minAmount != null) parts.push(`min: $${f.minAmount}`);
-    if (f.maxAmount != null) parts.push(`max: $${f.maxAmount}`);
+    if (f.minAmount != null) parts.push(`min: $${Math.abs(f.minAmount)}`);
+    if (f.maxAmount != null) parts.push(`max: $${Math.abs(f.maxAmount)}`);
     if (f.startDate) parts.push(`from: ${f.startDate}`);
     if (f.endDate) parts.push(`to: ${f.endDate}`);
     banner.textContent = `✨ Filter applied: ${parts.length ? parts.join(', ') : query}`;
