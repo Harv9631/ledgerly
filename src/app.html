@@ -2957,13 +2957,16 @@ function filteredTx() {
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
-    // When accounts are hidden, also exclude untagged Plaid transactions
-    // (they could belong to any account — resync will re-fetch with proper tags)
+    const excl = new Set(state.excludedPlaidIds || []);
+    if (t.plaidAccountId && excl.has(t.plaidAccountId)) return false;
     if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
     return true;
   });
 }
-function filteredAccounts(){ return state.accounts.filter(a => a.mode === state.mode); }
+function filteredAccounts(){
+  const excl = new Set(state.excludedPlaidIds || []);
+  return state.accounts.filter(a => a.mode === state.mode && !excl.has(a.plaidAccountId));
+}
 function filteredBudgets() { return state.budgets.filter(b => b.mode === state.mode); }
 function budgetsForMonth(month, year) { return filteredBudgets().filter(b => b.month === month && b.year === year); }
 function spendingForMonth(month, year) {
@@ -8811,6 +8814,14 @@ async function syncPlaidItem(itemId, btn) {
   }
 }
 
+function toggleAccountExclusion(plaidAccountId) {
+  state.excludedPlaidIds = state.excludedPlaidIds || [];
+  const idx = state.excludedPlaidIds.indexOf(plaidAccountId);
+  if (idx >= 0) state.excludedPlaidIds.splice(idx, 1);
+  else state.excludedPlaidIds.push(plaidAccountId);
+  saveState(); renderAll(); renderPlaidLinkedAccounts();
+}
+
 async function hidePlaidAccount(accountId) {
   if (!confirm('Hide this account? Its transactions will no longer appear in the app. The bank connection stays active.')) return;
   const acc = state.accounts.find(a => a.id === accountId);
@@ -8863,6 +8874,7 @@ async function renderPlaidLinkedAccounts() {
       '<div class="account-card">' +
         '<div class="ac-actions">' +
           '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' +
+          (function(){ var excl=(state.excludedPlaidIds||[]).includes(a.plaidAccountId); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.plaidAccountId)+'\')" title="'+(excl?'Include':'Exclude')+' from reports">'+(excl?'Excluded':'Include')+' in Reports</button>'; })() +
           '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +
         '<div class="ac-type">' + e(a.institution || 'Bank') + '</div>' +
