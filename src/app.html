@@ -8803,7 +8803,7 @@ async function syncPlaidItem(itemId, btn) {
   }
 }
 
-function hidePlaidAccount(accountId) {
+async function hidePlaidAccount(accountId) {
   if (!confirm('Hide this account? Its transactions will no longer appear in the app. The bank connection stays active.')) return;
   const acc = state.accounts.find(a => a.id === accountId);
   if (acc && acc.plaidAccountId) {
