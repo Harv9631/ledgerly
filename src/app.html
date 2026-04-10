@@ -1891,21 +1891,10 @@
         <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="handleBackupFile(event)">
       </div>
     </div>
-    <div id="ai-settings-desktop" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+    <div id="ai-settings-desktop" style="display:none"></div>
+    <div id="ai-settings-web" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Assistant (Claude)</div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Enter your Anthropic API key to enable the AI financial assistant. Get a key at <strong>console.anthropic.com</strong>.</p>
-      <div class="form-group">
-        <label>Anthropic API Key</label>
-        <input type="password" id="ai-api-key" placeholder="sk-ant-...">
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
-        <button class="btn btn-primary" onclick="saveAiConfig()">Save API Key</button>
-        <span id="ai-config-status" style="font-size:13px"></span>
-      </div>
-    </div>
-    <div id="ai-settings-web" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
-      <div style="font-size:15px;font-weight:600;margin-bottom:6px">AI Assistant (Claude)</div>
-      <p style="color:var(--muted);font-size:13px">AI is enabled and configured on the server. No setup required.</p>
+      <p style="color:var(--muted);font-size:13px">AI is enabled and configured. No setup required.</p>
       <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
         <span style="color:var(--green);font-size:13px">&#10003; AI Active</span>
         <button class="btn btn-ghost btn-sm" onclick="clearChatHistory();alert('Chat history cleared.')">Clear Chat History</button>
@@ -1914,92 +1903,19 @@
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Erase AI Data</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Permanently delete all AI-generated data stored on this device. This includes chat history, usage tracking, and audit logs. Required for GDPR / right-to-erasure requests.</p>
-      <div style="margin-bottom:12px">
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer">
-          <input type="checkbox" id="ai-erase-config">
-          Also delete my stored API key (ai-config.json)
-        </label>
-      </div>
+      <input type="hidden" id="ai-erase-config">
       <div style="display:flex;align-items:center;gap:12px">
         <button class="btn btn-danger" onclick="eraseAiData()">Erase AI Data</button>
         <span id="ai-erase-status" style="font-size:13px"></span>
       </div>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
-      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Plaid API Credentials</div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Enter your Plaid API credentials to enable bank connections. Get your keys at <strong>dashboard.plaid.com</strong>.</p>
-      <div class="form-group">
-        <label>Client ID</label>
-        <input type="text" id="plaid-client-id" placeholder="Plaid Client ID" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label>Secret Key</label>
-        <input type="password" id="plaid-secret" placeholder="Plaid Secret" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label>Environment</label>
-        <select id="plaid-environment">
-          <option value="development">Development (real banks, limited items)</option>
-          <option value="sandbox">Sandbox (test data only)</option>
-          <option value="production">Production (requires Plaid approval)</option>
-        </select>
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
-        <button class="btn btn-primary" onclick="savePlaidCredentials()">Save Credentials</button>
-        <span id="plaid-creds-status" style="font-size:13px"></span>
-      </div>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
-      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Bank Connection (Plaid)</div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Connect your bank accounts via the Ledgerly server. Enter the URL of your Ledgerly server below.</p>
-      <div class="form-group">
-        <label>Ledgerly Server URL</label>
-        <input type="text" id="plaid-server-url" placeholder="http://localhost:3210">
-      </div>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
-        <button class="btn btn-primary" onclick="savePlaidConfig()">Save Config</button>
-        <span id="plaid-config-status" style="font-size:13px"></span>
-      </div>
-    </div>
+    <!-- Plaid credentials and server config managed by admin -->
   </div>
 </div>
 
 </main>
 
-<!-- First-Run Setup Modal -->
-<div id="setup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:36px;width:480px;max-width:95vw;box-shadow:var(--shadow-lg)">
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:28px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px">Welcome to Ledgerly</div>
-      <div style="font-size:14px;color:var(--muted)">Enter your Plaid API credentials to connect your bank accounts.</div>
-    </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Get your free credentials at <strong style="color:var(--text)">dashboard.plaid.com</strong> → Team Settings → Keys</div>
-    <div class="form-group">
-      <label>Client ID</label>
-      <input type="text" id="setup-client-id" placeholder="Plaid Client ID" autocomplete="off">
-    </div>
-    <div class="form-group">
-      <label>Secret Key</label>
-      <input type="password" id="setup-secret" placeholder="Plaid Secret" autocomplete="off">
-    </div>
-    <div class="form-group">
-      <label>Environment</label>
-      <select id="setup-environment">
-        <option value="development">Development (real banks)</option>
-        <option value="sandbox">Sandbox (test data)</option>
-        <option value="production">Production</option>
-      </select>
-    </div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;background:var(--blue-dim);border:1px solid rgba(88,166,255,.2);border-radius:8px;padding:10px 14px">
-      Your credentials are encrypted and stored locally. They are never sent anywhere except to Plaid's own servers.
-    </div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" style="flex:1" onclick="saveSetupCredentials()">Connect & Start</button>
-      <button class="btn btn-ghost" onclick="dismissSetupModal()" title="Skip — you can add credentials later in Settings">Skip for now</button>
-    </div>
-    <div id="setup-status" style="font-size:13px;margin-top:12px;text-align:center"></div>
-  </div>
-</div>
+<!-- Setup modal removed — credentials managed by admin -->
 
 <!-- Floating AI Chat Button (visible on all pages except ai-chat) -->
 <button class="chat-fab" id="chat-fab" onclick="showPage('ai-chat')" title="Ask AI" style="display:none">
@@ -8629,14 +8545,7 @@ async function savePlaidCredentials() {
 // ── FIRST-RUN SETUP MODAL ──────────────────────────────────────────────────────
 
 async function checkFirstRun() {
-  if (!window.electronAPI) return;
-  try {
-    const has = await window.electronAPI.plaid.hasCredentials();
-    if (!has) {
-      const modal = document.getElementById('setup-modal');
-      if (modal) modal.style.display = 'flex';
-    }
-  } catch {}
+  // Setup modal removed — credentials managed by admin
 }
 
 function dismissSetupModal() {
