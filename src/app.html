@@ -9951,7 +9951,7 @@ async function loadGoalAdvice() {
 }
 
 // ── AI FEATURE 6: Transactions Smart Search ───────────────────────────────────────────
-let _aiSearchFilter = null;
+var _aiSearchFilter = null; // var avoids TDZ with Plaid's SES lockdown
 async function aiParseSearchQuery() {
   const input = document.getElementById('tx-smart-search-input');
   const banner = document.getElementById('tx-smart-search-banner');
