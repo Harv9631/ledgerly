@@ -49,23 +49,12 @@ async function requireAuth(req, res, next) {
 
   let resolvedUser = null;
 
-  // Try JWT decode first (fast, no network call)
+  // Always verify token with Supabase (signature-checked, not just decoded)
+  const client = supabaseAdmin || supabase;
   try {
-    const parts = token.split('.');
-    if (parts.length === 3) {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-      if (payload.sub) resolvedUser = { id: payload.sub, email: payload.email || null };
-    }
+    const { data: { user }, error } = await client.auth.getUser(token);
+    if (!error && user && user.id) resolvedUser = { id: user.id, email: user.email };
   } catch {}
-
-  // If JWT decode failed, try Supabase verification (slower, network call)
-  if (!resolvedUser) {
-    const client = supabaseAdmin || supabase;
-    try {
-      const { data: { user }, error } = await client.auth.getUser(token);
-      if (!error && user && user.id) resolvedUser = { id: user.id, email: user.email };
-    } catch {}
-  }
 
   if (!resolvedUser) return res.status(401).json({ error: 'Invalid token' });
 
