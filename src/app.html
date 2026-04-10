@@ -5184,7 +5184,7 @@ function renderCalendar() {
   _calTxs.filter(t => t.date >= calStart && t.date <= calEnd).forEach(tx => {
     const day = parseInt(tx.date.slice(8, 10), 10);
     _daysWithTx.add(day);
-    addEvent(day, tx.type === 'credit' ? 'income' : 'paid', tx.desc || '—', Math.abs(parseFloat(tx.amount)||0));
+    addEvent(day, tx.type === 'credit' ? 'income' : 'paid', _calCleanDesc(tx.desc), Math.abs(parseFloat(tx.amount)||0));
   });
 
   // Recurring income — only show on days WITHOUT actual transactions (avoids duplicates)
@@ -5251,7 +5251,7 @@ function renderCalendar() {
     const evHtml = dayEvents.slice(0, 3).map(ev =>
       `<div class="cal-event ${ev.type}" title="${e(ev.label + ': ' + fmt(ev.amount))}">${e(ev.label)}</div>`
     ).join('') + (dayEvents.length > 3 ? `<div class="cal-event paid">+${dayEvents.length - 3} more</div>` : '');
-    html += `<div class="cal-cell${isToday ? ' today' : ''}"><div class="cal-day-num">${d}</div>${evHtml}</div>`;
+    html += `<div class="cal-cell${isToday ? ' today' : ''}" onclick="calDayClick(${d})" style="cursor:pointer"><div class="cal-day-num">${d}</div>${evHtml}</div>`;
   }
   // Fill trailing cells
   const totalCells = firstDay + daysInMonth;
@@ -5279,6 +5279,35 @@ function renderCalendar() {
       </div>`;
     }).join('');
   }
+}
+
+function _calCleanDesc(desc) {
+  return (desc || '')
+    .replace(/#\w+/g, '').replace(/\*\w+/g, '').replace(/\b\d{4,}\b/g, '')
+    .replace(/\b(LLC|INC|CORP|CO|LTD|DBA|SQ\*|SP\*)\b/gi, '')
+    .replace(/^THE(?=[A-Z])/i, '').replace(/^(THE|A|AN)\s+/i, '')
+    .replace(/\b(SE|NE|NW|SW)(?=[A-Z]{3,})/gi, '')
+    .replace(/\s{2,}/g, ' ').trim()
+    .split(/\s+/).slice(0, 3).join(' ')
+    .toLowerCase().replace(/\b\w/g, function(c) { return c.toUpperCase(); })
+    || desc;
+}
+
+function calDayClick(day) {
+  var dateStr = calYear + '-' + String(calMonth + 1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  var dayTxs = filteredTx().filter(function(t) { return t.date === dateStr; });
+  var debts = filteredDebts().filter(function(d) { return d.dueDay === day; });
+  if (!dayTxs.length && !debts.length) return;
+  var lines = [];
+  dayTxs.forEach(function(t) {
+    var sign = t.type === 'credit' ? '+' : '-';
+    lines.push(sign + fmt(Math.abs(t.amount)) + '  ' + _calCleanDesc(t.desc) + '  (' + (t.category || 'Uncategorized') + ')');
+  });
+  debts.forEach(function(d) {
+    lines.push('Due: ' + d.name + ' — ' + fmt(d.payment) + '/mo');
+  });
+  var header = new Date(calYear, calMonth, day).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  alert(header + '\n\n' + lines.join('\n'));
 }
 
 // ── AI INSIGHTS FEED ──────────────────────────────────────────────────────────
