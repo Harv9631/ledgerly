@@ -2957,10 +2957,8 @@ function filteredTx() {
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
-    // Plaid transactions synced before account tracking was added have no plaidAccountId.
-    // When accounts are hidden, exclude these ambiguous transactions so they don't leak
-    // hidden account data. They will be re-fetched with proper IDs on next sync.
-    if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
+    // Transactions without plaidAccountId are shown — hiding a specific account
+    // only excludes transactions explicitly tagged to that account's ID.
     return true;
   });
 }
