@@ -1073,7 +1073,6 @@
         <option value="desc-alpha">Description A–Z</option>
       </select>
       <button class="btn btn-sm btn-ghost" onclick="openModal('csv')">↑ Import more (CSV / PDF)</button>
-      <button class="btn btn-sm btn-ghost" onclick="redetectTxTypes()" title="Re-run automatic debit/credit detection on all transactions">Re-detect types</button>
       <button class="btn btn-sm btn-ghost" id="tx-receipts-filter-btn" onclick="toggleTxReceiptsFilter(this)" title="Show only transactions with receipts">📎 Receipts only</button>
       <button class="btn btn-sm btn-danger" onclick="clearTransactions()">Clear all</button>
     </div>
@@ -3905,11 +3904,6 @@ function toggleTxType(id) {
   if (tx) { tx.type = tx.type === 'credit' ? 'debit' : 'credit'; saveState(); renderAll(); }
 }
 
-function redetectTxTypes() {
-  migrateTransactions();
-  renderAll();
-  alert('Done. Transaction types re-detected based on description keywords.');
-}
 
 // Drag-and-drop
 const dropZone = document.getElementById('tx-no-data');
