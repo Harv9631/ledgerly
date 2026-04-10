@@ -142,8 +142,12 @@ app.use(function(req, res, next) {
   next();
 });
 
-// Serve frontend static files (enables plaid-link.html from HTTP origin)
-app.use(express.static(path.join(__dirname, '..')));
+// Serve only the frontend files the web app needs (not the entire src/ directory)
+const parentDir = path.join(__dirname, '..');
+['app.html', 'style.css', 'plaid-link.html', 'index.html', 'icon.ico'].forEach(file => {
+  app.get('/' + file, (_req, res) => res.sendFile(path.join(parentDir, file)));
+});
+app.get('/', (_req, res) => res.sendFile(path.join(parentDir, 'app.html')));
 
 // Serve cached Plaid Link SDK downloaded by the Electron main process via electron.net
 // (Chromium network stack bypasses the Cloudflare bot-protection that blocks Node.js TLS)
