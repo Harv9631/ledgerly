@@ -598,7 +598,7 @@
     <button class="mode-btn active" onclick="setMode('personal',this)">Personal</button>
     <button class="mode-btn" onclick="setMode('business',this)">Business</button>
   </div>
-  <div id="nav-signout" style="display:none;margin:0 10px 12px">
+  <div id="nav-signout" style="margin:0 10px 12px">
     <button onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'" style="width:100%;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.25);color:#f85149;border-radius:6px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Sign Out</button>
   </div>
 </nav>
@@ -9404,9 +9404,10 @@ if (!window.electronAPI || sessionStorage.getItem('sb_token')) {
   const webSection = document.getElementById('web-auth-section');
   if (webSection) webSection.style.display = '';
 }
-if (sessionStorage.getItem('sb_token')) {
+// Hide Sign Out button for Electron users (only web users need it)
+if (!sessionStorage.getItem('sb_token')) {
   const navSignout = document.getElementById('nav-signout');
-  if (navSignout) navSignout.style.display = '';
+  if (navSignout) navSignout.style.display = 'none';
 }
 if (sessionStorage.getItem('sb_token')) {
   // Running as web app — swap AI settings to web version
