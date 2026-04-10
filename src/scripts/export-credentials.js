@@ -18,8 +18,8 @@ app.whenReady().then(() => {
     }
 
     const envPath = path.join(__dirname, '..', 'server', '.env');
-    const supabaseUrl  = process.env.SUPABASE_URL  || 'https://phkgapawikotezvlyyho.supabase.co';
-    const supabaseKey  = process.env.SUPABASE_ANON_KEY || 'sb_publishable_LXRsoqRWt_9Du0bSuDzeWQ_EzC6O25r';
+    const supabaseUrl  = process.env.SUPABASE_URL  || '';
+    const supabaseKey  = process.env.SUPABASE_ANON_KEY || '';
 
     const envContent = [
       'PLAID_CLIENT_ID=' + creds.clientId,
