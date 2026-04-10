@@ -2981,34 +2981,25 @@ function filteredExpenses(){ return state.expenses.filter(x => x.mode === state.
 function filteredDebts()   { return state.debts.filter(d => d.mode === state.mode); }
 function filteredTx() {
   const hidden = new Set(state.hiddenPlaidAccountIds || []);
-  const excl = new Set(state.excludedPlaidIds || []);
   const exclLocal = new Set(state.excludedAccountIds || []);
-  // Build a set of excluded plaid account IDs including those resolved from local IDs
-  // so transactions are filtered even if exclusion was done by local account ID only
-  if (exclLocal.size > 0) {
-    (state.accounts || []).forEach(a => {
-      if (exclLocal.has(a.id) && a.plaidAccountId) excl.add(a.plaidAccountId);
+  // Whitelist approach: build a set of INCLUDED Plaid account IDs from non-excluded accounts.
+  // Transactions whose plaidAccountId is NOT in this set are filtered out.
+  // This handles orphaned plaid IDs (from rotated/reassigned Plaid account IDs) automatically.
+  var includedPlaidIds = null;
+  if (exclLocal.size > 0 || (state.excludedPlaidIds || []).length > 0) {
+    includedPlaidIds = new Set();
+    (state.accounts || []).forEach(function(a) {
+      if (a.plaidAccountId && !exclLocal.has(a.id)) includedPlaidIds.add(a.plaidAccountId);
     });
-  }
-  // DEBUG: log exclusion state (remove after confirming fix works)
-  if (!filteredTx._logged) {
-    filteredTx._logged = true;
-    var plaidIds = new Set((state.transactions||[]).map(function(t){return t.plaidAccountId}).filter(Boolean));
-    console.log('[EXCL-DEBUG] excludedAccountIds:', JSON.stringify(state.excludedAccountIds));
-    console.log('[EXCL-DEBUG] excludedPlaidIds:', JSON.stringify(state.excludedPlaidIds));
-    console.log('[EXCL-DEBUG] resolved excl set:', JSON.stringify([...excl]));
-    console.log('[EXCL-DEBUG] unique plaidAccountIds in txs:', JSON.stringify([...plaidIds]));
-    console.log('[EXCL-DEBUG] total txs:', (state.transactions||[]).length, 'accounts:', (state.accounts||[]).length);
-    console.log('[EXCL-DEBUG] accounts:', JSON.stringify((state.accounts||[]).map(function(a){return {id:a.id&&a.id.substring(0,8),name:a.name,plaidAccountId:a.plaidAccountId}})));
-    setTimeout(function(){ filteredTx._logged = false; }, 5000);
   }
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
-    if (t.plaidAccountId && excl.has(t.plaidAccountId)) return false;
-    if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
-    // Also hide orphaned Plaid transactions (no plaidAccountId) when accounts are excluded
-    if (excl.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
+    // Whitelist: if any accounts are excluded, only allow Plaid txs from included accounts
+    if (includedPlaidIds && t.plaidTxId) {
+      if (!t.plaidAccountId) return false; // orphaned Plaid tx — no account match
+      if (!includedPlaidIds.has(t.plaidAccountId)) return false;
+    }
     return true;
   });
 }
