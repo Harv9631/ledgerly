@@ -58,11 +58,11 @@
           setConfig: function() { return Promise.resolve({ ok: true }); },
           getRateLimit: function() { return Promise.resolve({ ok: true, count: 0 }); },
           getHistory: function(id) {
-            try { return Promise.resolve(JSON.parse(localStorage.getItem('ai_hist_' + (id||'default')) || '[]')); }
+            try { return Promise.resolve(JSON.parse(sessionStorage.getItem('ai_hist_' + (id||'default')) || '[]')); }
             catch { return Promise.resolve([]); }
           },
           clearHistory: function(id) {
-            localStorage.removeItem('ai_hist_' + (id||'default'));
+            sessionStorage.removeItem('ai_hist_' + (id||'default'));
             return Promise.resolve({ ok: true });
           },
           getAlerts: function() { return Promise.resolve([]); },
@@ -89,7 +89,7 @@
               hist.push({ role: 'user', content: payload.message });
               hist.push({ role: 'assistant', content: text });
               if (hist.length > 40) hist = hist.slice(-40);
-              localStorage.setItem(histKey, JSON.stringify(hist));
+              sessionStorage.setItem(histKey, JSON.stringify(hist));
               if (self._cbDone) self._cbDone(data);
             }).catch(function(e) { if (self._cbError) self._cbError(e.message); });
           },
