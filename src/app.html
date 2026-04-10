@@ -419,6 +419,23 @@
     .chat-fab:hover { transform: scale(1.08); box-shadow: var(--shadow-lg); }
     .chat-fab svg { width: 24px; height: 24px; fill: #fff; }
     .chat-page-wrap { display: flex; flex-direction: column; height: calc(100vh - 44px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    /* ── ONBOARDING TOUR ──────────────────────────────────────── */
+    .tour-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9998; transition: opacity .3s; }
+    .tour-card { position: fixed; z-index: 9999; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; max-width: 360px; width: 90vw; box-shadow: 0 16px 48px rgba(0,0,0,.4); animation: tour-pop .25s var(--ease); }
+    @keyframes tour-pop { from { opacity:0; transform: translateY(12px) scale(.96); } to { opacity:1; transform: translateY(0) scale(1); } }
+    .tour-card .tour-step { font-size: 11px; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+    .tour-card .tour-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .tour-card .tour-desc { font-size: 13px; color: var(--muted2); line-height: 1.5; margin-bottom: 18px; }
+    .tour-card .tour-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .tour-card .tour-dots { display: flex; gap: 6px; }
+    .tour-card .tour-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--surface3); transition: background .2s; }
+    .tour-card .tour-dot.active { background: var(--green); }
+    .tour-card .tour-btns { display: flex; gap: 8px; }
+    .tour-skip { background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 6px 12px; }
+    .tour-skip:hover { color: var(--text); }
+    .tour-next { background: var(--grad); color: #fff; border: none; border-radius: 8px; padding: 8px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+    .tour-next:hover { transform: scale(1.04); box-shadow: var(--shadow-md); }
+    .tour-highlight { position: relative; z-index: 9999; border-radius: 10px; box-shadow: 0 0 0 4px rgba(63,185,80,.4), 0 0 24px rgba(63,185,80,.15); transition: box-shadow .3s; }
     /* ── ALERTS / NOTIFICATIONS ───────────────────────────────── */
     .bell-wrap { position: relative; display: inline-flex; }
     .bell-badge { position: absolute; top: -4px; right: -4px; background: var(--red); color: #fff; font-size: 9px; font-weight: 700; border-radius: 99px; min-width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; padding: 0 3px; line-height: 1; pointer-events: none; }
@@ -2580,7 +2597,7 @@ const DEFAULT_ALERTS_CONFIG = [
   { id:'goal_milestone', label:'Goal Milestone Notifications', desc:'Celebrate when goals hit 25%, 50%, 75%, or 100%.',              enabled:true,  threshold:0,    unit:'any'     },
   { id:'weekly_digest',  label:'Weekly Summary Digest',        desc:'Show an in-app weekly summary of spend, income, and net worth.',enabled:true,  threshold:0,    unit:'any'     },
 ];
-let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[] };
+let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[], tourComplete: false };
 const STORAGE_KEY = 'ledgerly_v3';
 let reportPeriods = { pl:'lastmonth', balance:'lastmonth', cashflow:'lastmonth' };
 let budgetViewYear = new Date().getFullYear();
@@ -10198,6 +10215,107 @@ const _origShowPage = showPage;
 
 if (window.electronAPI) { loadAiConfig(); document.getElementById('chat-fab').style.display = 'flex'; }
 // Dashboard forecast now loads inside renderAll() after data is ready
+
+// ── ONBOARDING TOUR ──────────────────────────────────────────────────────────
+(function() {
+  const TOUR_STEPS = [
+    { page: 'dashboard', title: 'Welcome to Ledgerly!', desc: 'This is your dashboard — your complete financial overview at a glance. It shows your net worth, cash flow, spending trends, and more.', highlight: '#page-dashboard .cards' },
+    { page: 'income', title: 'Add Your Income', desc: 'Start by adding your income sources — salary, freelance, side hustles. This powers your cash flow forecasts and budget calculations.', highlight: '#page-income .page-header' },
+    { page: 'expenses', title: 'Track Expenses', desc: 'Add your recurring monthly expenses like rent, utilities, and subscriptions. This helps you understand where your money goes.', highlight: '#page-expenses .page-header' },
+    { page: 'accounts', title: 'Link Your Bank', desc: 'Connect your bank account to automatically import transactions. Your data stays private and secure.', highlight: '#page-accounts .page-header' },
+    { page: 'budget', title: 'Set a Budget', desc: 'Create spending limits by category to stay on track. Ledgerly tracks your progress and alerts you when you\'re close to your limit.', highlight: '#page-budget .page-header' },
+    { page: 'ai-chat', title: 'Meet Your AI Advisor', desc: 'Ask anything about your finances — get personalized advice, spending analysis, and smart recommendations powered by AI.', highlight: '.chat-page-wrap' }
+  ];
+
+  let currentStep = 0;
+  let overlay = null;
+  let card = null;
+
+  function shouldShowTour() {
+    return !state.tourComplete && !state.income.length && !state.expenses.length && !(state.accounts || []).some(a => a.isPlaid);
+  }
+
+  function positionCard(highlightSel) {
+    if (!card) return;
+    const target = highlightSel && document.querySelector(highlightSel);
+    // Center the card on screen
+    card.style.top = '50%';
+    card.style.left = '50%';
+    card.style.transform = 'translate(-50%, -50%)';
+    // Remove previous highlights
+    document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+    if (target) {
+      target.classList.add('tour-highlight');
+      // Position card below the highlight if possible
+      const rect = target.getBoundingClientRect();
+      const cardH = card.offsetHeight || 220;
+      if (rect.bottom + cardH + 20 < window.innerHeight) {
+        card.style.top = (rect.bottom + 16) + 'px';
+        card.style.left = Math.max(16, Math.min(rect.left, window.innerWidth - 380)) + 'px';
+        card.style.transform = 'none';
+      } else if (rect.top - cardH - 20 > 0) {
+        card.style.top = (rect.top - cardH - 16) + 'px';
+        card.style.left = Math.max(16, Math.min(rect.left, window.innerWidth - 380)) + 'px';
+        card.style.transform = 'none';
+      }
+    }
+  }
+
+  function renderStep() {
+    const step = TOUR_STEPS[currentStep];
+    // Navigate to the page
+    showPage(step.page);
+    // Build dots
+    const dots = TOUR_STEPS.map((_, i) => `<div class="tour-dot ${i === currentStep ? 'active' : ''}"></div>`).join('');
+    const isLast = currentStep === TOUR_STEPS.length - 1;
+    card.innerHTML = `
+      <div class="tour-step">Step ${currentStep + 1} of ${TOUR_STEPS.length}</div>
+      <div class="tour-title">${step.title}</div>
+      <div class="tour-desc">${step.desc}</div>
+      <div class="tour-actions">
+        <div class="tour-dots">${dots}</div>
+        <div class="tour-btns">
+          <button class="tour-skip" onclick="endTour()">${isLast ? '' : 'Skip'}</button>
+          <button class="tour-next" onclick="${isLast ? 'endTour()' : 'nextTourStep()'}">${isLast ? 'Get Started' : 'Next'}</button>
+        </div>
+      </div>
+    `;
+    // Wait for page render then position
+    requestAnimationFrame(() => positionCard(step.highlight));
+  }
+
+  window.nextTourStep = function() {
+    if (currentStep < TOUR_STEPS.length - 1) {
+      currentStep++;
+      renderStep();
+    }
+  };
+
+  window.endTour = function() {
+    document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+    if (overlay) { overlay.remove(); overlay = null; }
+    if (card) { card.remove(); card = null; }
+    state.tourComplete = true;
+    saveState();
+    showPage('dashboard');
+  };
+
+  window.startTour = function() {
+    currentStep = 0;
+    overlay = document.createElement('div');
+    overlay.className = 'tour-overlay';
+    document.body.appendChild(overlay);
+    card = document.createElement('div');
+    card.className = 'tour-card';
+    document.body.appendChild(card);
+    renderStep();
+  };
+
+  // Auto-start tour for new users after a brief delay
+  setTimeout(function() {
+    if (shouldShowTour()) startTour();
+  }, 800);
+})();
 </script>
 </body>
 </html>
