@@ -281,18 +281,19 @@ router.delete('/items/:itemId', async (req, res) => {
     const userId = getUserId(req);
     const { itemId } = req.params;
 
-    // Look up by item_id only (user_id may differ if auth fallback changed between sessions)
+    // Verify item belongs to the authenticated user before deleting
     const itemResult = await db.query(
-      'SELECT access_token FROM plaid_items WHERE item_id = $1',
-      [itemId]
+      'SELECT access_token FROM plaid_items WHERE item_id = $1 AND user_id = $2',
+      [itemId, userId]
     );
-    if (itemResult.rows.length) {
-      try {
-        const client = buildPlaidClient();
-        await client.itemRemove({ access_token: itemResult.rows[0].access_token });
-      } catch {} // Plaid removal is best-effort
-    }
-    await db.query('DELETE FROM plaid_items WHERE item_id = $1', [itemId]);
+    if (!itemResult.rows.length) return res.status(404).json({ error: 'Item not found' });
+
+    try {
+      const client = buildPlaidClient();
+      await client.itemRemove({ access_token: itemResult.rows[0].access_token });
+    } catch {} // Plaid removal is best-effort
+
+    await db.query('DELETE FROM plaid_items WHERE item_id = $1 AND user_id = $2', [itemId, userId]);
 
     res.json({ ok: true });
   } catch (err) {
@@ -303,20 +304,34 @@ router.delete('/items/:itemId', async (req, res) => {
 
 // POST /api/plaid/webhook
 // Plaid webhook receiver — handles real-time notifications
+// Validates that the item_id exists in our database before acting on any event.
 router.post('/webhook', async (req, res) => {
-  // TODO: verify Plaid webhook signature in production
   const { webhook_type, webhook_code, item_id } = req.body;
+
+  // Reject requests missing required fields
+  if (!webhook_type || !webhook_code || !item_id) {
+    return res.status(400).json({ error: 'Invalid webhook payload' });
+  }
+
+  // Only process events for items we actually have — prevents spoofed item_ids
+  const itemResult = await db.query(
+    'SELECT item_id FROM plaid_items WHERE item_id = $1',
+    [item_id]
+  );
+  if (!itemResult.rows.length) {
+    console.log(`Plaid webhook: ignoring unknown item ${item_id}`);
+    return res.json({ ok: true });
+  }
+
   console.log(`Plaid webhook: ${webhook_type}/${webhook_code} for item ${item_id}`);
 
+  // Only act on recognized webhook codes
   if (webhook_code === 'SYNC_UPDATES_AVAILABLE') {
-    // Flag item for sync — client polls /api/plaid/items for status
     await db.query(
       "UPDATE plaid_items SET updated_at = datetime('now') WHERE item_id = $1",
       [item_id]
     ).catch(() => {});
-  }
-
-  if (webhook_code === 'PENDING_EXPIRATION' || webhook_code === 'ERROR') {
+  } else if (webhook_code === 'PENDING_EXPIRATION' || webhook_code === 'ERROR') {
     await db.query(
       "UPDATE plaid_items SET status = 'item_login_required', updated_at = datetime('now') WHERE item_id = $1",
       [item_id]

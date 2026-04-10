@@ -38,29 +38,19 @@ const app = express();
 const PORT = process.env.PORT || 3210;
 
 // Middleware
+// CORS_ORIGIN can be a single origin or comma-separated list (e.g. "http://localhost:3210,https://ledgerly.app")
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (Electron, curl, server-to-server)
+    if (!origin) return callback(null, true);
+    const allowed = (process.env.CORS_ORIGIN || 'http://localhost:3210')
+      .split(',').map(s => s.trim());
+    if (allowed.includes(origin)) return callback(null, true);
+    callback(new Error('Not allowed by CORS'));
+  },
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 }));
 app.use(express.json({ limit: '5mb' }));
-
-// DB debug — shows what Plaid items are stored and under which user IDs
-app.get('/debug/db', (_req, res) => {
-  try {
-    const { getUserState } = require('./db');
-    const fs = require('fs'), path = require('path');
-    const dbDir = process.env.DB_PATH || __dirname;
-    const dbFile = path.join(dbDir, 'ledgerly-data.json');
-    let data = {};
-    try { data = JSON.parse(fs.readFileSync(dbFile, 'utf8')); } catch {}
-    res.json({
-      fileExists: fs.existsSync(dbFile),
-      plaidItemCount: (data.plaid_items || []).length,
-      plaidItemUsers: [...new Set((data.plaid_items || []).map(i => i.user_id))],
-      userStateCount: Object.keys(data.user_states || {}).length,
-    });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
 
 // Health check
 app.get('/health', (_req, res) => {
