@@ -710,12 +710,12 @@
     <div class="chart-area" style="margin-bottom:0">
       <div class="chart-title">Income by Category</div>
       <div class="chart-sub">Breakdown of income streams</div>
-      <canvas id="income-category-chart" height="190"></canvas>
+      <canvas id="income-category-chart" height="190" style="max-height:180px"></canvas>
     </div>
     <div class="chart-area" style="margin-bottom:0">
       <div class="chart-title">Debt by Type</div>
       <div class="chart-sub">Breakdown of outstanding debt</div>
-      <canvas id="debt-category-chart" height="190"></canvas>
+      <canvas id="debt-category-chart" height="190" style="max-height:180px"></canvas>
     </div>
   </div>
 </div>
@@ -6975,7 +6975,7 @@ function renderIncomeCategoryChart() {
   charts.incomeCat = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderColor: '#1a1d27', borderWidth: 3 }] },
-    options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#7c80a0', padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#7c80a0', padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } }
   });
 }
 
@@ -6997,7 +6997,7 @@ function renderDebtCategoryChart() {
   charts.debtCat = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderColor: '#1a1d27', borderWidth: 3 }] },
-    options: { responsive: true, plugins: { legend: { position: 'right', labels: { color: '#7c80a0', padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#7c80a0', padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } }
   });
 }
 
