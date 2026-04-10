@@ -8806,18 +8806,14 @@ async function syncPlaidItem(itemId, btn) {
 function hidePlaidAccount(accountId) {
   if (!confirm('Hide this account? Its transactions will no longer appear in the app. The bank connection stays active.')) return;
   const acc = state.accounts.find(a => a.id === accountId);
-  state.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || [];
-  if (acc && acc.plaidAccountId && !state.hiddenPlaidAccountIds.includes(acc.plaidAccountId)) {
-    state.hiddenPlaidAccountIds.push(acc.plaidAccountId);
-  }
-  // Also track by plaidItemId+name as fallback (when plaidAccountId not set)
-  state.hiddenPlaidAccountNames = state.hiddenPlaidAccountNames || [];
-  if (acc && acc.name) {
-    var nameKey = (acc.plaidItemId || '') + '::' + acc.name;
-    if (!state.hiddenPlaidAccountNames.includes(nameKey)) state.hiddenPlaidAccountNames.push(nameKey);
+  if (acc && acc.plaidAccountId) {
+    state.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || [];
+    if (!state.hiddenPlaidAccountIds.includes(acc.plaidAccountId)) {
+      state.hiddenPlaidAccountIds.push(acc.plaidAccountId);
+    }
   }
   state.accounts = state.accounts.filter(a => a.id !== accountId);
-  // Clear ALL transactions so resync tags them with proper plaidAccountId
+  // Clear ALL transactions so resync tags them properly by account
   state.transactions.forEach(t => removeReceipt(t.id));
   state.transactions = [];
   saveState();
