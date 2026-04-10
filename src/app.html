@@ -1052,8 +1052,15 @@
         <option value="">All types</option><option value="credit">Credits (in)</option><option value="debit">Debits (out)</option>
       </select>
       <select id="tx-filter-cat" onchange="renderTransactions()"><option value="">All categories</option></select>
-      <input type="month" id="tx-filter-month" onchange="renderTransactions()" oninput="renderTransactions()" style="min-width:140px">
-      <button class="btn btn-sm btn-ghost" onclick="document.getElementById('tx-filter-month').value='';renderTransactions()" title="Clear month filter" style="padding:5px 8px">✕</button>
+      <select id="tx-filter-month-m" onchange="updateTxMonthFilter()" style="width:auto">
+        <option value="">Month</option>
+        <option>01</option><option>02</option><option>03</option><option>04</option>
+        <option>05</option><option>06</option><option>07</option><option>08</option>
+        <option>09</option><option>10</option><option>11</option><option>12</option>
+      </select>
+      <select id="tx-filter-month-y" onchange="updateTxMonthFilter()" style="width:auto"></select>
+      <input type="hidden" id="tx-filter-month">
+      <button class="btn btn-sm btn-ghost" onclick="document.getElementById('tx-filter-month-m').value='';document.getElementById('tx-filter-month-y').value='';document.getElementById('tx-filter-month').value='';renderTransactions()" title="Clear month filter" style="padding:5px 8px">✕</button>
       <select id="tx-sort" onchange="renderTransactions()" style="min-width:130px">
         <option value="date-desc" selected>Date (Newest)</option>
         <option value="date-asc">Date (Oldest)</option>
@@ -9262,6 +9269,23 @@ function exportAmortizationCsv() {
 
 })();
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
+
+// ── Transaction month filter ───────────────────────────────────────────────
+function updateTxMonthFilter() {
+  var m = document.getElementById('tx-filter-month-m').value;
+  var y = document.getElementById('tx-filter-month-y').value;
+  document.getElementById('tx-filter-month').value = (m && y) ? y + '-' + m : '';
+  renderTransactions();
+}
+(function populateTxYears() {
+  var sel = document.getElementById('tx-filter-month-y');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Year</option>';
+  var yr = new Date().getFullYear();
+  for (var i = yr; i >= yr - 5; i--) {
+    var opt = document.createElement('option'); opt.value = i; opt.textContent = i; sel.appendChild(opt);
+  }
+})();
 
 // ── Mobile navigation ──────────────────────────────────────────────────────
 function toggleMobileNav() {
