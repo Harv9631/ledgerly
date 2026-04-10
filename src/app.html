@@ -2954,14 +2954,11 @@ function filteredExpenses(){ return state.expenses.filter(x => x.mode === state.
 function filteredDebts()   { return state.debts.filter(d => d.mode === state.mode); }
 function filteredTx() {
   const hidden = new Set(state.hiddenPlaidAccountIds || []);
-  // Build set of plaidAccountIds from excluded accounts (keyed by local id)
-  const excludedAccIds = new Set((state.excludedAccountIds || [])
-    .map(localId => { var a = state.accounts.find(x => x.id === localId); return a && a.plaidAccountId; })
-    .filter(Boolean));
+  const excl = new Set(state.excludedPlaidIds || []);
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
-    if (t.plaidAccountId && excludedAccIds.has(t.plaidAccountId)) return false;
+    if (t.plaidAccountId && excl.has(t.plaidAccountId)) return false;
     if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
     return true;
   });
@@ -8823,11 +8820,18 @@ async function syncPlaidItem(itemId, btn) {
   }
 }
 
-function toggleAccountExclusion(accountLocalId) {
+function toggleAccountExclusion(accountLocalId, plaidAccId) {
   state.excludedAccountIds = state.excludedAccountIds || [];
-  const idx = state.excludedAccountIds.indexOf(accountLocalId);
-  if (idx >= 0) state.excludedAccountIds.splice(idx, 1);
-  else state.excludedAccountIds.push(accountLocalId);
+  state.excludedPlaidIds = state.excludedPlaidIds || [];
+  var idx = state.excludedAccountIds.indexOf(accountLocalId);
+  if (idx >= 0) {
+    state.excludedAccountIds.splice(idx, 1);
+    var pidx = state.excludedPlaidIds.indexOf(plaidAccId);
+    if (pidx >= 0) state.excludedPlaidIds.splice(pidx, 1);
+  } else {
+    state.excludedAccountIds.push(accountLocalId);
+    if (plaidAccId && !state.excludedPlaidIds.includes(plaidAccId)) state.excludedPlaidIds.push(plaidAccId);
+  }
   saveState(); renderAll(); renderPlaidLinkedAccounts();
 }
 
@@ -8883,7 +8887,7 @@ async function renderPlaidLinkedAccounts() {
       '<div class="account-card">' +
         '<div class="ac-actions">' +
           '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' +
-          (function(){ var excl=(state.excludedAccountIds||[]).includes(a.id); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.id)+'\')" title="'+(excl?'Include in':'Exclude from')+' reports">'+(excl?'✓ Excluded':'Exclude from Reports')+'</button>'; })() +
+          (function(){ var excl=(state.excludedAccountIds||[]).includes(a.id); var pid=e(a.plaidAccountId||''); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.id)+'\',\''+pid+'\')" title="'+(excl?'Include in':'Exclude from')+' reports">'+(excl?'✓ Excluded':'Exclude from Reports')+'</button>'; })() +
           '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +
         '<div class="ac-type">' + e(a.institution || 'Bank') + '</div>' +
