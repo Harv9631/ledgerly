@@ -43,16 +43,20 @@ async function requireAuth(req, res, next) {
     if (parts.length === 3) {
       const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
       if (payload.sub) {
+        console.log('[AUTH] JWT decode ok, sub:', payload.sub.slice(0, 8) + '...');
         req.user = { id: payload.sub, email: payload.email || null };
         return next();
       }
+      console.log('[AUTH] JWT has no sub claim, payload keys:', Object.keys(payload).join(','));
+    } else {
+      console.log('[AUTH] Token is not a 3-part JWT, parts:', parts.length);
     }
-  } catch {}
+  } catch(e) { console.log('[AUTH] JWT decode error:', e.message); }
 
-  // Fallback 2: use a hash of the token as user ID — keeps single-tenant app working
-  // even when the token format is unrecognised. Tighten this when multi-tenant auth is needed.
-  const crypto = require('crypto');
-  req.user = { id: 'web-' + crypto.createHash('sha256').update(token).digest('hex').slice(0, 16), email: null };
+  // Fallback 2: stable ID for single-tenant use — does NOT change between logins
+  // Token hash was wrong because it changed every session. Use fixed ID instead.
+  req.user = { id: 'web-user-default', email: null };
+  console.log('[AUTH] Using stable fallback user ID: web-user-default');
   next();
 }
 
