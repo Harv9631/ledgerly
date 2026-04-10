@@ -2954,19 +2954,22 @@ function filteredExpenses(){ return state.expenses.filter(x => x.mode === state.
 function filteredDebts()   { return state.debts.filter(d => d.mode === state.mode); }
 function filteredTx() {
   const hidden = new Set(state.hiddenPlaidAccountIds || []);
+  // Build set of plaidAccountIds from excluded accounts (keyed by local id)
+  const excludedAccIds = new Set((state.excludedAccountIds || [])
+    .map(localId => { var a = state.accounts.find(x => x.id === localId); return a && a.plaidAccountId; })
+    .filter(Boolean));
   return state.transactions.filter(t => {
     if (t.mode !== state.mode) return false;
     if (t.plaidAccountId && hidden.has(t.plaidAccountId)) return false;
-    const excl = new Set(state.excludedPlaidIds || []);
-    if (t.plaidAccountId && excl.has(t.plaidAccountId)) return false;
+    if (t.plaidAccountId && excludedAccIds.has(t.plaidAccountId)) return false;
     if (hidden.size > 0 && t.plaidTxId && !t.plaidAccountId) return false;
     return true;
   });
 }
 function filteredAccounts(){
-  const excl = new Set(state.excludedPlaidIds || []);
+  const excludedLocalIds = new Set(state.excludedAccountIds || []);
   return state.accounts.filter(a => {
-    if (excl.has(a.plaidAccountId)) return false;
+    if (excludedLocalIds.has(a.id)) return false;
     if (a.isPlaid) return true; // Plaid bank accounts visible in both Personal and Business modes
     return a.mode === state.mode;
   });
@@ -8820,11 +8823,11 @@ async function syncPlaidItem(itemId, btn) {
   }
 }
 
-function toggleAccountExclusion(plaidAccountId) {
-  state.excludedPlaidIds = state.excludedPlaidIds || [];
-  const idx = state.excludedPlaidIds.indexOf(plaidAccountId);
-  if (idx >= 0) state.excludedPlaidIds.splice(idx, 1);
-  else state.excludedPlaidIds.push(plaidAccountId);
+function toggleAccountExclusion(accountLocalId) {
+  state.excludedAccountIds = state.excludedAccountIds || [];
+  const idx = state.excludedAccountIds.indexOf(accountLocalId);
+  if (idx >= 0) state.excludedAccountIds.splice(idx, 1);
+  else state.excludedAccountIds.push(accountLocalId);
   saveState(); renderAll(); renderPlaidLinkedAccounts();
 }
 
@@ -8880,7 +8883,7 @@ async function renderPlaidLinkedAccounts() {
       '<div class="account-card">' +
         '<div class="ac-actions">' +
           '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' +
-          (function(){ var excl=(state.excludedPlaidIds||[]).includes(a.plaidAccountId); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.plaidAccountId)+'\')" title="'+(excl?'Include':'Exclude')+' from reports">'+(excl?'Excluded':'Include')+' in Reports</button>'; })() +
+          (function(){ var excl=(state.excludedAccountIds||[]).includes(a.id); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.id)+'\')" title="'+(excl?'Include in':'Exclude from')+' reports">'+(excl?'✓ Excluded':'Exclude from Reports')+'</button>'; })() +
           '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +
         '<div class="ac-type">' + e(a.institution || 'Bank') + '</div>' +
