@@ -638,7 +638,10 @@
   </div>
   <div id="income-smoothing-banner" style="display:none;background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.35);border-radius:8px;padding:11px 16px;margin-bottom:16px;font-size:13px;color:var(--orange);align-items:center;justify-content:space-between;gap:10px">
     <span id="income-smoothing-banner-text"></span>
-    <button class="btn btn-sm btn-ghost" onclick="showPage('income-insights')" style="white-space:nowrap;color:var(--orange);border-color:rgba(251,146,60,.35)">View Insights</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <button class="btn btn-sm btn-ghost" onclick="showPage('income-insights')" style="white-space:nowrap;color:var(--orange);border-color:rgba(251,146,60,.35)">View Insights</button>
+      <button onclick="dismissIncomeBanner()" style="background:none;border:none;color:var(--orange);cursor:pointer;font-size:18px;padding:2px 6px;line-height:1;opacity:.7" title="Dismiss">&times;</button>
+    </div>
   </div>
   <div class="cards" id="dash-kpi-cards">
     <div class="card">
@@ -9161,9 +9164,20 @@ function renderIncomeInsights() {
   }
 }
 
+function dismissIncomeBanner() {
+  const banner = document.getElementById('income-smoothing-banner');
+  if (banner) banner.style.display = 'none';
+  // Track dismiss: show again every 3rd page load
+  const count = parseInt(localStorage.getItem('ledgerly_banner_dismiss') || '0', 10);
+  localStorage.setItem('ledgerly_banner_dismiss', String(count + 1));
+}
+
 function updateIncomeSmoothingBanner() {
   const banner = document.getElementById('income-smoothing-banner');
   if (!banner) return;
+  // Check if dismissed — show again every 3rd login
+  const dismissCount = parseInt(localStorage.getItem('ledgerly_banner_dismiss') || '0', 10);
+  if (dismissCount > 0 && dismissCount % 3 !== 0) { banner.style.display = 'none'; return; }
   const monthData = getIncomeForPastMonths(12);
   if (!monthData.length) { banner.style.display = 'none'; return; }
   const smoothed = monthData.reduce((s, m) => s + m.income, 0) / monthData.length;
