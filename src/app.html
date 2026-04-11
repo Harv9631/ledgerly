@@ -9060,15 +9060,17 @@ async function renderPlaidLinkedAccounts() {
   const origin = window.location.origin;
 
   async function apiFetch(path, opts = {}) {
+    var currentToken = sessionStorage.getItem('sb_token') || token;
     const res = await fetch(origin + path, {
       method: opts.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + token,
+        'Authorization': 'Bearer ' + currentToken,
         ...(opts.headers || {})
       },
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
+    if (res.status === 401) { sessionStorage.removeItem('sb_token'); window.location.href = '/'; return {}; }
     return res.json();
   }
 
