@@ -43,17 +43,17 @@ const _aiMonthlyLimits = new Map();    // monthly: userId:YYYY-MM -> count
 const _OWNER_IDS = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
 const _OWNER_EMAILS = ['nick@biglysales.com'];
 
-function _isProUser(userId) {
-  if (_OWNER_IDS.includes(userId)) return true;
+function _isProUser(userId, email) {
+  if (_OWNER_IDS.includes(userId) || (email && _OWNER_EMAILS.includes(email))) return true;
   const adminList = (process.env.ADMIN_USERS || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (adminList.includes(userId)) return true;
+  if (adminList.includes(userId) || (email && adminList.includes(email))) return true;
   const { getUserState } = require('./db');
   const stripeState = getUserState('stripe:' + userId) || {};
   return stripeState.active === true;
 }
 
-function checkAiRateLimit(userId) {
-  const isPro = _isProUser(userId);
+function checkAiRateLimit(userId, email) {
+  const isPro = _isProUser(userId, email);
   if (isPro) {
     // Pro: 50/day
     const today = new Date().toISOString().slice(0, 10);
@@ -75,8 +75,8 @@ function checkAiRateLimit(userId) {
   }
 }
 
-function getAiRateInfo(userId) {
-  const isPro = _isProUser(userId);
+function getAiRateInfo(userId, email) {
+  const isPro = _isProUser(userId, email);
   if (isPro) {
     const today = new Date().toISOString().slice(0, 10);
     return { count: _aiRateLimits.get(userId + ':' + today) || 0, limit: 50, period: 'day', isPro: true };
@@ -127,7 +127,7 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
   if (!message) return res.status(400).json({ error: 'message required' });
   if (typeof message === 'string' && message.length > 5000) return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
 
-  const rateResult = checkAiRateLimit(req.user.id);
+  const rateResult = checkAiRateLimit(req.user.id, req.user.email);
   if (!rateResult.allowed) {
     const msg = rateResult.isPro
       ? 'Daily limit reached (50 messages/day). Try again tomorrow.'
@@ -181,7 +181,7 @@ ${financialContext || 'No financial data available yet.'}`;
       model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages
     });
     const text = response.content[0]?.text || '';
-    const rateInfo = getAiRateInfo(req.user.id);
+    const rateInfo = getAiRateInfo(req.user.id, req.user.email);
     res.json({ text, usage: response.usage, rateCount: rateInfo.count, rateInfo });
   } catch (err) {
     res.status(500).json({ error: err.message || 'AI error' });
@@ -190,7 +190,7 @@ ${financialContext || 'No financial data available yet.'}`;
 
 // GET /api/ai/rate-limit — return current usage count
 app.get('/api/ai/rate-limit', requireAuth, (req, res) => {
-  const rateInfo = getAiRateInfo(req.user.id);
+  const rateInfo = getAiRateInfo(req.user.id, req.user.email);
   res.json({ ok: true, ...rateInfo });
 });
 
@@ -297,7 +297,8 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
     switch (feature) {
 
       case 'categorize-transactions': {
-        if (!checkAiRateLimit(req.user.id)) return res.status(429).json({ error: 'Daily AI limit reached' });
+        const catRate = checkAiRateLimit(req.user.id, req.user.email);
+        if (!catRate.allowed) return res.status(429).json({ error: catRate.isPro ? 'Daily AI limit reached' : 'Free plan AI limit reached. Upgrade to Pro for more.', upgradeUrl: '/upgrade' });
         const { transactions } = payload;
         if (!transactions || !transactions.length) return res.json([]);
         if (transactions.length > 100) return res.status(400).json({ error: 'Too many transactions (max 100 per batch)' });

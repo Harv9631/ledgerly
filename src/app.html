@@ -9732,8 +9732,6 @@ function mobileNav(page) {
 // Pro tier: Plaid, AI chat, imports, tax, mileage, invoicing, unlimited
 window._isPro = !window._webToken; // Electron always Pro
 window._isOwner = false;
-const _OWNER_IDS = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
-const _OWNER_EMAILS = ['nick@biglysales.com'];
 const _PRO_PAGES = ['mileage', 'invoices'];
 const _FREE_TX_LIMIT = 50;
 
@@ -9741,19 +9739,14 @@ if (window._webToken) {
   fetch(window.location.origin + '/api/stripe/status', {
     headers: { 'Authorization': 'Bearer ' + window._webToken }
   }).then(r => r.json()).then(data => {
-    if (data.plan === 'admin' || data.active === true) {
+    if (data.plan === 'admin') {
+      window._isPro = true;
+      window._isOwner = true;
+    } else if (data.active === true) {
       window._isPro = true;
     }
-    // Check owner status from Supabase token payload
-    try {
-      const payload = JSON.parse(atob(window._webToken.split('.')[1]));
-      if (_OWNER_IDS.includes(payload.sub) || _OWNER_EMAILS.includes(payload.email)) {
-        window._isPro = true;
-        window._isOwner = true;
-      }
-    } catch {}
     _applyFeatureGating();
-  }).catch(() => { window._isPro = true; _applyFeatureGating(); }); // if check fails, allow access
+  }).catch(() => { window._isPro = false; _applyFeatureGating(); }); // fail closed — server gates still enforce
 }
 
 function _requirePro(featureName) {
@@ -9781,6 +9774,12 @@ function _showUpgradePrompt(featureName) {
 }
 
 function _applyFeatureGating() {
+  // Fetch AI rate info on load so label shows correct tier values immediately
+  if (window._webToken && window.electronAPI && window.electronAPI.ai) {
+    window.electronAPI.ai.getRateLimit().then(function(rl) {
+      if (rl) updateChatRateLabel(rl.count, rl);
+    }).catch(function() {});
+  }
   // Add PRO badges to gated tabs
   if (!window._isPro) {
     document.querySelectorAll('.tab').forEach(function(tab) {
