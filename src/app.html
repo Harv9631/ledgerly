@@ -9667,6 +9667,22 @@ if (window._webToken) {
         if ((state.accounts || []).filter(a=>a.isPlaid).length > (data.state.accounts || []).filter(a=>a.isPlaid).length) {
           merged.accounts = state.accounts;
         }
+        // Merge transactions: keep all unique transactions from both local and server
+        var localTxs = state.transactions || [];
+        var serverTxs = data.state.transactions || [];
+        if (localTxs.length && serverTxs.length) {
+          var seenIds = new Set();
+          var mergedTxs = [];
+          // Server transactions take priority (may have updated categories, etc.)
+          serverTxs.forEach(function(t) { seenIds.add(t.id); if (t.plaidTxId) seenIds.add(t.plaidTxId); mergedTxs.push(t); });
+          // Add any local-only transactions the server didn't have
+          localTxs.forEach(function(t) {
+            if (!seenIds.has(t.id) && !(t.plaidTxId && seenIds.has(t.plaidTxId))) mergedTxs.push(t);
+          });
+          merged.transactions = mergedTxs;
+        } else if (localTxs.length > serverTxs.length) {
+          merged.transactions = localTxs;
+        }
         state = merged;
         saveState();
         renderAll();
