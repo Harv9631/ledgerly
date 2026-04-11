@@ -8897,12 +8897,9 @@ async function syncAllPlaidItems() {
   }
   renderAll();
   await renderPlaidLinkedAccounts();
-  // Auto-sync transactions on first load (e.g. new browser, no local data)
-  // Use state.transactions (not filteredTx) so excluded accounts don't trigger re-fetch.
-  if ((state.transactions || []).length === 0 && items.length > 0) {
-    for (const item of items) {
-      await syncPlaidItem(item.item_id);
-    }
+  // Always sync transactions so new deposits/charges appear promptly
+  for (const item of items) {
+    await syncPlaidItem(item.item_id);
   }
 }
 
@@ -8914,7 +8911,7 @@ function startPlaidAutoSync() {
     syncAllPlaidItems().catch(function(){});
   }, 15 * 60 * 1000);
 }
-if (window.electronAPI) startPlaidAutoSync();
+startPlaidAutoSync();
 
 async function syncPlaidItem(itemId, btn) {
   if (!window.electronAPI) return;
