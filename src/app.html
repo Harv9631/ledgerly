@@ -412,6 +412,14 @@
     .chat-mic-btn.recording { background: rgba(239,68,68,.15); border-color: var(--red); animation: mic-pulse 1.2s ease-in-out infinite; }
     .chat-mic-btn.recording svg { fill: var(--red); }
     @keyframes mic-pulse { 0%,100% { box-shadow: none; } 50% { box-shadow: 0 0 0 6px rgba(239,68,68,.15); } }
+    .ai-action-card { background: rgba(63,185,80,.08); border: 1px solid rgba(63,185,80,.3); border-radius: 10px; padding: 14px 16px; margin-top: 10px; }
+    .ai-action-label { font-size: 11px; font-weight: 600; color: var(--green); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; }
+    .ai-action-desc { font-size: 13px; color: var(--text); margin-bottom: 12px; line-height: 1.45; }
+    .ai-action-btns { display: flex; gap: 8px; }
+    .ai-action-confirm { background: var(--grad); color: #fff; border: none; border-radius: 8px; padding: 7px 18px; font-size: 12px; font-weight: 600; cursor: pointer; transition: transform .15s; }
+    .ai-action-confirm:hover { transform: scale(1.03); }
+    .ai-action-dismiss { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 7px 14px; font-size: 12px; cursor: pointer; }
+    .ai-action-done { color: var(--green); font-size: 13px; font-weight: 600; }
     .chat-typing { display: flex; gap: 4px; align-items: center; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; border-bottom-left-radius: 4px; width: fit-content; }
     .chat-typing span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: typingDot 1.2s infinite; }
     .chat-typing span:nth-child(2) { animation-delay: .2s; }
@@ -9804,6 +9812,14 @@ async function sendChatMessage() {
       const el = document.getElementById(typingId);
       if (el) el.remove();
     }
+    // Parse and handle AI action commands
+    if (accumulated && streamingBubbleId) {
+      const { cleanText, actions } = parseAiActions(accumulated);
+      if (actions.length > 0) {
+        updateChatBubbleText(streamingBubbleId, cleanText);
+        renderActionConfirmation(actions, streamingBubbleId);
+      }
+    }
     setChatInputEnabled(true);
     if (data && data.rateCount !== undefined) updateChatRateLabel(data.rateCount);
     window.electronAPI.ai.removeListeners();
@@ -9842,6 +9858,115 @@ function chatInputKeydown(e) {
 function autoResizeChatInput(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── AI ACTION COMMANDS ──────────────────────────────────────────────────────
+function parseAiActions(text) {
+  const actionRegex = /```action\s*\n?([\s\S]*?)```/g;
+  const actions = [];
+  let match;
+  while ((match = actionRegex.exec(text)) !== null) {
+    try { actions.push(JSON.parse(match[1].trim())); } catch {}
+  }
+  const cleanText = text.replace(/```action\s*\n?[\s\S]*?```/g, '').trim();
+  return { cleanText, actions };
+}
+
+function describeAction(act) {
+  switch (act.action) {
+    case 'create_budget': return `Create a ${act.category} budget with a $${act.limit} monthly limit`;
+    case 'add_income': return `Add "${act.name}" income of $${act.amount}/${act.frequency || 'monthly'}`;
+    case 'add_expense': return `Add "${act.name}" expense of $${act.amount}/${act.frequency || 'monthly'}`;
+    case 'add_debt': return `Add "${act.name}" debt — $${act.balance} balance at ${act.rate || 0}% APR`;
+    case 'add_goal': return `Create "${act.name}" goal — target $${act.target}`;
+    case 'add_savings': return `Create "${act.name}" savings bucket — target $${act.target}`;
+    case 'add_subscription': return `Add "${act.name}" subscription — $${act.amount}/${act.cycle || 'monthly'}`;
+    case 'navigate': return `Navigate to ${act.page}`;
+    default: return 'Unknown action';
+  }
+}
+
+let _pendingActions = [];
+
+function renderActionConfirmation(actions, bubbleId) {
+  _pendingActions = actions;
+  const bubble = document.getElementById(bubbleId);
+  if (!bubble) return;
+  const container = document.createElement('div');
+  actions.forEach((act, i) => {
+    const card = document.createElement('div');
+    card.className = 'ai-action-card';
+    card.id = 'ai-action-' + i;
+    card.innerHTML = `
+      <div class="ai-action-label">Action</div>
+      <div class="ai-action-desc">${e(describeAction(act))}</div>
+      <div class="ai-action-btns">
+        <button class="ai-action-confirm" onclick="executeAiAction(${i})">Confirm</button>
+        <button class="ai-action-dismiss" onclick="dismissAiAction(${i})">Dismiss</button>
+      </div>`;
+    container.appendChild(card);
+  });
+  bubble.querySelector('.chat-bubble-text, .chat-text')?.appendChild(container) || bubble.appendChild(container);
+}
+
+function executeAiAction(index) {
+  const act = _pendingActions[index];
+  if (!act) return;
+  const card = document.getElementById('ai-action-' + index);
+  try {
+    switch (act.action) {
+      case 'create_budget': {
+        const cat = act.category || 'Other';
+        const limit = parseFloat(act.limit) || 0;
+        const existing = state.budgets.find(b => b.category === cat && b.mode === state.mode && b.month === budgetViewMonth && b.year === budgetViewYear);
+        if (existing) { existing.limit = limit; }
+        else { state.budgets.push({ id: uid(), category: cat, limit, rollover: false, month: budgetViewMonth, year: budgetViewYear, mode: state.mode }); }
+        break;
+      }
+      case 'add_income': {
+        state.income.push({ id: uid(), name: act.name || 'Income', category: act.category || 'Income', amount: parseFloat(act.amount) || 0, freq: act.frequency || 'monthly', notes: '', is1099: false, mode: state.mode, dateAdded: new Date().toISOString().slice(0, 10) });
+        break;
+      }
+      case 'add_expense': {
+        state.expenses.push({ id: uid(), name: act.name || 'Expense', category: act.category || 'Other', expType: 'fixed', amount: parseFloat(act.amount) || 0, freq: act.frequency || 'monthly', deductible: 'no', scheduleC: '', mode: state.mode });
+        break;
+      }
+      case 'add_debt': {
+        const bal = parseFloat(act.balance) || 0;
+        state.debts.push({ id: uid(), name: act.name || 'Debt', type: act.type || 'other', balance: bal, original: bal, rate: parseFloat(act.rate) || 0, payment: parseFloat(act.payment) || 0, dueDay: null, mode: state.mode, dateAdded: new Date().toISOString().slice(0, 10) });
+        break;
+      }
+      case 'add_goal': {
+        if (!state.goals) state.goals = [];
+        state.goals.push({ id: uid(), name: act.name || 'Goal', target: parseFloat(act.target) || 0, current: parseFloat(act.current) || 0, monthly: parseFloat(act.monthly) || 0, targetDate: '', notes: '', mode: state.mode, dateAdded: new Date().toISOString().slice(0, 10) });
+        break;
+      }
+      case 'add_savings': {
+        if (!state.savingsBuckets) state.savingsBuckets = [];
+        state.savingsBuckets.push({ id: uid(), name: act.name || 'Savings', target: parseFloat(act.target) || 0, balance: parseFloat(act.balance) || 0, targetDate: '', notes: '', mode: state.mode, createdAt: new Date().toISOString().slice(0, 10) });
+        break;
+      }
+      case 'add_subscription': {
+        if (!state.subscriptions) state.subscriptions = [];
+        state.subscriptions.push({ id: uid(), name: act.name || 'Subscription', amount: parseFloat(act.amount) || 0, cycle: act.cycle || 'monthly', nextBillingDate: '', category: 'Other', status: 'active', cancellationNotes: '', lastKnownAmount: null, mode: state.mode });
+        break;
+      }
+      case 'navigate': {
+        if (act.page) showPage(act.page);
+        break;
+      }
+    }
+    saveState();
+    renderAll();
+    if (card) card.innerHTML = '<div class="ai-action-done">✓ Done! Added successfully.</div>';
+  } catch (err) {
+    if (card) card.innerHTML = '<div style="color:var(--red);font-size:13px">Failed: ' + e(err.message) + '</div>';
+  }
+}
+
+function dismissAiAction(index) {
+  const card = document.getElementById('ai-action-' + index);
+  if (card) card.innerHTML = '<div style="color:var(--muted);font-size:12px">Dismissed</div>';
 }
 
 async function clearChatHistory() {
