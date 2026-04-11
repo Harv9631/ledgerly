@@ -6761,12 +6761,15 @@ function renderTransactions() {
 
   const _cats = getEffectiveCategories();
   const _rows = [];
+  // Pre-group transactions by date to avoid O(n^2) re-filtering inside the loop
+  const _txByDate = {};
+  filtered.forEach(t => { const d = t.date; if (!_txByDate[d]) _txByDate[d] = []; _txByDate[d].push(t); });
   let _lastDate = null;
   filtered.forEach(t => {
     // Insert date group header when date changes — spans all 9 columns
     if (t.date !== _lastDate) {
       _lastDate = t.date;
-      const _dayTxs = filtered.filter(x => x.date === t.date);
+      const _dayTxs = _txByDate[t.date] || [];
       const _dayIn  = _dayTxs.filter(x=>x.type==='credit').reduce((s,x)=>s+x.amount,0);
       const _dayOut = _dayTxs.filter(x=>x.type==='debit').reduce((s,x)=>s+Math.abs(x.amount),0);
       let _dayLabel = t.date;
@@ -8995,7 +8998,11 @@ function startPlaidAutoSync() {
     syncAllPlaidItems().catch(function(){});
   }, 15 * 60 * 1000);
 }
+function stopPlaidAutoSync() {
+  if (_plaidAutoSyncInterval) { clearInterval(_plaidAutoSyncInterval); _plaidAutoSyncInterval = null; }
+}
 startPlaidAutoSync();
+window.addEventListener('beforeunload', stopPlaidAutoSync);
 
 async function syncPlaidItem(itemId, btn, forceReset) {
   if (!window.electronAPI) return;
@@ -9992,6 +9999,8 @@ function appendChatBubble(role, text, isStreaming) {
     bubble.innerHTML = `<div class="chat-bubble-text">${e(text)}</div><div class="chat-bubble-time">${chatTimestamp()}</div>`;
   }
   msgEl.appendChild(bubble);
+  // Cap DOM at 200 bubbles to prevent unbounded memory growth
+  while (msgEl.children.length > 200) msgEl.removeChild(msgEl.firstChild);
   msgEl.scrollTop = msgEl.scrollHeight;
   return id;
 }
