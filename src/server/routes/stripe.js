@@ -43,7 +43,7 @@ router.get('/status', (req, res) => {
 router.post('/checkout', async (req, res) => {
   try {
     const stripe = getStripe();
-    const { priceId, successUrl, cancelUrl } = req.body;
+    const { priceId } = req.body;
     if (!priceId) return res.status(400).json({ error: 'priceId required' });
 
     // Retrieve or create Stripe customer tied to this user
@@ -64,8 +64,8 @@ router.post('/checkout', async (req, res) => {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || origin + '/app.html?subscribed=1',
-      cancel_url:  cancelUrl  || origin + '/upgrade.html',
+      success_url: origin + '/app.html?subscribed=1',
+      cancel_url:  origin + '/upgrade.html',
       metadata: { ledgerly_user_id: req.user.id }
     });
 

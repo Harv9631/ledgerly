@@ -56,7 +56,7 @@ function load() {
 
 function save(data) {
   const json = JSON.stringify(data, null, 2);
-  try { fs.writeFileSync(dbFile, json); } catch {}
+  try { fs.writeFileSync(dbFile, json); } catch (err) { console.error('[DB] Local write failed:', err.message); }
   // Push to Supabase Storage asynchronously
   if (sbStorage) {
     const buf = Buffer.from(json, 'utf8');

@@ -65,6 +65,8 @@ app.use(cors({
   },
   allowedHeaders: ['Content-Type', 'Authorization', 'X-User-Id']
 }));
+// Stripe webhook needs raw body for signature verification — mount BEFORE json parser
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), stripeRoutes);
 app.use(express.json({ limit: '5mb' }));
 
 // Health check
@@ -422,8 +424,7 @@ app.put('/api/user/state', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// Stripe routes — webhook is unauth (uses sig verify), rest require auth
-app.use('/api/stripe/webhook', stripeRoutes);
+// Stripe routes — webhook mounted above (before json parser), rest require auth
 app.use('/api/stripe', requireAuth, stripeRoutes);
 
 // Plaid proxy routes — protected by auth
