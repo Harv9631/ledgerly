@@ -50,7 +50,9 @@ router.get('/redirect', (req, res) => {
   // Use nonce as user key (generated client-side, passed through Plaid redirect)
   const key = nonce || 'default';
   if (public_token) {
-    setPendingLink(key, { public_token, metadata: metadata ? JSON.parse(decodeURIComponent(metadata)) : {} });
+    let parsedMeta = {};
+    if (metadata) { try { parsedMeta = JSON.parse(decodeURIComponent(metadata)); } catch {} }
+    setPendingLink(key, { public_token, metadata: parsedMeta });
   }
   res.send(`<!DOCTYPE html><html><head><title>Connected!</title></head><body>
     <p style="font-family:sans-serif;margin:40px auto;max-width:400px;text-align:center">
@@ -363,10 +365,4 @@ router.post('/webhook', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Exported for use by server/index.js /plaid-redirect route
 module.exports = router;
-module.exports.setPendingLink = function(data) {
-  if (_pendingLinkTimer) clearTimeout(_pendingLinkTimer);
-  _pendingLink = data;
-  _pendingLinkTimer = setTimeout(function() { _pendingLink = null; }, 300000);
-};

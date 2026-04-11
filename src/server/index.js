@@ -88,6 +88,7 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
 
   const { message, history = [], financialContext } = req.body;
   if (!message) return res.status(400).json({ error: 'message required' });
+  if (typeof message === 'string' && message.length > 5000) return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
 
   if (!checkAiRateLimit(req.user.id)) {
     return res.status(429).json({ error: 'Daily limit reached (50 messages/day). Try again tomorrow.' });
@@ -248,8 +249,10 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
     switch (feature) {
 
       case 'categorize-transactions': {
+        if (!checkAiRateLimit(req.user.id)) return res.status(429).json({ error: 'Daily AI limit reached' });
         const { transactions } = payload;
         if (!transactions || !transactions.length) return res.json([]);
+        if (transactions.length > 100) return res.status(400).json({ error: 'Too many transactions (max 100 per batch)' });
         const apiKey = process.env.ANTHROPIC_API_KEY;
         if (!apiKey) return res.status(503).json({ error: 'No Anthropic API key configured.' });
         const { default: Anthropic } = require('@anthropic-ai/sdk');
@@ -266,7 +269,8 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
         const text = response.content[0]?.text || '[]';
         const jsonMatch = text.match(/\[[\s\S]*\]/);
         if (!jsonMatch) return res.json([]);
-        const parsed = JSON.parse(jsonMatch[0]);
+        let parsed;
+        try { parsed = JSON.parse(jsonMatch[0]); } catch { return res.json([]); }
         return res.json(parsed.map((item, i) => ({
           id: idMap[i] || item.id,
           category: TX_CATEGORIES.includes(item.category) ? item.category : 'Other'
@@ -327,7 +331,9 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
         const text = message.content[0]?.text ?? '';
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) return res.json({ ok: true, filter: {}, rawResponse: text });
-        return res.json({ ok: true, filter: JSON.parse(jsonMatch[0]), query });
+        let filter;
+        try { filter = JSON.parse(jsonMatch[0]); } catch { filter = {}; }
+        return res.json({ ok: true, filter, query });
       }
 
       case 'advise-budget': {
@@ -395,7 +401,7 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
     }
   } catch (err) {
     console.error(`[AI] /api/ai/${feature} error:`, err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'AI processing failed' });
   }
 });
 

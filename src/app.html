@@ -2973,10 +2973,17 @@ function viewReceiptById(id) {
 
 function viewReceiptDataUrl(dataUrl) {
   const content = document.getElementById('receipt-view-content');
+  content.innerHTML = '';
   if (dataUrl.startsWith('data:application/pdf')) {
-    content.innerHTML = '<iframe src="' + dataUrl + '" style="width:100%;height:520px;border:none;border-radius:8px"></iframe>';
+    const iframe = document.createElement('iframe');
+    iframe.src = dataUrl;
+    iframe.style.cssText = 'width:100%;height:520px;border:none;border-radius:8px';
+    content.appendChild(iframe);
   } else {
-    content.innerHTML = '<img src="' + dataUrl + '" style="max-width:100%;max-height:72vh;border-radius:8px;object-fit:contain">';
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.cssText = 'max-width:100%;max-height:72vh;border-radius:8px;object-fit:contain';
+    content.appendChild(img);
   }
   openModal('receipt-view');
 }
@@ -2990,7 +2997,7 @@ function toggleTxReceiptsFilter(btn) {
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function fmt(n) { return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtShort(n) { n = Number(n||0); if (Math.abs(n)>=1000000) return '$'+(n/1000000).toFixed(1)+'M'; if (Math.abs(n)>=1000) return '$'+(n/1000).toFixed(1)+'k'; return fmt(n); }
-function toMonthly(amount, freq) { return amount * ({weekly:52/12,biweekly:26/12,monthly:1,quarterly:1/3,annually:1/12,bonus:1}[freq]||1); }
+function toMonthly(amount, freq) { return amount * ({weekly:52/12,biweekly:26/12,monthly:1,quarterly:1/3,annually:1/12,bonus:1/12}[freq]||1); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function e(s) { return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -3866,9 +3873,11 @@ function changeTxCategory(id, cat) {
     var banner = document.createElement('div');
     banner.id = 'tx-cat-toast';
     banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-hi);border-radius:10px;padding:12px 18px;z-index:300;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:12px;font-size:13px;max-width:90vw';
-    banner.innerHTML = '<span><b>' + matches.length + '</b> other ' + (matches.length===1?'transaction':'transactions') + ' with this description found. Apply <b>' + cat + '</b> to all?</span>'+
-      '<button onclick="applyTxCatToAll(\''+id+'\',\''+cat+'\')" style="background:var(--grad);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap">Apply All</button>'+
-      '<button onclick="document.getElementById(\'tx-cat-toast\').remove()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px">Just this one</button>';
+    banner.innerHTML = '<span><b>' + matches.length + '</b> other ' + (matches.length===1?'transaction':'transactions') + ' with this description found. Apply <b>' + e(cat) + '</b> to all?</span>'+
+      '<button class="tx-cat-apply-btn" style="background:var(--grad);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap">Apply All</button>'+
+      '<button class="tx-cat-dismiss-btn" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px">Just this one</button>';
+    banner.querySelector('.tx-cat-apply-btn').addEventListener('click', function() { applyTxCatToAll(id, cat); });
+    banner.querySelector('.tx-cat-dismiss-btn').addEventListener('click', function() { banner.remove(); });
     var old = document.getElementById('tx-cat-toast');
     if (old) old.remove();
     document.body.appendChild(banner);
@@ -4040,12 +4049,20 @@ async function handlePdfFile(file) {
       alert('Could not automatically detect transactions in this PDF.\n\nTip: Try exporting a CSV from your bank\'s website instead — it will give you the most accurate results.');
       return;
     }
-    state.transactions = [...state.transactions, ...transactions];
+    const existingKeys = new Set(state.transactions.map(t => `${t.date}|${(t.desc||'').trim().toLowerCase()}|${Math.abs(t.amount||0).toFixed(2)}`));
+    let dupeCount = 0;
+    const deduped = transactions.filter(t => {
+      const key = `${t.date}|${(t.desc||'').trim().toLowerCase()}|${Math.abs(t.amount||0).toFixed(2)}`;
+      if (existingKeys.has(key)) { dupeCount++; return false; }
+      existingKeys.add(key);
+      return true;
+    });
+    state.transactions = [...state.transactions, ...deduped];
     saveState();
     ['csv-drop-input','csv-modal-input'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     closeModal('csv');
     showPage('transactions');
-    alert(`Imported ${transactions.length} transaction${transactions.length !== 1 ? 's' : ''} from PDF.`);
+    alert(`Imported ${deduped.length} transaction${deduped.length !== 1 ? 's' : ''} from PDF.` + (dupeCount ? ` Skipped ${dupeCount} duplicate(s).` : ''));
   } catch (err) {
     console.error('PDF parse error:', err);
     alert('Could not read this PDF file. The file may be encrypted, scanned (image-only), or in an unsupported format.\n\nPlease try a CSV export from your bank instead.');
@@ -4127,7 +4144,7 @@ function debtFreeMonths() {
   }
   return months < 1200 ? months : null;
 }
-function totalRemainingInterest() { const m = debtFreeMonths(); return m ? Math.max(0, monthlyPayment()*m - totalDebt()) : 0; }
+function totalRemainingInterest() { const m = debtFreeMonths(); const pmt = getEffectiveDebts().reduce((s,d)=>s+(d.payment||0),0); return m ? Math.max(0, pmt*m - totalDebt()) : 0; }
 
 // ── CHARTS ────────────────────────────────────────────────────────────────────
 const charts = {};
@@ -4226,7 +4243,7 @@ function renderPayoffChart() {
 function renderAssetAllocChart() {
   const ctx = document.getElementById('asset-alloc-chart').getContext('2d');
   destroyChart('assetalloc');
-  const accs = filteredAccounts(); if (!accs.length) return;
+  const accs = filteredAccounts().filter(a => a.balance > 0); if (!accs.length) return;
   const byType = {};
   accs.forEach(a => { byType[ACC_TYPE_LABELS[a.type]||a.type] = (byType[ACC_TYPE_LABELS[a.type]||a.type]||0)+a.balance; });
   charts.assetalloc = new Chart(ctx,{type:'doughnut',data:{
@@ -4846,8 +4863,8 @@ function renderMonthlyReport() {
   // Month-by-month table
   const tbody = data.map((row, i) => {
     const prev = data[i - 1];
-    const momInc = prev && prev.income ? ((row.income - prev.income) / prev.income * 100).toFixed(1) : null;
-    const momDebt = prev && prev.debtPayment ? ((row.debtPayment - prev.debtPayment) / prev.debtPayment * 100).toFixed(1) : null;
+    const momInc = prev && prev.income > 0 ? ((row.income - prev.income) / prev.income * 100).toFixed(1) : null;
+    const momDebt = prev && prev.debtPayment > 0 ? ((row.debtPayment - prev.debtPayment) / prev.debtPayment * 100).toFixed(1) : null;
     const momIncClr = momInc === null ? '' : (parseFloat(momInc) >= 0 ? 'color:var(--green)' : 'color:var(--red)');
     const momDebtClr = momDebt === null ? '' : (parseFloat(momDebt) <= 0 ? 'color:var(--green)' : 'color:var(--red)');
     const netClr = row.netCash >= 0 ? 'color:var(--green)' : 'color:var(--red)';
@@ -5153,7 +5170,7 @@ function renderCustomOrderResult(ordered) {
   if (!el || !ordered || !ordered.length) return;
   const result = simulatePayoff(ordered, 0, 0);
   if (!result) { el.innerHTML = ''; return; }
-  const avOrder = [...filteredDebts()].sort((a, b) => b.rate - a.rate);
+  const avOrder = [...getEffectiveDebts()].sort((a, b) => b.rate - a.rate);
   const avResult = simulatePayoff(avOrder, 0, 0);
   const diff = avResult ? result.totalInterest - avResult.totalInterest : null;
   el.innerHTML = `<div style="font-size:13px;color:var(--muted)">Custom order: <b style="color:var(--text)">${fmt(result.totalInterest)}</b> total interest · <b style="color:var(--blue)">${payoffDateStr(result.months)}</b> (${result.months} mo)${diff !== null ? ` · <span style="color:${diff > 0 ? 'var(--red)' : 'var(--green)'}">${fmt(Math.abs(diff))} ${diff > 0 ? 'more' : 'less'} than avalanche</span>` : ''}</div>`;
@@ -5534,7 +5551,7 @@ function generateInsights() {
   if (dupes.length > 0) {
     const id = mkId('duplicate', dupes[0][0].id);
     if (!isDismissed(id)) {
-      insights.push({ id, type:'duplicate', icon:'⚠️', title:'Possible Duplicate Transaction', detail:`Found ${dupes.length} potential duplicate(s). E.g.: "${e(dupes[0][0].description||'')}" for ${fmt(Math.abs(parseFloat(dupes[0][0].amount)))} appears twice.` });
+      insights.push({ id, type:'duplicate', icon:'⚠️', title:'Possible Duplicate Transaction', detail:`Found ${dupes.length} potential duplicate(s). E.g.: "${e(dupes[0][0].desc||'')}" for ${fmt(Math.abs(parseFloat(dupes[0][0].amount)))} appears twice.` });
     }
   }
 
@@ -7484,7 +7501,7 @@ function exportTaxPDF() {
     `QUARTERLY ESTIMATED PAYMENTS`,
     qLines,
     ``,
-    `Note: This is an estimate based on 2024 tax rates. Consult a tax professional for official advice.`,
+    `Note: This is an estimate based on ${yr} tax rates. Consult a tax professional for official advice.`,
   ].join('\n');
 
   const blob = new Blob([content], { type: 'text/plain' });
@@ -8009,7 +8026,7 @@ function markInvoicePaid(id) {
   const total = invTotal(inv);
   if (!state.income) state.income = [];
   const incId = uid();
-  state.income.push({ id: incId, name: `Invoice ${inv.invoiceNumber} – ${inv.client}`, category: 'Invoice', amount: total, freq: 'annually', notes: `Paid ${inv.paidDate}`, mode: inv.mode, dateAdded: inv.paidDate });
+  state.income.push({ id: incId, name: `Invoice ${inv.invoiceNumber} – ${inv.client}`, category: 'Invoice', amount: total, freq: 'bonus', notes: `Paid ${inv.paidDate}`, mode: inv.mode, dateAdded: inv.paidDate });
   inv.incomeEntryId = incId;
   saveState(); renderInvoices();
 }
@@ -8539,7 +8556,7 @@ function exportMileagePdf() {
     `${'─'.repeat(40)}`,
     ...summaryLines,
     ``,
-    `IRS MILEAGE RATES (2024)`,
+    `IRS MILEAGE RATES (2025)`,
     `  Business: $0.700/mile`,
     `  Medical:  $0.210/mile`,
     `  Charity:  $0.140/mile`,
@@ -8980,7 +8997,7 @@ function startPlaidAutoSync() {
 }
 startPlaidAutoSync();
 
-async function syncPlaidItem(itemId, btn) {
+async function syncPlaidItem(itemId, btn, forceReset) {
   if (!window.electronAPI) return;
   if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
   try {
@@ -9002,7 +9019,7 @@ async function syncPlaidItem(itemId, btn) {
         }
       }
     }
-    const needsReset = arguments[2] === true || (state.transactions || []).length === 0;
+    const needsReset = forceReset === true || (state.transactions || []).length === 0;
     let txs;
     try { txs = await window.electronAPI.plaid.syncTransactions(itemId, needsReset); } catch(ex) { txs = null; }
     console.log('[PLAID-SYNC] itemId=' + itemId + ' reset=' + needsReset + ' added=' + ((txs&&txs.added)||[]).length + ' modified=' + ((txs&&txs.modified)||[]).length + ' removed=' + ((txs&&txs.removed)||[]).length);
@@ -9748,7 +9765,7 @@ if (window._webToken) {
     _serverSyncTimer = setTimeout(function() {
       fetch(_syncOrigin + '/api/user/state', {
         method: 'PUT',
-        headers: _syncHeaders,
+        headers: _getSyncHeaders(),
         body: JSON.stringify({ state: state })
       }).catch(() => {}); // fire-and-forget, ignore errors
     }, 3000);
@@ -9890,8 +9907,8 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
   if (savings.length > 0) {
     ctx += `\n\nSavings Buckets:`;
     savings.forEach(s => {
-      const bal = (state.savingsContributions || []).filter(c => c.bucketId === s.id).reduce((sum, c) => sum + (parseFloat(c.amount)||0), 0);
-      ctx += `\n  - ${s.name}: $${bal.toFixed(2)} saved`;
+      const bal = (parseFloat(s.initialBalance)||0) + (state.savingsContributions || []).filter(c => c.bucketId === s.id).reduce((sum, c) => sum + (parseFloat(c.amount)||0), 0);
+      ctx += `\n  - ${s.name}: $${bal.toFixed(2)} saved` + (s.targetAmount ? ` / $${parseFloat(s.targetAmount).toFixed(2)} target` : '');
     });
   }
 
@@ -10303,7 +10320,7 @@ function executeAiAction(index) {
         break;
       }
       case 'add_expense': {
-        state.expenses.push({ id: uid(), name: act.name || 'Expense', category: act.category || 'Other', expType: 'fixed', amount: parseFloat(act.amount) || 0, freq: act.frequency || 'monthly', deductible: 'no', scheduleC: '', mode: state.mode });
+        state.expenses.push({ id: uid(), name: act.name || 'Expense', category: act.category || 'Other', expType: act.expType || 'variable', amount: parseFloat(act.amount) || 0, freq: act.frequency || 'monthly', deductible: 'no', scheduleC: '', mode: state.mode });
         break;
       }
       case 'add_debt': {
@@ -10313,12 +10330,12 @@ function executeAiAction(index) {
       }
       case 'add_goal': {
         if (!state.goals) state.goals = [];
-        state.goals.push({ id: uid(), name: act.name || 'Goal', target: parseFloat(act.target) || 0, current: parseFloat(act.current) || 0, monthly: parseFloat(act.monthly) || 0, targetDate: '', notes: '', mode: state.mode, dateAdded: new Date().toISOString().slice(0, 10) });
+        state.goals.push({ id: uid(), name: act.name || 'Goal', targetAmount: parseFloat(act.target) || 0, currentAmount: parseFloat(act.current) || 0, monthlyContribution: parseFloat(act.monthly) || 0, targetDate: '', notes: '', mode: state.mode, dateAdded: new Date().toISOString().slice(0, 10) });
         break;
       }
       case 'add_savings': {
         if (!state.savingsBuckets) state.savingsBuckets = [];
-        state.savingsBuckets.push({ id: uid(), name: act.name || 'Savings', target: parseFloat(act.target) || 0, balance: parseFloat(act.balance) || 0, targetDate: '', notes: '', mode: state.mode, createdAt: new Date().toISOString().slice(0, 10) });
+        state.savingsBuckets.push({ id: uid(), name: act.name || 'Savings', targetAmount: parseFloat(act.target) || 0, initialBalance: parseFloat(act.balance) || 0, targetDate: '', notes: '', mode: state.mode, createdAt: new Date().toISOString().slice(0, 10) });
         break;
       }
       case 'add_subscription': {
@@ -10413,9 +10430,9 @@ async function eraseAiData() {
       statusEl.style.color = 'var(--red)';
       statusEl.textContent = 'Erase failed';
     }
-  } catch (e) {
+  } catch (err) {
     statusEl.style.color = 'var(--red)';
-    statusEl.textContent = e.message || 'Erase failed';
+    statusEl.textContent = err.message || 'Erase failed';
   }
 }
 
@@ -10963,7 +10980,7 @@ function updateFabBadge(count) {
   let card = null;
 
   function shouldShowTour() {
-    return !state.tourComplete && !state.income.length && !state.expenses.length && !(state.accounts || []).some(a => a.isPlaid);
+    return !state.tourComplete && !(state.income||[]).length && !(state.expenses||[]).length && !(state.accounts || []).some(a => a.isPlaid);
   }
 
   function positionCard(highlightSel) {
