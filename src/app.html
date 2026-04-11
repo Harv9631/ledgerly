@@ -403,13 +403,36 @@
     .insight-dismiss:hover { opacity: 1; }
     /* ── AI CHAT ──────────────────────────────────────────────── */
     .chat-messages { display: flex; flex-direction: column; gap: 14px; padding: 20px; overflow-y: auto; flex: 1; min-height: 0; }
-    .chat-bubble { max-width: 80%; display: flex; flex-direction: column; gap: 4px; }
+    .chat-bubble { max-width: 85%; display: flex; flex-direction: column; gap: 4px; }
     .chat-bubble.user { align-self: flex-end; align-items: flex-end; }
     .chat-bubble.assistant { align-self: flex-start; align-items: flex-start; }
-    .chat-bubble-text { padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
-    .chat-bubble.user .chat-bubble-text { background: var(--grad); color: #fff; border-bottom-right-radius: 4px; }
+    .chat-bubble-row { display: flex; gap: 10px; align-items: flex-start; }
+    .chat-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--grad); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px; margin-top: 2px; }
+    .chat-bubble-text { padding: 12px 16px; border-radius: 16px; font-size: 13.5px; line-height: 1.65; word-break: break-word; }
+    .chat-bubble.user .chat-bubble-text { background: var(--grad); color: #fff; border-bottom-right-radius: 4px; white-space: pre-wrap; }
     .chat-bubble.assistant .chat-bubble-text { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
     .chat-bubble-time { font-size: 10px; color: var(--muted); padding: 0 4px; }
+    .chat-bubble-actions { display: flex; gap: 6px; padding: 2px 4px; }
+    .chat-copy-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color .2s, background .2s; }
+    .chat-copy-btn:hover { color: var(--text); background: var(--surface3); }
+    /* Markdown in AI bubbles */
+    .chat-bubble.assistant .chat-bubble-text h2 { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: var(--text); }
+    .chat-bubble.assistant .chat-bubble-text h3 { font-size: 13.5px; font-weight: 700; margin: 12px 0 4px; color: var(--text); }
+    .chat-bubble.assistant .chat-bubble-text p { margin: 0 0 10px; }
+    .chat-bubble.assistant .chat-bubble-text p:last-child { margin-bottom: 0; }
+    .chat-bubble.assistant .chat-bubble-text ul, .chat-bubble.assistant .chat-bubble-text ol { margin: 6px 0 10px; padding-left: 20px; }
+    .chat-bubble.assistant .chat-bubble-text li { margin-bottom: 4px; }
+    .chat-bubble.assistant .chat-bubble-text strong { font-weight: 700; color: var(--text); }
+    .chat-bubble.assistant .chat-bubble-text em { font-style: italic; color: var(--muted2); }
+    .chat-bubble.assistant .chat-bubble-text code { background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 4px; font-size: 12px; font-family: 'SF Mono', 'Fira Code', monospace; }
+    .chat-bubble.assistant .chat-bubble-text pre { background: rgba(0,0,0,.3); border-radius: 8px; padding: 12px 14px; margin: 8px 0; overflow-x: auto; font-size: 12px; line-height: 1.5; }
+    .chat-bubble.assistant .chat-bubble-text pre code { background: none; padding: 0; }
+    .chat-bubble.assistant .chat-bubble-text table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 12px; }
+    .chat-bubble.assistant .chat-bubble-text th { background: rgba(255,255,255,.06); padding: 7px 10px; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); }
+    .chat-bubble.assistant .chat-bubble-text td { padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,.04); }
+    .chat-bubble.assistant .chat-bubble-text tr:hover td { background: rgba(255,255,255,.02); }
+    .chat-bubble.assistant .chat-bubble-text hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    .chat-bubble.assistant .chat-bubble-text blockquote { border-left: 3px solid var(--green); margin: 8px 0; padding: 4px 12px; color: var(--muted2); }
     .chat-input-row { display: flex; gap: 8px; padding: 14px 20px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
     .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; color: var(--text); padding: 9px 16px; font-size: 13px; font-family: inherit; outline: none; resize: none; min-height: 38px; max-height: 120px; line-height: 1.5; transition: border-color .2s, box-shadow .2s; }
     .chat-input:focus { border-color: var(--border-hi); box-shadow: 0 0 0 3px rgba(63,185,80,.12); }
@@ -1890,9 +1913,8 @@
   </div>
   <div class="chat-page-wrap">
     <div id="chat-messages" class="chat-messages">
-      <div class="chat-bubble assistant">
-        <div class="chat-bubble-text">Hello! I&#39;m your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?</div>
-        <div class="chat-bubble-time">Now</div>
+      <div class="chat-bubble assistant" data-raw="Hello! I'm your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?">
+        <div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">Hello! I'm your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">Now</div><div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button></div></div></div></div>
       </div>
     </div>
     <div class="chat-suggestions" id="chat-suggestions">
@@ -9692,6 +9714,65 @@ function chatTimestamp() {
   return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+// Simple markdown to HTML parser (safe — escapes first, then applies formatting)
+function renderMarkdown(text) {
+  let html = e(text);
+  // Code blocks (```...```)
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Tables
+  html = html.replace(/(?:^|\n)(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/g, function(_, header, _sep, body) {
+    const ths = header.split('|').filter(c => c.trim()).map(c => '<th>' + c.trim() + '</th>').join('');
+    const rows = body.trim().split('\n').map(row => {
+      const tds = row.split('|').filter(c => c.trim()).map(c => '<td>' + c.trim() + '</td>').join('');
+      return '<tr>' + tds + '</tr>';
+    }).join('');
+    return '<table><thead><tr>' + ths + '</tr></thead><tbody>' + rows + '</tbody></table>';
+  });
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr>');
+  // Bold and italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Unordered lists
+  html = html.replace(/(?:^|\n)((?:- .+\n?)+)/g, function(_, list) {
+    const items = list.trim().split('\n').map(l => '<li>' + l.replace(/^- /, '') + '</li>').join('');
+    return '<ul>' + items + '</ul>';
+  });
+  // Numbered lists
+  html = html.replace(/(?:^|\n)((?:\d+\. .+\n?)+)/g, function(_, list) {
+    const items = list.trim().split('\n').map(l => '<li>' + l.replace(/^\d+\. /, '') + '</li>').join('');
+    return '<ol>' + items + '</ol>';
+  });
+  // Blockquotes
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  // Paragraphs (double newlines)
+  html = html.replace(/\n\n+/g, '</p><p>');
+  // Single newlines (not inside tags)
+  html = html.replace(/\n/g, '<br>');
+  // Clean up empty paragraphs
+  html = '<p>' + html + '</p>';
+  html = html.replace(/<p><\/p>/g, '');
+  html = html.replace(/<p>(<h[23]>)/g, '$1');
+  html = html.replace(/(<\/h[23]>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<table>)/g, '$1');
+  html = html.replace(/(<\/table>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<ul>)/g, '$1');
+  html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<ol>)/g, '$1');
+  html = html.replace(/(<\/ol>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<pre>)/g, '$1');
+  html = html.replace(/(<\/pre>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
+  html = html.replace(/<p>(<blockquote>)/g, '$1');
+  html = html.replace(/(<\/blockquote>)<\/p>/g, '$1');
+  return html;
+}
+
 function appendChatBubble(role, text, isStreaming) {
   const msgEl = document.getElementById('chat-messages');
   if (!msgEl) return null;
@@ -9699,7 +9780,12 @@ function appendChatBubble(role, text, isStreaming) {
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble ' + role;
   bubble.id = id;
-  bubble.innerHTML = `<div class="chat-bubble-text">${isStreaming ? '' : e(text)}</div><div class="chat-bubble-time">${chatTimestamp()}</div>`;
+  bubble.setAttribute('data-raw', text || '');
+  if (role === 'assistant') {
+    bubble.innerHTML = `<div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">${isStreaming ? '' : renderMarkdown(text)}</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">${chatTimestamp()}</div>${!isStreaming ? '<div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button></div>' : ''}</div></div></div>`;
+  } else {
+    bubble.innerHTML = `<div class="chat-bubble-text">${e(text)}</div><div class="chat-bubble-time">${chatTimestamp()}</div>`;
+  }
   msgEl.appendChild(bubble);
   msgEl.scrollTop = msgEl.scrollHeight;
   return id;
@@ -9721,10 +9807,38 @@ function appendTypingIndicator() {
 function updateChatBubbleText(id, text) {
   const el = document.getElementById(id);
   if (!el) return;
+  el.setAttribute('data-raw', text);
   const textEl = el.querySelector('.chat-bubble-text');
-  if (textEl) textEl.textContent = text;
+  if (textEl) {
+    if (el.classList.contains('assistant')) {
+      textEl.innerHTML = renderMarkdown(text);
+    } else {
+      textEl.textContent = text;
+    }
+  }
+  // Add copy button if streaming just finished and not present yet
+  if (el.classList.contains('assistant') && !el.querySelector('.chat-copy-btn')) {
+    const timeRow = el.querySelector('.chat-bubble-time')?.parentElement;
+    if (timeRow) {
+      const actDiv = document.createElement('div');
+      actDiv.className = 'chat-bubble-actions';
+      actDiv.innerHTML = '<button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button>';
+      timeRow.appendChild(actDiv);
+    }
+  }
   const msgEl = document.getElementById('chat-messages');
   if (msgEl) msgEl.scrollTop = msgEl.scrollHeight;
+}
+
+function copyChatBubble(btn) {
+  const bubble = btn.closest('.chat-bubble');
+  if (!bubble) return;
+  const raw = bubble.getAttribute('data-raw') || bubble.querySelector('.chat-bubble-text')?.textContent || '';
+  navigator.clipboard.writeText(raw).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  }).catch(() => {});
 }
 
 function setChatInputEnabled(enabled) {
