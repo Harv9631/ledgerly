@@ -9744,15 +9744,16 @@ function updateChatRateLabel(count) {
 // ── VOICE INPUT ──────────────────────────────────────────────────────────────
 let _speechRecognition = null;
 let _isRecording = false;
+let _voiceSilenceTimer = null;
 
 (function initVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) return; // Browser doesn't support it
+  if (!SpeechRecognition) return;
   const micBtn = document.getElementById('chat-mic-btn');
   if (micBtn) micBtn.style.display = '';
 
   _speechRecognition = new SpeechRecognition();
-  _speechRecognition.continuous = false;
+  _speechRecognition.continuous = true;
   _speechRecognition.interimResults = true;
   _speechRecognition.lang = 'en-US';
   _speechRecognition.maxAlternatives = 1;
@@ -9767,18 +9768,40 @@ let _isRecording = false;
     }
     inp.value = final || interim;
     autoResizeChatInput(inp);
+    inp.placeholder = 'Listening... (tap mic to send)';
+    // Reset silence timer — give 3 seconds of silence before auto-sending
+    if (_voiceSilenceTimer) clearTimeout(_voiceSilenceTimer);
+    if (final) {
+      _voiceSilenceTimer = setTimeout(function() {
+        if (_isRecording) {
+          _speechRecognition.stop();
+        }
+      }, 3000);
+    }
   };
 
   _speechRecognition.onend = function() {
-    _isRecording = false;
-    const micBtn = document.getElementById('chat-mic-btn');
-    if (micBtn) micBtn.classList.remove('recording');
-    // Auto-send if we got a final result
-    const inp = document.getElementById('chat-input');
-    if (inp && inp.value.trim()) sendChatMessage();
+    if (_voiceSilenceTimer) { clearTimeout(_voiceSilenceTimer); _voiceSilenceTimer = null; }
+    // If still in recording mode, restart (continuous mode can stop unexpectedly)
+    if (_isRecording) {
+      const inp = document.getElementById('chat-input');
+      if (inp && inp.value.trim()) {
+        // User has text and recognition ended — send it
+        _isRecording = false;
+        const micBtn = document.getElementById('chat-mic-btn');
+        if (micBtn) micBtn.classList.remove('recording');
+        inp.placeholder = 'Ask about your finances...';
+        sendChatMessage();
+      } else {
+        // No text yet — restart listening
+        try { _speechRecognition.start(); } catch {}
+      }
+    }
   };
 
   _speechRecognition.onerror = function(event) {
+    if (_voiceSilenceTimer) { clearTimeout(_voiceSilenceTimer); _voiceSilenceTimer = null; }
+    if (event.error === 'no-speech') return; // Ignore no-speech, keep listening
     _isRecording = false;
     const micBtn = document.getElementById('chat-mic-btn');
     if (micBtn) micBtn.classList.remove('recording');
@@ -9793,14 +9816,19 @@ function toggleVoiceInput() {
   if (!_speechRecognition) return;
   const micBtn = document.getElementById('chat-mic-btn');
   if (_isRecording) {
+    if (_voiceSilenceTimer) { clearTimeout(_voiceSilenceTimer); _voiceSilenceTimer = null; }
     _speechRecognition.stop();
     _isRecording = false;
     if (micBtn) micBtn.classList.remove('recording');
+    // Send what we have
+    const inp = document.getElementById('chat-input');
+    if (inp) inp.placeholder = 'Ask about your finances...';
+    if (inp && inp.value.trim()) sendChatMessage();
   } else {
     _isRecording = true;
     if (micBtn) micBtn.classList.add('recording');
     const inp = document.getElementById('chat-input');
-    if (inp) { inp.value = ''; inp.placeholder = 'Listening...'; }
+    if (inp) { inp.value = ''; inp.placeholder = 'Listening... (tap mic to send)'; }
     _speechRecognition.start();
   }
 }
