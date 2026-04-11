@@ -3,25 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ledgerly — Upgrade to Pro</title>
+  <title>Ledgerly — Choose Your Plan</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .page { max-width: 520px; width: 100%; }
+    .page { max-width: 780px; width: 100%; }
     .logo { font-size: 22px; font-weight: 800; letter-spacing: -.03em; text-align: center; margin-bottom: 8px; }
-    .tagline { text-align: center; color: #7d8590; font-size: 14px; margin-bottom: 40px; }
-    .card { background: #161b22; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 36px; }
-    .plan-name { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #3fb950; margin-bottom: 8px; }
-    .price { font-size: 48px; font-weight: 800; letter-spacing: -.04em; margin-bottom: 4px; }
-    .price span { font-size: 20px; font-weight: 400; color: #7d8590; }
-    .desc { color: #7d8590; font-size: 14px; margin-bottom: 28px; }
-    .features { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
-    .features li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-    .features li::before { content: '✓'; color: #3fb950; font-weight: 700; flex-shrink: 0; }
-    .btn { width: 100%; padding: 14px; background: linear-gradient(135deg,#238636,#3fb950); color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .2s; }
+    .tagline { text-align: center; color: #7d8590; font-size: 14px; margin-bottom: 36px; }
+    .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 600px) { .plans { grid-template-columns: 1fr; } }
+    .card { background: #161b22; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 32px; position: relative; }
+    .card.pro { border-color: rgba(63,185,80,.4); }
+    .popular { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg,#238636,#3fb950); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 14px; border-radius: 20px; letter-spacing: .05em; text-transform: uppercase; }
+    .plan-name { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: #7d8590; margin-bottom: 8px; }
+    .card.pro .plan-name { color: #3fb950; }
+    .price { font-size: 42px; font-weight: 800; letter-spacing: -.04em; margin-bottom: 4px; }
+    .price span { font-size: 18px; font-weight: 400; color: #7d8590; }
+    .desc { color: #7d8590; font-size: 13px; margin-bottom: 24px; }
+    .features { list-style: none; margin-bottom: 28px; display: flex; flex-direction: column; gap: 10px; }
+    .features li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.4; }
+    .features li .icon { flex-shrink: 0; width: 18px; text-align: center; }
+    .features li .icon.yes { color: #3fb950; }
+    .features li .icon.no { color: #484f58; }
+    .features li.disabled { color: #484f58; }
+    .btn { width: 100%; padding: 13px; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .2s; }
     .btn:hover { opacity: .9; }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .note { text-align: center; font-size: 12px; color: #7d8590; margin-top: 16px; }
+    .btn-pro { background: linear-gradient(135deg,#238636,#3fb950); color: #fff; }
+    .btn-free { background: rgba(255,255,255,.06); color: #e6edf3; border: 1px solid rgba(255,255,255,.1); }
+    .note { text-align: center; font-size: 12px; color: #7d8590; margin-top: 20px; }
     .status { text-align: center; font-size: 13px; margin-top: 12px; min-height: 20px; color: #f85149; }
     .back { text-align: center; margin-top: 20px; font-size: 13px; color: #7d8590; }
     .back a { color: #58a6ff; text-decoration: none; cursor: pointer; }
@@ -31,28 +41,64 @@
 <div class="page">
   <div class="logo">Ledgerly</div>
   <div class="tagline">The smartest personal finance tracker</div>
-  <div class="card">
-    <div class="plan-name">Pro Plan</div>
-    <div class="price">$9<span>.99/mo</span></div>
-    <div class="desc">Everything you need to master your finances</div>
-    <ul class="features">
-      <li>Connect your bank automatically via Plaid</li>
-      <li>AI financial advisor (powered by Claude)</li>
-      <li>Unlimited transactions &amp; accounts</li>
-      <li>Cash flow forecasts &amp; debt optimizer</li>
-      <li>Budget tracking, goals &amp; savings buckets</li>
-      <li>Tax categorization &amp; reports</li>
-      <li>Works on any browser, any device</li>
-    </ul>
-    <button class="btn" id="upgrade-btn" onclick="startCheckout()">Get Started — $9.99/mo</button>
-    <div class="status" id="status"></div>
-    <div class="note">Cancel anytime. Secure payment via Stripe.</div>
+  <div class="plans">
+    <!-- FREE -->
+    <div class="card">
+      <div class="plan-name">Free</div>
+      <div class="price">$0<span>/mo</span></div>
+      <div class="desc">Get started with the basics</div>
+      <ul class="features">
+        <li><span class="icon yes">&#10003;</span> Manual income & expense tracking</li>
+        <li><span class="icon yes">&#10003;</span> Budget tracking & goals</li>
+        <li><span class="icon yes">&#10003;</span> Debt payoff optimizer</li>
+        <li><span class="icon yes">&#10003;</span> Savings buckets</li>
+        <li><span class="icon yes">&#10003;</span> Subscription tracker</li>
+        <li><span class="icon yes">&#10003;</span> Calendar view</li>
+        <li><span class="icon yes">&#10003;</span> 3 basic reports (P&L, Balance, Cash Flow)</li>
+        <li><span class="icon yes">&#10003;</span> Up to 50 manual entries</li>
+        <li class="disabled"><span class="icon no">&#10007;</span> Bank linking (Plaid)</li>
+        <li class="disabled"><span class="icon no">&#10007;</span> AI financial assistant</li>
+        <li class="disabled"><span class="icon no">&#10007;</span> CSV & PDF import</li>
+        <li class="disabled"><span class="icon no">&#10007;</span> Tax reports & categorization</li>
+        <li class="disabled"><span class="icon no">&#10007;</span> Mileage tracking</li>
+        <li class="disabled"><span class="icon no">&#10007;</span> Invoicing</li>
+      </ul>
+      <button class="btn btn-free" onclick="goToApp()">Continue Free</button>
+    </div>
+    <!-- PRO -->
+    <div class="card pro">
+      <div class="popular">Most Popular</div>
+      <div class="plan-name">Pro</div>
+      <div class="price">$9<span>.99/mo</span></div>
+      <div class="desc">Everything you need to master your finances</div>
+      <ul class="features">
+        <li><span class="icon yes">&#10003;</span> Everything in Free, plus:</li>
+        <li><span class="icon yes">&#10003;</span> <strong>Connect your bank via Plaid</strong></li>
+        <li><span class="icon yes">&#10003;</span> <strong>AI financial advisor</strong> (50 chats/day)</li>
+        <li><span class="icon yes">&#10003;</span> <strong>CSV & PDF import</strong></li>
+        <li><span class="icon yes">&#10003;</span> Unlimited entries & accounts</li>
+        <li><span class="icon yes">&#10003;</span> All 12 reports including Tax & FIRE</li>
+        <li><span class="icon yes">&#10003;</span> AI net worth forecast</li>
+        <li><span class="icon yes">&#10003;</span> Mileage tracking (IRS rates)</li>
+        <li><span class="icon yes">&#10003;</span> Invoicing & payment tracking</li>
+        <li><span class="icon yes">&#10003;</span> Spending insights & alerts</li>
+        <li><span class="icon yes">&#10003;</span> Works on any browser, any device</li>
+      </ul>
+      <button class="btn btn-pro" id="upgrade-btn" onclick="startCheckout()">Get Started — $9.99/mo</button>
+      <div class="status" id="status"></div>
+    </div>
   </div>
-  <div class="back"><a onclick="history.back()">← Back</a> &nbsp;·&nbsp; <a href="/login">Sign in</a></div>
+  <div class="note">Cancel anytime. Secure payment via Stripe. All data stays private.</div>
+  <div class="back"><a onclick="goToApp()">← Back to Ledgerly</a> &nbsp;·&nbsp; <a href="/login">Sign in</a></div>
 </div>
 
 <script>
   const token = sessionStorage.getItem('sb_token');
+
+  function goToApp() {
+    if (token) { window.location.href = '/app.html'; }
+    else { window.location.href = '/login'; }
+  }
 
   async function startCheckout() {
     if (!token) { window.location.href = '/login'; return; }

@@ -3281,6 +3281,12 @@ function spendingByCategory(period) {
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 function showPage(name) {
+  // Gate Pro-only pages for free users
+  if (!window._isPro && _PRO_PAGES && _PRO_PAGES.includes(name)) {
+    var labels = {'ai-chat':'AI Financial Assistant','mileage':'Mileage Tracking','invoices':'Invoicing'};
+    _showUpgradePrompt(labels[name] || name);
+    return;
+  }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const page = document.getElementById('page-'+name);
@@ -3369,6 +3375,7 @@ function saveIncome() {
   const name = document.getElementById('inc-name').value.trim();
   const amount = parseFloat(document.getElementById('inc-amount').value);
   if (!name || isNaN(amount) || amount <= 0) { alert('Please fill in name and amount.'); return; }
+  if (!window._isPro && (state.income || []).length >= _FREE_TX_LIMIT) { _showUpgradePrompt('Unlimited Entries'); return; }
   const is1099El = document.getElementById('inc-is1099');
   state.income.push({ id:uid(), name, category:document.getElementById('inc-cat').value, amount, freq:document.getElementById('inc-freq').value, notes:document.getElementById('inc-notes').value, is1099: is1099El ? is1099El.checked : false, mode:state.mode, dateAdded:new Date().toISOString().slice(0,10) });
   saveState(); closeModal('income');
@@ -3384,6 +3391,7 @@ function saveExpense() {
   const name = document.getElementById('exp-name').value.trim();
   const amount = parseFloat(document.getElementById('exp-amount').value);
   if (!name || isNaN(amount) || amount <= 0) { alert('Please fill in name and amount.'); return; }
+  if (!window._isPro && (state.expenses || []).length >= _FREE_TX_LIMIT) { _showUpgradePrompt('Unlimited Entries'); return; }
   const schedC = document.getElementById('exp-sched-c') ? document.getElementById('exp-sched-c').value : '';
   const newId = uid();
   state.expenses.push({ id:newId, name, category:document.getElementById('exp-cat').value, expType:document.getElementById('exp-type').value, amount, freq:document.getElementById('exp-freq').value, deductible:document.getElementById('exp-deductible').value, scheduleC:schedC, mode:state.mode });
@@ -3790,6 +3798,7 @@ function parseDate(str) {
 }
 
 function importCsv() {
+  if (_requirePro('CSV Import')) return;
   const di = parseInt(document.getElementById('map-date').value);
   const desi = parseInt(document.getElementById('map-desc').value);
   const ami = parseInt(document.getElementById('map-amount').value);
@@ -4019,6 +4028,7 @@ dropZone.addEventListener('drop', ev => { ev.preventDefault(); dropZone.classLis
 // ── PDF IMPORT ────────────────────────────────────────────────────────────────
 function handleImportFile(file) {
   if (!file) return;
+  if (_requirePro('File Import')) return;
   if (file.name.toLowerCase().endsWith('.pdf')) {
     handlePdfFile(file);
   } else {
@@ -4274,6 +4284,8 @@ function renderTxCategoryChart(txs) {
 
 // ── REPORT HELPERS ─────────────────────────────────────────────────────────────
 function showReport(name, evt) {
+  var proReports = ['tax','ai-nw-forecast','fire'];
+  if (!window._isPro && proReports.includes(name)) { _showUpgradePrompt('Advanced Reports'); return; }
   document.querySelectorAll('.report-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.report-subtab').forEach(t => t.classList.remove('active'));
   const rp = document.getElementById('report-'+name);
@@ -8826,6 +8838,7 @@ async function loadPlaidConfig() {
 }
 
 async function connectBank() {
+  if (_requirePro('Bank Linking via Plaid')) return;
   if (!window.electronAPI) { alert('Bank connection requires the Ledgerly desktop app.'); return; }
   const btn = document.querySelector('.btn[onclick="connectBank()"]');
   const origText = btn ? btn.textContent : '';
@@ -9706,20 +9719,95 @@ function mobileNav(page) {
   }
 }
 
-// ── SUBSCRIPTION CHECK (web only) ──────────────────────────────────────────────
+// ── SUBSCRIPTION / FEATURE GATING (web only) ──────────────────────────────────
+// Owner always gets full Pro access; everyone else checks Stripe subscription.
+// Free tier: manual entry, basic pages, capped at 50 manual transactions
+// Pro tier: Plaid, AI chat, imports, tax, mileage, invoicing, unlimited
+window._isPro = !window._webToken; // Electron always Pro
+window._isOwner = false;
+const _OWNER_IDS = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
+const _OWNER_EMAILS = ['nick@biglysales.com'];
+const _PRO_PAGES = ['ai-chat', 'mileage', 'invoices'];
+const _FREE_TX_LIMIT = 50;
+
 if (window._webToken) {
   fetch(window.location.origin + '/api/stripe/status', {
     headers: { 'Authorization': 'Bearer ' + window._webToken }
   }).then(r => r.json()).then(data => {
-    if (data.active === false) { // only redirect when explicitly not active; undefined/missing = allow
-      // Not subscribed — redirect to upgrade page
-      // Allow a grace period via ?subscribed=1 after checkout completes
-      const params = new URLSearchParams(window.location.search);
-      if (!params.get('subscribed')) {
-        window.location.href = '/upgrade';
-      }
+    if (data.plan === 'admin' || data.active === true) {
+      window._isPro = true;
     }
-  }).catch(() => {}); // if check fails, allow access (don't block on network error)
+    // Check owner status from Supabase token payload
+    try {
+      const payload = JSON.parse(atob(window._webToken.split('.')[1]));
+      if (_OWNER_IDS.includes(payload.sub) || _OWNER_EMAILS.includes(payload.email)) {
+        window._isPro = true;
+        window._isOwner = true;
+      }
+    } catch {}
+    _applyFeatureGating();
+  }).catch(() => { window._isPro = true; _applyFeatureGating(); }); // if check fails, allow access
+}
+
+function _requirePro(featureName) {
+  if (window._isPro) return false; // allowed
+  _showUpgradePrompt(featureName);
+  return true; // blocked
+}
+
+function _showUpgradePrompt(featureName) {
+  const existing = document.getElementById('pro-upgrade-overlay');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'pro-upgrade-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:400px;width:100%;text-align:center">'
+    + '<div style="font-size:32px;margin-bottom:12px">&#9889;</div>'
+    + '<div style="font-size:18px;font-weight:700;margin-bottom:8px">Upgrade to Pro</div>'
+    + '<div style="color:var(--muted);font-size:14px;margin-bottom:20px"><strong>' + featureName + '</strong> is a Pro feature. Upgrade for $9.99/mo to unlock everything.</div>'
+    + '<div style="display:flex;gap:10px;justify-content:center">'
+    + '<button class="btn btn-primary" onclick="window.location.href=\'/upgrade\'" style="padding:10px 24px">Upgrade Now</button>'
+    + '<button class="btn btn-ghost" onclick="document.getElementById(\'pro-upgrade-overlay\').remove()" style="padding:10px 24px">Maybe Later</button>'
+    + '</div></div>';
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+function _applyFeatureGating() {
+  // Add PRO badges to gated tabs
+  if (!window._isPro) {
+    document.querySelectorAll('.tab').forEach(function(tab) {
+      const text = tab.textContent.trim().toLowerCase().replace(/\s+/g, '-');
+      if (_PRO_PAGES.includes(text) || text === 'ai-assistant' || text === 'ai' || tab.onclick?.toString().includes("'ai-chat'")) {
+        if (!tab.querySelector('.pro-badge')) {
+          var badge = document.createElement('span');
+          badge.className = 'pro-badge';
+          badge.textContent = 'PRO';
+          badge.style.cssText = 'font-size:9px;background:linear-gradient(135deg,#238636,#3fb950);color:#fff;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;letter-spacing:.04em';
+          tab.appendChild(badge);
+        }
+      }
+    });
+    // Add PRO badge to Connect Bank button
+    var bankBtn = document.querySelector('.btn[onclick="connectBank()"]');
+    if (bankBtn && !bankBtn.querySelector('.pro-badge')) {
+      var badge = document.createElement('span');
+      badge.className = 'pro-badge';
+      badge.textContent = 'PRO';
+      badge.style.cssText = 'font-size:9px;background:linear-gradient(135deg,#238636,#3fb950);color:#fff;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;letter-spacing:.04em';
+      bankBtn.appendChild(badge);
+    }
+    // Show free tier banner on dashboard
+    var dash = document.getElementById('page-dashboard');
+    if (dash && !document.getElementById('free-tier-banner')) {
+      var banner = document.createElement('div');
+      banner.id = 'free-tier-banner';
+      banner.style.cssText = 'background:linear-gradient(135deg,rgba(35,134,54,.08),rgba(63,185,80,.04));border:1px solid rgba(63,185,80,.25);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px';
+      banner.innerHTML = '<div style="font-size:13px;color:var(--text)"><strong>Free Plan</strong> — You\'re using Ledgerly Free. <span style="color:var(--muted)">Upgrade to Pro for AI chat, bank linking, imports & more.</span></div>'
+        + '<button class="btn btn-primary btn-sm" onclick="window.location.href=\'/upgrade\'" style="white-space:nowrap;padding:6px 14px;font-size:12px">Upgrade $9.99/mo</button>';
+      dash.insertBefore(banner, dash.children[1] || dash.firstChild);
+    }
+  }
 }
 
 // ── WEB STATE SYNC ─────────────────────────────────────────────────────────────
@@ -10194,6 +10282,7 @@ function toggleVoiceInput() {
 }
 
 async function sendChatMessage() {
+  if (_requirePro('AI Financial Assistant')) return;
   if (_chatStreaming) return;
   const inp = document.getElementById('chat-input');
   if (!inp) return;

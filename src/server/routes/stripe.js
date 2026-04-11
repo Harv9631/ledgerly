@@ -24,9 +24,11 @@ const { getUserState, saveUserState } = require('../db');
 // ── GET /api/stripe/status ───────────────────────────────────────────────────
 // Returns { active: bool, plan: string|null }
 router.get('/status', (req, res) => {
-  // Admin bypass — comma-separated user IDs or emails in ADMIN_USERS env var
+  // Owner + admin bypass — always Pro for these accounts
+  const ownerIds = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
+  const ownerEmails = ['nick@biglysales.com'];
   const adminList = (process.env.ADMIN_USERS || '').split(',').map(s => s.trim()).filter(Boolean);
-  if (adminList.includes(req.user.id) || adminList.includes(req.user.email)) {
+  if (ownerIds.includes(req.user.id) || ownerEmails.includes(req.user.email) || adminList.includes(req.user.id) || adminList.includes(req.user.email)) {
     return res.json({ active: true, plan: 'admin', trialEnd: null });
   }
   const userState = getUserState('stripe:' + req.user.id) || {};
