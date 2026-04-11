@@ -10736,14 +10736,19 @@ function generateAiInsights() {
   if (!insights.length) { container.style.display = 'none'; updateFabBadge(0); return; }
   const shown = insights.slice(0, 3);
   container.style.display = '';
-  container.innerHTML = shown.map(ins => {
-    const q = (ins.question || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-    return `<div class="ai-insight-card" onclick="askLedgerly('${q}')">
+  container.innerHTML = shown.map((ins, idx) => {
+    return `<div class="ai-insight-card" data-insight-idx="${idx}">
       <div class="ai-insight-icon">${ins.icon}</div>
       <div class="ai-insight-text">${ins.text}</div>
       <div class="ai-insight-action">${ins.action} →</div>
     </div>`;
   }).join('');
+  container.querySelectorAll('.ai-insight-card').forEach(card => {
+    card.addEventListener('click', function() {
+      const idx = parseInt(this.getAttribute('data-insight-idx'));
+      if (shown[idx] && shown[idx].question) askLedgerly(shown[idx].question);
+    });
+  });
   updateFabBadge(shown.length);
 }
 
