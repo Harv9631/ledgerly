@@ -8824,8 +8824,15 @@ function plaidBalance(account) {
 async function syncAllPlaidItems() {
   if (!window.electronAPI) return;
   let items;
-  try { items = await window.electronAPI.plaid.getLinkedItems() || []; } catch(ex) { return; }
-  if (!items.length) return;
+  try {
+    const result = await window.electronAPI.plaid.getLinkedItems();
+    items = Array.isArray(result) ? result : [];
+  } catch(ex) { items = []; }
+  if (!items.length) {
+    // Server has no items but client may still have Plaid accounts — render what we have
+    await renderPlaidLinkedAccounts();
+    return;
+  }
   for (const item of items) {
     let accs;
     try { accs = await window.electronAPI.plaid.syncAccounts(item.item_id); } catch(ex) { continue; }
@@ -8845,6 +8852,7 @@ async function syncAllPlaidItems() {
       }
     }
   }
+  localStorage.setItem('plaid_last_sync', Date.now().toString());
   saveState();
   // Push accounts to server immediately so refresh doesn't lose them (bypass 3s debounce)
   if (window._webToken) {
@@ -8864,6 +8872,16 @@ async function syncAllPlaidItems() {
     }
   }
 }
+
+// Auto-sync Plaid every 15 minutes while app is open
+var _plaidAutoSyncInterval = null;
+function startPlaidAutoSync() {
+  if (_plaidAutoSyncInterval) return;
+  _plaidAutoSyncInterval = setInterval(function() {
+    syncAllPlaidItems().catch(function(){});
+  }, 15 * 60 * 1000);
+}
+if (window.electronAPI) startPlaidAutoSync();
 
 async function syncPlaidItem(itemId, btn) {
   if (!window.electronAPI) return;
@@ -9022,19 +9040,27 @@ async function renderPlaidLinkedAccounts() {
     return;
   }
   let items = [];
-  try { items = await window.electronAPI.plaid.getLinkedItems() || []; } catch(ex) { items = []; }
+  try {
+    const result = await window.electronAPI.plaid.getLinkedItems();
+    items = Array.isArray(result) ? result : [];
+  } catch(ex) { items = []; }
   const plaidAccounts = state.accounts.filter(a => a.isPlaid);
   if (!items.length && !plaidAccounts.length) {
     el.innerHTML = '<div class="empty" style="padding:24px 0;color:var(--muted);font-size:13px">No banks connected. Click Connect Bank to link your account via Plaid.</div>';
     return;
   }
-  // Group accounts by item so Disconnect Bank appears once per bank, not per account
-  const itemIds = [...new Set(plaidAccounts.map(a => a.plaidItemId))];
-  el.innerHTML = '<div class="account-cards">' +
-    plaidAccounts.map(a =>
-      '<div class="account-card">' +
+  const serverItemIds = new Set(items.map(i => i.item_id));
+  const itemIds = [...new Set(plaidAccounts.map(a => a.plaidItemId).filter(Boolean))];
+  const lastSync = localStorage.getItem('plaid_last_sync');
+  const syncLabel = lastSync ? 'Last synced: ' + new Date(parseInt(lastSync)).toLocaleTimeString() : '';
+  el.innerHTML =
+    (syncLabel ? '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + syncLabel + '</div>' : '') +
+    '<div class="account-cards">' +
+    plaidAccounts.map(a => {
+      const hasServer = serverItemIds.has(a.plaidItemId);
+      return '<div class="account-card">' +
         '<div class="ac-actions">' +
-          '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' +
+          (hasServer ? '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' : '<span style="font-size:10px;color:var(--yellow)" title="Server record missing — reconnect bank to restore sync">⚠ Needs reconnect</span>') +
           (function(){ var excl=(state.excludedAccountIds||[]).includes(a.id); var pid=e(a.plaidAccountId||''); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.id)+'\',\''+pid+'\')" title="'+(excl?'Include in':'Exclude from')+' reports">'+(excl?'✓ Excluded':'Exclude from Reports')+'</button>'; })() +
           '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +
@@ -9042,11 +9068,11 @@ async function renderPlaidLinkedAccounts() {
         '<div class="ac-name">' + e(a.name) + '</div>' +
         '<div class="ac-inst">' + e(a.type) + '</div>' +
         '<div class="ac-balance ' + (a.balance >= 0 ? 'green' : 'red') + '">' + fmt(a.balance) + '</div>' +
-      '</div>'
-    ).join('') +
+      '</div>';
+    }).join('') +
     '</div>' +
     '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">' +
-    itemIds.map(itemId => {
+    itemIds.filter(id => serverItemIds.has(id)).map(itemId => {
       const inst = (plaidAccounts.find(a => a.plaidItemId === itemId) || {}).institution || 'Bank';
       return '<button class="btn btn-danger btn-sm" onclick="removePlaidItem(\'' + e(itemId) + '\')">Disconnect ' + e(inst) + '</button>';
     }).join('') +
