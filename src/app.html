@@ -75,11 +75,22 @@
             var histKey = 'ai_hist_' + (payload.conversationId || 'default');
             var hist = [];
             try { hist = JSON.parse(localStorage.getItem(histKey) || '[]'); } catch {}
+            var currentToken = sessionStorage.getItem('sb_token') || token;
             fetch(origin + '/api/ai/chat', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentToken },
               body: JSON.stringify({ message: payload.message, history: hist, financialContext: payload.financialContext })
-            }).then(function(r) { return r.json(); }).then(function(data) {
+            }).then(function(r) {
+              if (r.status === 401) {
+                // Token expired — redirect to login
+                sessionStorage.removeItem('sb_token');
+                if (self._cbError) self._cbError('Session expired — please log in again.');
+                setTimeout(function() { window.location.replace('/login'); }, 2000);
+                return { _expired: true };
+              }
+              return r.json();
+            }).then(function(data) {
+              if (!data || data._expired) return;
               if (data.error) {
                 if (self._cbError) self._cbError(data.error);
                 return;
