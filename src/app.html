@@ -1258,9 +1258,9 @@
   <div class="section-title" style="margin-bottom:12px">All Accounts</div>
   <div class="account-cards" id="account-cards-grid"></div>
   <div id="accounts-empty" class="empty" style="display:none">No accounts yet. Add your bank accounts, investments, and assets to track net worth.</div>
-  <div class="chart-area" style="margin-top:20px">
+  <div class="chart-area" style="margin-top:20px;max-width:400px">
     <div class="chart-title">Asset Allocation</div>
-    <canvas id="asset-alloc-chart" height="200"></canvas>
+    <canvas id="asset-alloc-chart" style="max-height:220px" height="200"></canvas>
   </div>
 </div>
 
@@ -4174,7 +4174,7 @@ function renderAssetAllocChart() {
   charts.assetalloc = new Chart(ctx,{type:'doughnut',data:{
     labels:Object.keys(byType),
     datasets:[{data:Object.values(byType),backgroundColor:PALETTE,borderColor:'#1a1d27',borderWidth:3}]
-  },options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'#7c80a0',padding:16}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.raw)}`}}}}});
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7c80a0',padding:16}},tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.raw)}`}}}}});
 }
 
 function renderTxCategoryChart(txs) {
