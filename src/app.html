@@ -413,8 +413,8 @@
     .chat-bubble.assistant .chat-bubble-text { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-bottom-left-radius: 4px; }
     .chat-bubble-time { font-size: 10px; color: var(--muted); padding: 0 4px; }
     .chat-bubble-actions { display: flex; gap: 6px; padding: 2px 4px; }
-    .chat-copy-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color .2s, background .2s; }
-    .chat-copy-btn:hover { color: var(--text); background: var(--surface3); }
+    .chat-copy-btn, .chat-email-btn { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: color .2s, background .2s; }
+    .chat-copy-btn:hover, .chat-email-btn:hover { color: var(--text); background: var(--surface3); }
     /* Markdown in AI bubbles */
     .chat-bubble.assistant .chat-bubble-text h2 { font-size: 14px; font-weight: 700; margin: 14px 0 6px; color: var(--text); }
     .chat-bubble.assistant .chat-bubble-text h3 { font-size: 13.5px; font-weight: 700; margin: 12px 0 4px; color: var(--text); }
@@ -1914,7 +1914,7 @@
   <div class="chat-page-wrap">
     <div id="chat-messages" class="chat-messages">
       <div class="chat-bubble assistant" data-raw="Hello! I'm your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?">
-        <div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">Hello! I'm your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">Now</div><div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button></div></div></div></div>
+        <div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">Hello! I'm your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">Now</div><div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button><button class="chat-email-btn" onclick="emailChatBubble(this)">Email</button></div></div></div></div>
       </div>
     </div>
     <div class="chat-suggestions" id="chat-suggestions">
@@ -9782,7 +9782,7 @@ function appendChatBubble(role, text, isStreaming) {
   bubble.id = id;
   bubble.setAttribute('data-raw', text || '');
   if (role === 'assistant') {
-    bubble.innerHTML = `<div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">${isStreaming ? '' : renderMarkdown(text)}</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">${chatTimestamp()}</div>${!isStreaming ? '<div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button></div>' : ''}</div></div></div>`;
+    bubble.innerHTML = `<div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">${isStreaming ? '' : renderMarkdown(text)}</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">${chatTimestamp()}</div>${!isStreaming ? '<div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button><button class="chat-email-btn" onclick="emailChatBubble(this)">Email</button></div>' : ''}</div></div></div>`;
   } else {
     bubble.innerHTML = `<div class="chat-bubble-text">${e(text)}</div><div class="chat-bubble-time">${chatTimestamp()}</div>`;
   }
@@ -9822,7 +9822,7 @@ function updateChatBubbleText(id, text) {
     if (timeRow) {
       const actDiv = document.createElement('div');
       actDiv.className = 'chat-bubble-actions';
-      actDiv.innerHTML = '<button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button>';
+      actDiv.innerHTML = '<button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button><button class="chat-email-btn" onclick="emailChatBubble(this)">Email</button>';
       timeRow.appendChild(actDiv);
     }
   }
@@ -9839,6 +9839,15 @@ function copyChatBubble(btn) {
     btn.textContent = 'Copied!';
     setTimeout(() => btn.textContent = orig, 1500);
   }).catch(() => {});
+}
+
+function emailChatBubble(btn) {
+  const bubble = btn.closest('.chat-bubble');
+  if (!bubble) return;
+  const raw = bubble.getAttribute('data-raw') || bubble.querySelector('.chat-bubble-text')?.textContent || '';
+  const subject = encodeURIComponent('Ledgerly AI Insight');
+  const body = encodeURIComponent(raw);
+  window.open('mailto:?subject=' + subject + '&body=' + body, '_self');
 }
 
 function setChatInputEnabled(enabled) {
