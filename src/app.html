@@ -74,7 +74,7 @@
             var self = window.electronAPI.ai;
             var histKey = 'ai_hist_' + (payload.conversationId || 'default');
             var hist = [];
-            try { hist = JSON.parse(localStorage.getItem(histKey) || '[]'); } catch {}
+            try { hist = JSON.parse(sessionStorage.getItem(histKey) || '[]'); } catch {}
             var currentToken = sessionStorage.getItem('sb_token') || token;
             fetch(origin + '/api/ai/chat', {
               method: 'POST',
@@ -2018,7 +2018,10 @@
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Erase AI Data</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Permanently delete all AI-generated data stored on this device. This includes chat history, usage tracking, and audit logs. Required for GDPR / right-to-erasure requests.</p>
-      <input type="hidden" id="ai-erase-config">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <input type="checkbox" id="ai-erase-config" style="width:auto;margin:0">
+        <label for="ai-erase-config" style="margin:0;font-size:13px;color:var(--text);cursor:pointer">Also delete stored API key and AI configuration</label>
+      </div>
       <div style="display:flex;align-items:center;gap:12px">
         <button class="btn btn-danger" onclick="eraseAiData()">Erase AI Data</button>
         <span id="ai-erase-status" style="font-size:13px"></span>
@@ -3105,7 +3108,10 @@ function getSpentForCategory(spending, cat) {
   let total = 0;
   Object.keys(spending).forEach(k => {
     var kN = norm(k);
-    if (kN === catN || kN.includes(catN) || catN.includes(kN) || (catAlias && kN.includes(catAlias))) total += spending[k];
+    if (kN === catN) { total += spending[k]; return; }
+    // Only do substring matching for names >= 4 chars to prevent false positives
+    if (catN.length >= 4 && (kN.startsWith(catN) || catN.startsWith(kN))) { total += spending[k]; return; }
+    if (catAlias && kN.includes(catAlias)) { total += spending[k]; return; }
   });
   return total;
 }
@@ -3492,7 +3498,19 @@ function updateAccountBalance() {
   if (acc) { acc.balance = bal; saveState(); closeModal('account-edit'); renderAll(); }
 }
 
-function deleteAccount(id) { state.accounts = state.accounts.filter(a => a.id !== id); saveState(); renderAll(); }
+function deleteAccount(id) {
+  var acc = state.accounts.find(a => a.id === id);
+  if (!acc) return;
+  var msg = 'Delete account "' + (acc.name || 'Unknown') + '"?';
+  if (acc.isPlaid || acc.plaidAccountId) msg += '\n\nThis will also remove all transactions from this bank account.';
+  if (!confirm(msg)) return;
+  if (acc.plaidAccountId) {
+    state.transactions.filter(t => t.plaidAccountId === acc.plaidAccountId).forEach(t => removeReceipt(t.id));
+    state.transactions = state.transactions.filter(t => t.plaidAccountId !== acc.plaidAccountId);
+  }
+  state.accounts = state.accounts.filter(a => a.id !== id);
+  saveState(); renderAll();
+}
 
 // ── BUDGET ────────────────────────────────────────────────────────────────────
 function saveBudget() {
@@ -3575,7 +3593,7 @@ function getRolloverAmount(category, month, year) {
   const prevBudget = state.budgets.find(b => b.category === category && b.mode === state.mode && b.month === pm && b.year === py && b.rollover);
   if (!prevBudget) return 0;
   const prevSpending = spendingForMonth(pm, py);
-  const unspent = prevBudget.limit - (prevSpending[category] || 0);
+  const unspent = prevBudget.limit - getSpentForCategory(prevSpending, category);
   return Math.max(0, unspent);
 }
 
@@ -3794,9 +3812,10 @@ function importCsv() {
 }
 
 function clearTransactions() {
-  if (!confirm('Clear all imported transactions?')) return;
-  state.transactions.forEach(t => removeReceipt(t.id));
-  state.transactions=[]; saveState(); renderAll();
+  if (!confirm('Clear all transactions in ' + state.mode + ' mode? Plaid transactions will be re-fetched on next sync.')) return;
+  state.transactions.filter(t => t.mode === state.mode).forEach(t => removeReceipt(t.id));
+  state.transactions = state.transactions.filter(t => t.mode !== state.mode);
+  saveState(); renderAll();
 }
 
 var _txCatApplyAllResolve = null;
@@ -4243,20 +4262,22 @@ function computePL(period) {
   const txs = txForPeriod(period);
   const credits = txCredits(txs);
   const allDebits = txDebits(txs);
-  // From manual entries (monthly equivalent × months in period)
+  // Compute months in period for fallback scaling
+  const {start, end} = getPeriodRange(period);
+  const periodMonths = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + (end.getDate() >= 15 ? 1 : 0));
   const miMonthly = effectiveMonthlyIncome();
   const meMonthly = effectiveMonthlyExpenses();
   if (state.mode === 'personal') {
-    const revenue = credits > 0 ? credits : miMonthly;
-    const opExpenses = allDebits > 0 ? allDebits : meMonthly;
+    const revenue = credits > 0 ? credits : miMonthly * periodMonths;
+    const opExpenses = allDebits > 0 ? allDebits : meMonthly * periodMonths;
     return { revenue, cogs: 0, grossProfit: revenue, opExpenses, earnings: revenue - opExpenses };
   }
   const cogsTxs = txs.filter(t => t.type==='debit' && t.category==='COGS').reduce((s,t)=>s+Math.abs(t.amount),0);
-  const cogsExpenses = filteredExpenses().filter(x=>x.expType==='COGS').reduce((s,x)=>s+toMonthly(x.amount,x.freq),0);
-  const revenue = credits > 0 ? credits : miMonthly;
+  const cogsExpenses = filteredExpenses().filter(x=>x.expType==='COGS').reduce((s,x)=>s+toMonthly(x.amount,x.freq),0) * periodMonths;
+  const revenue = credits > 0 ? credits : miMonthly * periodMonths;
   const cogs = cogsTxs + cogsExpenses;
   const grossProfit = revenue - cogs;
-  const opExpenses = allDebits > 0 ? (allDebits - cogsTxs) : meMonthly;
+  const opExpenses = allDebits > 0 ? (allDebits - cogsTxs) : meMonthly * periodMonths;
   const earnings = grossProfit - opExpenses;
   return { revenue, cogs, grossProfit, opExpenses, earnings };
 }
@@ -9075,15 +9096,13 @@ async function hidePlaidAccount(accountId) {
     if (!state.hiddenPlaidAccountIds.includes(acc.plaidAccountId)) {
       state.hiddenPlaidAccountIds.push(acc.plaidAccountId);
     }
+    // Remove only transactions for this specific account
+    state.transactions.filter(t => t.plaidAccountId === acc.plaidAccountId).forEach(t => removeReceipt(t.id));
+    state.transactions = state.transactions.filter(t => t.plaidAccountId !== acc.plaidAccountId);
   }
   state.accounts = state.accounts.filter(a => a.id !== accountId);
-  // Clear ALL transactions so resync tags them properly by account
-  state.transactions.forEach(t => removeReceipt(t.id));
-  state.transactions = [];
   saveState();
   renderAll();
-  // Resync from Plaid — only visible account's transactions will be fetched
-  // (cursor is reset because transactions are now empty)
   await renderPlaidLinkedAccounts();
 }
 
@@ -10860,9 +10879,9 @@ function generateAiInsights() {
     }
   }
 
-  // Emergency fund insight
+  // Emergency fund insight — use only liquid assets (checking + savings), not total assets
   if (mi > 0) {
-    const liquid = totalAssets();
+    const liquid = filteredAccounts().filter(a => ['checking','savings'].includes((a.type||'').toLowerCase())).reduce((s,a) => s + Math.max(0, a.balance), 0);
     const runwayMonths = me > 0 ? liquid / me : 0;
     if (runwayMonths < 3 && runwayMonths >= 0) insights.push({ icon: '🛡️', text: `Your emergency runway is ${runwayMonths.toFixed(1)} months. Aim for 3-6 months.`, action: 'Build savings', question: 'My emergency fund only covers ' + runwayMonths.toFixed(1) + ' months of expenses. How can I build it up to 3-6 months? What should I prioritize?' });
   }

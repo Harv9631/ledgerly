@@ -25,30 +25,33 @@ function getUserId(req) {
   return (req.user && req.user.id) || req.headers['x-user-id'] || 'default';
 }
 
-// In-process store for Plaid Link callback (consumed once, expires after 5 min)
-let _pendingLink = null;
-let _pendingLinkTimer = null;
+// Per-user store for Plaid Link callback (consumed once, expires after 5 min)
+const _pendingLinks = new Map(); // userId -> { public_token, metadata, timer }
+
+function setPendingLink(userId, data) {
+  const existing = _pendingLinks.get(userId);
+  if (existing && existing.timer) clearTimeout(existing.timer);
+  const timer = setTimeout(() => { _pendingLinks.delete(userId); }, 300000);
+  _pendingLinks.set(userId, { ...data, timer });
+}
 
 // POST /api/plaid/link-callback — called by plaid-link.html (legacy IPC path)
 router.post('/link-callback', (req, res) => {
+  const userId = getUserId(req);
   const { public_token, metadata } = req.body;
-  if (_pendingLinkTimer) clearTimeout(_pendingLinkTimer);
-  _pendingLink = { public_token, metadata };
-  _pendingLinkTimer = setTimeout(() => { _pendingLink = null; }, 300000);
+  setPendingLink(userId, { public_token, metadata });
   res.json({ ok: true });
 });
 
 // GET /plaid-redirect — Plaid redirects here after the user completes Link in their browser.
-// The public_token is passed as a query param. Plaid docs confirm localhost URIs are
-// permitted in all environments without dashboard registration.
+// Uses a nonce query param to scope the result to the requesting user.
 router.get('/redirect', (req, res) => {
-  const { public_token, metadata } = req.query;
+  const { public_token, metadata, nonce } = req.query;
+  // Use nonce as user key (generated client-side, passed through Plaid redirect)
+  const key = nonce || 'default';
   if (public_token) {
-    if (_pendingLinkTimer) clearTimeout(_pendingLinkTimer);
-    _pendingLink = { public_token, metadata: metadata ? JSON.parse(decodeURIComponent(metadata)) : {} };
-    _pendingLinkTimer = setTimeout(() => { _pendingLink = null; }, 300000);
+    setPendingLink(key, { public_token, metadata: metadata ? JSON.parse(decodeURIComponent(metadata)) : {} });
   }
-  // Serve a close-me page so the browser tab closes itself
   res.send(`<!DOCTYPE html><html><head><title>Connected!</title></head><body>
     <p style="font-family:sans-serif;margin:40px auto;max-width:400px;text-align:center">
       Bank connected successfully!<br><br>You can close this tab and return to Ledgerly.
@@ -57,12 +60,16 @@ router.get('/redirect', (req, res) => {
   </body></html>`);
 });
 
-// GET /api/plaid/link-pending — polled by Electron to retrieve the result
+// GET /api/plaid/link-pending — polled by client to retrieve the result
 router.get('/link-pending', (req, res) => {
-  if (_pendingLink) {
-    const result = _pendingLink;
-    _pendingLink = null;
-    if (_pendingLinkTimer) clearTimeout(_pendingLinkTimer);
+  const userId = getUserId(req);
+  // Check by userId first, then by nonce query param
+  const nonce = req.query.nonce;
+  const pending = _pendingLinks.get(userId) || (nonce ? _pendingLinks.get(nonce) : null);
+  if (pending) {
+    const result = { public_token: pending.public_token, metadata: pending.metadata };
+    _pendingLinks.delete(userId);
+    if (nonce) _pendingLinks.delete(nonce);
     res.json(result);
   } else {
     res.json(null);
@@ -306,6 +313,21 @@ router.delete('/items/:itemId', async (req, res) => {
 // Plaid webhook receiver — handles real-time notifications
 // Validates that the item_id exists in our database before acting on any event.
 router.post('/webhook', async (req, res) => {
+  // Verify webhook signature if PLAID_WEBHOOK_SECRET is configured
+  const webhookSecret = process.env.PLAID_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const sig = req.headers['plaid-verification'] || req.headers['x-plaid-signature'];
+    if (!sig) return res.status(401).json({ error: 'Missing webhook signature' });
+    // Basic HMAC verification — for production, use Plaid's webhookVerificationKey
+    const crypto = require('crypto');
+    const body = JSON.stringify(req.body);
+    const expected = crypto.createHmac('sha256', webhookSecret).update(body).digest('hex');
+    if (sig !== expected) {
+      console.log('[PLAID] Webhook signature mismatch — rejecting');
+      return res.status(401).json({ error: 'Invalid webhook signature' });
+    }
+  }
+
   const { webhook_type, webhook_code, item_id } = req.body;
 
   // Reject requests missing required fields

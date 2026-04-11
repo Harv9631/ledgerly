@@ -161,9 +161,14 @@ function query(sql, params = []) {
 
   if (/DELETE FROM plaid_items/.test(s)) {
     const item_id = params[0];
+    const user_id = params[1];
     const data = load();
     const before = (data.plaid_items || []).length;
-    data.plaid_items = (data.plaid_items || []).filter(r => r.item_id !== item_id);
+    data.plaid_items = (data.plaid_items || []).filter(r => {
+      if (r.item_id !== item_id) return true; // keep — different item
+      if (user_id && r.user_id !== user_id) return true; // keep — different owner
+      return false; // delete — matches both item_id and user_id
+    });
     save(data);
     return Promise.resolve({ rows: [], rowCount: before - data.plaid_items.length });
   }
