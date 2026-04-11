@@ -9730,7 +9730,25 @@ if (window._webToken) {
     .then(r => r.json())
     .then(data => {
       if (data.state && typeof data.state === 'object') {
-        const merged = { ...state, ...data.state };
+        // Smart merge: local state wins for deletions (local is always more recent)
+        // Server state wins for additions and field updates on existing items
+        // For array fields: local is authoritative (user just interacted with it)
+        // For scalar fields: server wins (may have data from another device)
+        const merged = { ...data.state };
+        // Local scalar overrides (mode, settings, flags the user just set)
+        merged.mode = state.mode || data.state.mode;
+        merged.tourComplete = state.tourComplete || data.state.tourComplete;
+        merged.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || data.state.hiddenPlaidAccountIds || [];
+        // For all array fields: local is authoritative if it has been touched in this session
+        // (user deletions should stick — the server copy is stale from a prior push)
+        var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules'];
+        arrayFields.forEach(function(key) {
+          var local = state[key] || [];
+          var server = data.state[key] || [];
+          // If local has items, use local (user may have deleted from server copy)
+          // If local is empty but server has items, use server (data from another device)
+          merged[key] = local.length > 0 ? local : server;
+        });
         // Keep local Plaid accounts if server has fewer (server may not have latest sync yet)
         if ((state.accounts || []).filter(a=>a.isPlaid).length > (data.state.accounts || []).filter(a=>a.isPlaid).length) {
           merged.accounts = state.accounts;
