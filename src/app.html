@@ -2231,12 +2231,28 @@
   <div class="modal">
     <h2 id="bud-modal-title">Set Monthly Budget</h2>
     <div class="form-group"><label>Category</label>
-      <select id="bud-cat">
-        <option>Groceries</option><option>Dining</option><option>Transport</option><option>Entertainment</option>
-        <option>Shopping</option><option>Healthcare</option><option>Utilities</option><option>Rent/Housing</option>
-        <option>Insurance</option><option>Travel</option><option>Subscriptions</option><option>Education</option>
-        <option>Marketing</option><option>Payroll</option><option>Software</option><option>Other</option>
-      </select>
+      <select id="bud-cat"></select>
+      <script>
+      function populateBudgetCategories() {
+        var sel = document.getElementById('bud-cat');
+        if (!sel) return;
+        // Collect all unique categories from transactions + budgets + a default set
+        var defaults = ['Groceries','Dining & Restaurants','Fast Food','Coffee & Drinks','Gas & Fuel',
+          'Shopping','Entertainment','Streaming & Subscriptions','Rent & Mortgage','Electric & Gas',
+          'Water & Sewer','Internet & Cable','Phone','Health Insurance','Doctor & Medical','Pharmacy',
+          'Gym & Fitness','Clothing & Apparel','Personal Care & Beauty','Vehicle Maintenance',
+          'Parking & Tolls','Public Transit','Rideshare & Taxi','Flights','Travel & Hotels','Vacation',
+          'Home Improvement','Pets','Electronics','Gifts & Donations','Bank Fees','Tuition & Student Loans',
+          'Federal & State Taxes','Loan Payment','Credit Card Payment','Transfer',
+          'Marketing','Payroll','Software','Other'];
+        var cats = new Set(defaults);
+        (state.transactions || []).forEach(function(t) { if (t.category && t.type === 'debit') cats.add(t.category); });
+        (state.budgets || []).forEach(function(b) { if (b.category) cats.add(b.category); });
+        var prev = sel.value;
+        sel.innerHTML = Array.from(cats).sort().map(function(c) { return '<option>' + c + '</option>'; }).join('');
+        if (prev) sel.value = prev;
+      }
+      </script>
     </div>
     <div class="form-group"><label>Monthly Limit ($)</label><input id="bud-limit" type="number" step="any" min="0" placeholder="0.00"></div>
     <div class="form-group" style="display:flex;align-items:center;gap:8px;margin-bottom:0">
@@ -3077,13 +3093,19 @@ function spendingForMonth(month, year) {
 // Handles renamed categories: 'Dining' matches 'Dining & Restaurants', etc.
 function getSpentForCategory(spending, cat) {
   if (!cat) return 0;
-  const exact = spending[cat];
-  if (exact) return exact;
-  const catL = cat.toLowerCase();
+  if (spending[cat] !== undefined) return spending[cat];
+  // Normalize: strip non-alpha, singularize trailing 's'
+  function norm(s) { var n = s.toLowerCase().replace(/[^a-z]/g, ''); return n.endsWith('s') ? n.slice(0,-1) : n; }
+  var catN = norm(cat);
+  // Aliases for common budget ↔ Plaid mismatches
+  var aliases = { dining: 'diningrestaurant', transport: 'gasfuel', healthcare: 'doctormedical',
+    utilities: 'electricga', renthousing: 'rentmortgage', subscriptions: 'streamingsubscription',
+    insurance: 'healthinsurance', rent: 'rentmortgage', travel: 'travelhotel' };
+  var catAlias = aliases[catN] || null;
   let total = 0;
   Object.keys(spending).forEach(k => {
-    const kL = k.toLowerCase();
-    if (kL.startsWith(catL) || catL.startsWith(kL)) total += spending[k];
+    var kN = norm(k);
+    if (kN === catN || kN.includes(catN) || catN.includes(kN) || (catAlias && kN.includes(catAlias))) total += spending[k];
   });
   return total;
 }
@@ -3289,6 +3311,7 @@ function openModal(t) {
     const titleEl = document.getElementById('bud-modal-title');
     if (titleEl) titleEl.textContent = 'Set Budget — ' + MONTH_NAMES[budgetViewMonth-1] + ' ' + budgetViewYear;
     document.getElementById('bud-rollover').checked = false;
+    populateBudgetCategories();
   }
   if (t === 'invoice') { openInvoiceModal(); return; }
   if (t === 'tx-categories') { renderCategoryManager(); document.getElementById('modal-tx-categories').classList.add('open'); return; }
