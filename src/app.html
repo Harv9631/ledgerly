@@ -2953,6 +2953,11 @@ function now() { return new Date(); }
 function startOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
 function endOfMonth(d) { return new Date(d.getFullYear(), d.getMonth()+1, 0); }
 function prevMonth(d) { return new Date(d.getFullYear(), d.getMonth()-1, 1); }
+function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth()+1, 0).getDate(); }
+function dayOfMonth(d) { return d.getDate(); }
+function monthProgress(d) { return dayOfMonth(d) / daysInMonth(d); }
+function projectMonthlyPace(partialSpend, d) { const prog = monthProgress(d || now()); return prog > 0 ? partialSpend / prog : 0; }
+function paceLabel(d) { const prog = monthProgress(d || now()); if (prog < 0.17) return ' (early in month — estimate may shift)'; if (prog < 0.5) return ' (projected from ' + Math.round(prog*100) + '% of month)'; return ''; }
 function monthLabel(d) { return d.toLocaleDateString('en-US',{month:'short',year:'numeric'}); }
 
 function getPeriodRange(period) {
@@ -5344,11 +5349,13 @@ function generateInsights() {
   const nlEl = document.getElementById('insights-nlp-summary');
   if (nlEl) nlEl.innerHTML = '&#x1F4AC; ' + nlSummary;
 
-  // 2. Spending anomaly detection (20%+ above 3-month average)
+  // 2. Spending anomaly detection (20%+ above 3-month average, pace-normalized)
   const thisMonthTxs = txs.filter(t => txInRange(t, startOfMonth(n), endOfMonth(n)));
   const cats = [...new Set(txs.map(t => t.category).filter(Boolean))];
+  const mProg = monthProgress(n);
   cats.forEach(cat => {
     const thisSpend = thisMonthTxs.filter(t => t.type === 'debit' && t.category === cat).reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
+    const projectedSpend = projectMonthlyPace(thisSpend, n);
     let hist = 0, hm = 0;
     for (let m = 1; m <= 3; m++) {
       const ds = new Date(n.getFullYear(), n.getMonth() - m, 1);
@@ -5356,23 +5363,23 @@ function generateInsights() {
       const ms = txs.filter(t => txInRange(t, ds, de) && t.type === 'debit' && t.category === cat).reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
       if (ms > 0) { hist += ms; hm++; }
     }
-    if (hm > 0 && hist > 10) {
+    if (hm > 0 && hist > 10 && mProg >= 0.17) {
       const avg = hist / hm;
-      const overpct = Math.round((thisSpend / avg - 1) * 100);
+      const overpct = Math.round((projectedSpend / avg - 1) * 100);
       if (overpct >= 20) {
         const id = mkId('anomaly', cat.replace(/\s/g,'_'));
         if (!isDismissed(id)) {
-          insights.push({ id, type:'anomaly', icon:'📈', title:'Spending Spike: ' + cat, detail:`You've spent ${fmt(thisSpend)} on ${cat} this month — ${overpct}% above your ${fmt(avg)} 3-month average.` });
+          insights.push({ id, type:'anomaly', icon:'📈', title:'Spending Spike: ' + cat, detail:`On pace to spend ${fmt(projectedSpend)} on ${cat} this month — ${overpct}% above your ${fmt(avg)} 3-month avg.${paceLabel(n)}` });
         }
       }
     }
   });
 
-  // 3. Smart savings suggestions (consistently underspent categories)
+  // 3. Smart savings suggestions (only completed months to avoid partial-month false positives)
   const budgets = filteredBudgets();
   budgets.forEach(b => {
     let underspend = 0, months = 0;
-    for (let m = 0; m < 3; m++) {
+    for (let m = 1; m <= 3; m++) {
       const d = new Date(n.getFullYear(), n.getMonth() - m, 1);
       const me = endOfMonth(d);
       const spent = txs.filter(t => txInRange(t, d, me) && t.type === 'debit' && t.category === b.category).reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
@@ -9667,11 +9674,16 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
     });
   }
 
-  // Current month spending by category (accurate, not 90-day average)
+  // Current month spending by category with pace context
   const currMonthTxs = filteredTx().filter(t => {
     const d = new Date(t.date + 'T00:00:00');
     return d.getMonth() + 1 === n.getMonth() + 1 && d.getFullYear() === n.getFullYear();
   });
+  const _ctxProg = monthProgress(n);
+  const _ctxDay = dayOfMonth(n);
+  const _ctxDays = daysInMonth(n);
+  ctx += `\n\nMonth Progress: Day ${_ctxDay} of ${_ctxDays} (${Math.round(_ctxProg * 100)}% through the month)`;
+  ctx += `\nIMPORTANT: When comparing this month's spending to previous months, note we are only ${Math.round(_ctxProg * 100)}% through the month. Use projected/pace amounts for fair comparisons.`;
   const thisMonthSpend = {};
   const thisMonthIncome = {};
   currMonthTxs.forEach(t => {
@@ -9682,8 +9694,12 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
   const spendEntries = Object.entries(thisMonthSpend).sort((a, b) => b[1] - a[1]);
   if (spendEntries.length > 0) {
     const totalThisMonth = spendEntries.reduce((s, e) => s + e[1], 0);
-    ctx += `\n\nThis Month's Spending by Category ($${totalThisMonth.toFixed(2)} total):`;
-    spendEntries.forEach(([cat, amt]) => { ctx += `\n  - ${cat}: $${amt.toFixed(2)}`; });
+    const totalProjected = projectMonthlyPace(totalThisMonth, n);
+    ctx += `\n\nThis Month's Spending by Category ($${totalThisMonth.toFixed(2)} so far, ~$${totalProjected.toFixed(2)} projected full month):`;
+    spendEntries.forEach(([cat, amt]) => {
+      const proj = projectMonthlyPace(amt, n);
+      ctx += `\n  - ${cat}: $${amt.toFixed(2)} so far (~$${proj.toFixed(2)} projected)`;
+    });
   }
   const incEntries = Object.entries(thisMonthIncome).sort((a, b) => b[1] - a[1]);
   if (incEntries.length > 0) {
@@ -10651,17 +10667,20 @@ function generateAiInsights() {
   const debts = filteredDebts();
   const budgets = state.budgets || [];
 
-  // Spending trend insight
+  // Spending trend insight (pace-normalized: projects partial month to full-month estimate)
   if (txs.length > 10) {
-    const now = new Date();
-    const thisMonth = now.toISOString().slice(0, 7);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 7);
-    const thisSpend = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(thisMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
+    const _now = new Date();
+    const _mProg = monthProgress(_now);
+    const thisMonth = _now.toISOString().slice(0, 7);
+    const lastMonth = new Date(_now.getFullYear(), _now.getMonth() - 1, 1).toISOString().slice(0, 7);
+    const thisSpendRaw = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(thisMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
+    const thisSpendProjected = projectMonthlyPace(thisSpendRaw, _now);
     const lastSpend = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(lastMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
-    if (lastSpend > 0 && thisSpend > 0) {
-      const pct = Math.round(((thisSpend - lastSpend) / lastSpend) * 100);
-      if (pct > 10) insights.push({ icon: '📈', text: `Spending is up ${pct}% compared to last month. Want help finding where to cut back?`, action: 'Ask Ledgerly', question: 'My spending is up ' + pct + '% this month compared to last month. What are my top spending categories and where can I cut back?' });
-      else if (pct < -10) insights.push({ icon: '🎉', text: `Great job! Spending is down ${Math.abs(pct)}% from last month.`, action: 'See breakdown', question: 'My spending decreased ' + Math.abs(pct) + '% this month. Can you break down where I saved the most and how I can keep this trend going?' });
+    if (lastSpend > 0 && thisSpendRaw > 0 && _mProg >= 0.17) {
+      const pct = Math.round(((thisSpendProjected - lastSpend) / lastSpend) * 100);
+      const paceNote = _mProg < 0.5 ? ' (projected)' : '';
+      if (pct > 10) insights.push({ icon: '📈', text: `On pace to spend ${pct}% more than last month${paceNote}. Want help finding where to cut back?`, action: 'Ask Ledgerly', question: 'I\'m on pace to spend ' + pct + '% more this month compared to last month. What are my top spending categories and where can I cut back?' });
+      else if (pct < -10) insights.push({ icon: '🎉', text: `On pace to spend ${Math.abs(pct)}% less than last month${paceNote}. Nice work!`, action: 'See breakdown', question: 'I\'m on pace to spend ' + Math.abs(pct) + '% less this month. Can you break down where I\'m saving the most and how I can keep this trend going?' });
     }
   }
 
@@ -10683,14 +10702,25 @@ function generateAiInsights() {
     }
   }
 
-  // Budget insight
+  // Budget insight (pace-aware: warns if on pace to exceed, not just already exceeded)
   if (budgets.length > 0) {
     const spending = {};
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const _bNow = new Date();
+    const _bProg = monthProgress(_bNow);
+    const monthStart = new Date(_bNow.getFullYear(), _bNow.getMonth(), 1).toISOString().slice(0, 10);
     txs.filter(t => t.type === 'debit' && t.date >= monthStart).forEach(t => { spending[t.category] = (spending[t.category] || 0) + Math.abs(t.amount); });
-    const overBudget = budgets.filter(b => (spending[b.category] || 0) > b.limit);
-    if (overBudget.length > 0) insights.push({ icon: '🔔', text: `${overBudget.length} budget categor${overBudget.length === 1 ? 'y is' : 'ies are'} over limit this month.`, action: 'Review budgets', question: 'I have ' + overBudget.length + ' budget categories over their limit this month. Can you review my budget and suggest adjustments to stay on track?' });
+    const overBudget = budgets.filter(b => {
+      const spent = spending[b.category] || 0;
+      const projected = projectMonthlyPace(spent, _bNow);
+      return spent > b.limit || (_bProg >= 0.17 && projected > b.limit * 1.1);
+    });
+    if (overBudget.length > 0) {
+      const alreadyOver = budgets.filter(b => (spending[b.category] || 0) > b.limit).length;
+      const msg = alreadyOver > 0
+        ? `${alreadyOver} budget categor${alreadyOver === 1 ? 'y' : 'ies'} already over limit this month.`
+        : `${overBudget.length} budget categor${overBudget.length === 1 ? 'y is' : 'ies are'} on pace to exceed ${overBudget.length === 1 ? 'its' : 'their'} limit.`;
+      insights.push({ icon: '🔔', text: msg, action: 'Review budgets', question: 'I have budget categories that are over or on pace to exceed their limit this month. Can you review my budget and suggest adjustments to stay on track?' });
+    }
   }
 
   // Emergency fund insight
