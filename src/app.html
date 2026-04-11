@@ -6620,7 +6620,11 @@ function renderTransactions() {
   if (!txs.length) { noData.style.display='flex'; dataDiv.style.display='none'; return; }
   noData.style.display='none'; dataDiv.style.display='block';
 
-  const cats = [...new Set(txs.map(t=>t.category))].sort();
+  var txCats = new Set(txs.map(t=>t.category));
+  var cats = getEffectiveCategories().filter(c => !c.includes(' > ')); // top-level only
+  // Also add any tx categories not in the master list
+  txCats.forEach(c => { if (c && !cats.includes(c)) cats.push(c); });
+  cats.sort();
   const catSel = document.getElementById('tx-filter-cat');
   const curCat = catSel.value;
   catSel.innerHTML = '<option value="">All categories</option>' + cats.map(c=>`<option value="${e(c)}" ${c===curCat?'selected':''}>${e(c)}</option>`).join('');
