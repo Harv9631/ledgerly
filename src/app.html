@@ -8935,12 +8935,10 @@ async function syncPlaidItem(itemId, btn) {
         }
       }
     }
-    // Reset cursor if no transactions are stored locally — ensures a full re-fetch
-    // after the user has cleared their transaction history.
-    // Use state.transactions (not filteredTx) so excluded accounts don't trigger re-fetch.
-    const needsReset = (state.transactions || []).length === 0;
+    const needsReset = arguments[2] === true || (state.transactions || []).length === 0;
     let txs;
     try { txs = await window.electronAPI.plaid.syncTransactions(itemId, needsReset); } catch(ex) { txs = null; }
+    console.log('[PLAID-SYNC] itemId=' + itemId + ' reset=' + needsReset + ' added=' + ((txs&&txs.added)||[]).length + ' modified=' + ((txs&&txs.modified)||[]).length + ' removed=' + ((txs&&txs.removed)||[]).length);
     if (txs && !txs.error) {
       for (const tx of (txs.added || [])) {
         if (state.transactions.find(t => t.plaidTxId === tx.transaction_id)) continue;
@@ -8973,6 +8971,17 @@ async function syncPlaidItem(itemId, btn) {
   } finally {
     await renderPlaidLinkedAccounts();
   }
+}
+
+async function forceResyncPlaidItem(itemId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Re-syncing…'; }
+  // Build set of plaidAccountIds that belong to this item
+  var itemAccIds = new Set((state.accounts || []).filter(a => a.plaidItemId === itemId && a.plaidAccountId).map(a => a.plaidAccountId));
+  // Clear local Plaid transactions for this item so they get re-added fresh
+  state.transactions = state.transactions.filter(t => !t.plaidTxId || !t.plaidAccountId || !itemAccIds.has(t.plaidAccountId));
+  saveState();
+  await syncPlaidItem(itemId, btn, true); // true = force cursor reset
+  if (btn) { btn.disabled = false; btn.textContent = 'Force Re-sync'; }
 }
 
 // Auto AI-categorize newly synced transactions in the background.
@@ -9094,7 +9103,7 @@ async function renderPlaidLinkedAccounts() {
         '<div class="ac-inst">' + e(a.type) + '</div>' +
         '<div class="ac-balance ' + (a.balance >= 0 ? 'green' : 'red') + '">' + fmt(a.balance) + '</div>' +
         '<div class="ac-actions">' +
-          (hasServer ? '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button>' : '<span style="font-size:10px;color:var(--yellow)" title="Server record missing — reconnect bank to restore sync">⚠ Needs reconnect</span>') +
+          (hasServer ? '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button><button class="btn btn-sm btn-ghost" onclick="forceResyncPlaidItem(\'' + e(a.plaidItemId) + '\', this)" title="Reset cursor and re-fetch all transactions from Plaid">Force Re-sync</button>' : '<span style="font-size:10px;color:var(--yellow)" title="Server record missing — reconnect bank to restore sync">⚠ Needs reconnect</span>') +
           (function(){ var excl=(state.excludedAccountIds||[]).includes(a.id); var pid=e(a.plaidAccountId||''); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.id)+'\',\''+pid+'\')" title="'+(excl?'Include in':'Exclude from')+' reports">'+(excl?'✓ Excluded':'Exclude from Reports')+'</button>'; })() +
           '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +
