@@ -10316,6 +10316,18 @@ if (window.electronAPI) { loadAiConfig(); document.getElementById('chat-fab').st
 // Dashboard forecast now loads inside renderAll() after data is ready
 
 // ── AI INSIGHT CARDS & PULSING FAB ───────────────────────────────────────────
+function askLedgerly(question) {
+  showPage('ai-chat');
+  setTimeout(function() {
+    const inp = document.getElementById('chat-input');
+    if (inp && question) {
+      inp.value = question;
+      autoResizeChatInput(inp);
+      sendChatMessage();
+    }
+  }, 150);
+}
+
 function generateAiInsights() {
   const insights = [];
   const mi = effectiveMonthlyIncome();
@@ -10336,18 +10348,18 @@ function generateAiInsights() {
     const lastSpend = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(lastMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
     if (lastSpend > 0 && thisSpend > 0) {
       const pct = Math.round(((thisSpend - lastSpend) / lastSpend) * 100);
-      if (pct > 10) insights.push({ icon: '📈', text: `Spending is up ${pct}% compared to last month. Want help finding where to cut back?`, action: 'Ask Ledgerly' });
-      else if (pct < -10) insights.push({ icon: '🎉', text: `Great job! Spending is down ${Math.abs(pct)}% from last month.`, action: 'See breakdown' });
+      if (pct > 10) insights.push({ icon: '📈', text: `Spending is up ${pct}% compared to last month. Want help finding where to cut back?`, action: 'Ask Ledgerly', question: 'My spending is up ' + pct + '% this month compared to last month. What are my top spending categories and where can I cut back?' });
+      else if (pct < -10) insights.push({ icon: '🎉', text: `Great job! Spending is down ${Math.abs(pct)}% from last month.`, action: 'See breakdown', question: 'My spending decreased ' + Math.abs(pct) + '% this month. Can you break down where I saved the most and how I can keep this trend going?' });
     }
   }
 
   // Net cash flow insight
   if (mi > 0 && netCash > 0) {
     const savingsRate = Math.round((netCash / mi) * 100);
-    if (savingsRate >= 20) insights.push({ icon: '💪', text: `You're saving ${savingsRate}% of your income. That's excellent!`, action: 'Optimize further' });
-    else if (savingsRate > 0 && savingsRate < 10) insights.push({ icon: '💡', text: `Your savings rate is ${savingsRate}%. Small increases can make a big difference.`, action: 'Get tips' });
+    if (savingsRate >= 20) insights.push({ icon: '💪', text: `You're saving ${savingsRate}% of your income. That's excellent!`, action: 'Optimize further', question: 'I\'m saving ' + savingsRate + '% of my income. How can I optimize my savings further? Should I invest, pay down debt, or build an emergency fund?' });
+    else if (savingsRate > 0 && savingsRate < 10) insights.push({ icon: '💡', text: `Your savings rate is ${savingsRate}%. Small increases can make a big difference.`, action: 'Get tips', question: 'My savings rate is only ' + savingsRate + '%. What are some practical ways I can increase it without drastically changing my lifestyle?' });
   } else if (mi > 0 && netCash < 0) {
-    insights.push({ icon: '⚠️', text: `You're spending ${fmt(Math.abs(netCash))} more than you earn each month.`, action: 'Get advice' });
+    insights.push({ icon: '⚠️', text: `You're spending ${fmt(Math.abs(netCash))} more than you earn each month.`, action: 'Get advice', question: 'I\'m spending more than I earn each month. Can you analyze my expenses and suggest a realistic plan to get back on track?' });
   }
 
   // Debt insight
@@ -10355,7 +10367,7 @@ function generateAiInsights() {
     const totalDebtAmt = debts.reduce((s, d) => s + (d.balance || 0), 0);
     if (totalDebtAmt > 0 && mi > 0) {
       const months = Math.ceil(totalDebtAmt / Math.max(1, netCash > 0 ? netCash : mp));
-      if (months > 0 && months < 600) insights.push({ icon: '🎯', text: `At your current pace, you could be debt-free in ~${months} months.`, action: 'See strategy' });
+      if (months > 0 && months < 600) insights.push({ icon: '🎯', text: `At your current pace, you could be debt-free in ~${months} months.`, action: 'See strategy', question: 'I could be debt-free in about ' + months + ' months. What\'s the best debt payoff strategy for me — avalanche, snowball, or something else? How can I speed it up?' });
     }
   }
 
@@ -10366,14 +10378,14 @@ function generateAiInsights() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
     txs.filter(t => t.type === 'debit' && t.date >= monthStart).forEach(t => { spending[t.category] = (spending[t.category] || 0) + Math.abs(t.amount); });
     const overBudget = budgets.filter(b => (spending[b.category] || 0) > b.limit);
-    if (overBudget.length > 0) insights.push({ icon: '🔔', text: `${overBudget.length} budget categor${overBudget.length === 1 ? 'y is' : 'ies are'} over limit this month.`, action: 'Review budgets' });
+    if (overBudget.length > 0) insights.push({ icon: '🔔', text: `${overBudget.length} budget categor${overBudget.length === 1 ? 'y is' : 'ies are'} over limit this month.`, action: 'Review budgets', question: 'I have ' + overBudget.length + ' budget categories over their limit this month. Can you review my budget and suggest adjustments to stay on track?' });
   }
 
   // Emergency fund insight
   if (mi > 0) {
     const liquid = totalAssets();
     const runwayMonths = me > 0 ? liquid / me : 0;
-    if (runwayMonths < 3 && runwayMonths >= 0) insights.push({ icon: '🛡️', text: `Your emergency runway is ${runwayMonths.toFixed(1)} months. Aim for 3-6 months.`, action: 'Build savings' });
+    if (runwayMonths < 3 && runwayMonths >= 0) insights.push({ icon: '🛡️', text: `Your emergency runway is ${runwayMonths.toFixed(1)} months. Aim for 3-6 months.`, action: 'Build savings', question: 'My emergency fund only covers ' + runwayMonths.toFixed(1) + ' months of expenses. How can I build it up to 3-6 months? What should I prioritize?' });
   }
 
   // Render insights
@@ -10382,13 +10394,14 @@ function generateAiInsights() {
   if (!insights.length) { container.style.display = 'none'; updateFabBadge(0); return; }
   const shown = insights.slice(0, 3);
   container.style.display = '';
-  container.innerHTML = shown.map(ins =>
-    `<div class="ai-insight-card" onclick="showPage('ai-chat')">
+  container.innerHTML = shown.map(ins => {
+    const q = (ins.question || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+    return `<div class="ai-insight-card" onclick="askLedgerly('${q}')">
       <div class="ai-insight-icon">${ins.icon}</div>
       <div class="ai-insight-text">${ins.text}</div>
       <div class="ai-insight-action">${ins.action} →</div>
-    </div>`
-  ).join('');
+    </div>`;
+  }).join('');
   updateFabBadge(shown.length);
 }
 
