@@ -124,6 +124,8 @@
     const data = await sbFetch('token?grant_type=password', { email, password });
     if (data.error || data.error_code) return setStatus('status', data.msg || data.error_description || data.error, 'error');
     sessionStorage.setItem('sb_token', data.access_token);
+    if (data.refresh_token) sessionStorage.setItem('sb_refresh', data.refresh_token);
+    if (data.expires_in) sessionStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
     window.location.href = 'app.html';
   }
 
@@ -137,6 +139,8 @@
     if (data.error || data.error_code) return setStatus('status2', data.msg || data.error_description || data.error, 'error');
     if (data.access_token) {
       sessionStorage.setItem('sb_token', data.access_token);
+      if (data.refresh_token) sessionStorage.setItem('sb_refresh', data.refresh_token);
+      if (data.expires_in) sessionStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
       window.location.href = 'app.html';
     } else {
       setStatus('status2', 'Check your email to confirm your account, then sign in.', 'success');

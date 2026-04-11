@@ -125,6 +125,39 @@
         }
       };
     })();
+    // Auto-refresh Supabase token before it expires
+    (function() {
+      if (window.electronAPI && !sessionStorage.getItem('sb_token')) return;
+      function refreshToken() {
+        var refresh = sessionStorage.getItem('sb_refresh');
+        if (!refresh) return;
+        var sbUrl = window.__SUPABASE_URL__;
+        var sbKey = window.__SUPABASE_ANON_KEY__;
+        if (!sbUrl || !sbKey) return;
+        fetch(sbUrl + '/auth/v1/token?grant_type=refresh_token', {
+          method: 'POST',
+          headers: { 'apikey': sbKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: refresh })
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (data.access_token) {
+            sessionStorage.setItem('sb_token', data.access_token);
+            if (data.refresh_token) sessionStorage.setItem('sb_refresh', data.refresh_token);
+            if (data.expires_in) sessionStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
+          }
+        }).catch(function() {});
+      }
+      // Refresh 5 minutes before expiry, or immediately if already expired
+      function scheduleRefresh() {
+        var expiresAt = parseInt(sessionStorage.getItem('sb_expires_at') || '0');
+        if (!expiresAt) { refreshToken(); return; }
+        var msLeft = expiresAt - Date.now() - 5 * 60 * 1000;
+        if (msLeft <= 0) { refreshToken(); return; }
+        setTimeout(function() { refreshToken(); scheduleRefresh(); }, Math.min(msLeft, 30 * 60 * 1000));
+      }
+      scheduleRefresh();
+      // Also refresh every 45 minutes as a safety net
+      setInterval(refreshToken, 45 * 60 * 1000);
+    })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

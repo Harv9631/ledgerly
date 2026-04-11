@@ -185,10 +185,21 @@ app.use(function(req, res, next) {
 
 // Serve only the frontend files the web app needs (not the entire src/ directory)
 const parentDir = path.join(__dirname, '..');
-['app.html', 'style.css', 'plaid-link.html', 'index.html', 'icon.ico'].forEach(file => {
+['style.css', 'plaid-link.html', 'index.html', 'icon.ico'].forEach(file => {
   app.get('/' + file, (_req, res) => res.sendFile(path.join(parentDir, file)));
 });
-app.get('/', (_req, res) => res.sendFile(path.join(parentDir, 'app.html')));
+// Serve app.html with Supabase config injected for token refresh
+function serveApp(_req, res) {
+  const fs = require('fs');
+  const html = fs.readFileSync(path.join(parentDir, 'app.html'), 'utf8');
+  const config = `<script>
+    window.__SUPABASE_URL__      = ${JSON.stringify(process.env.SUPABASE_URL || '')};
+    window.__SUPABASE_ANON_KEY__ = ${JSON.stringify(process.env.SUPABASE_ANON_KEY || '')};
+  </script>`;
+  res.send(html.replace('</head>', config + '</head>'));
+}
+app.get('/app.html', serveApp);
+app.get('/', serveApp);
 
 // Serve cached Plaid Link SDK downloaded by the Electron main process via electron.net
 // (Chromium network stack bypasses the Cloudflare bot-protection that blocks Node.js TLS)
