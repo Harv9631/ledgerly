@@ -1349,18 +1349,18 @@
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div class="report-subtabs">
-      <button class="report-subtab active" onclick="showReport('pl')">P&amp;L</button>
-      <button class="report-subtab" onclick="showReport('balance')">Balance Sheet</button>
-      <button class="report-subtab" onclick="showReport('cashflow')">Cash Flow</button>
-      <button class="report-subtab" onclick="showReport('tax')">Tax Summary</button>
-      <button class="report-subtab" onclick="showReport('monthly')">Monthly</button>
-      <button class="report-subtab" onclick="showReport('projection')">Projections</button>
-      <button class="report-subtab" onclick="showReport('savings')">Savings Rate</button>
-      <button class="report-subtab" onclick="showReport('spending-trends')">Spending Trends</button>
-      <button class="report-subtab" onclick="showReport('budget-actual')">Budget vs Actual</button>
-      <button class="report-subtab" onclick="showReport('nw-projection')">NW Projection</button>
-      <button class="report-subtab" onclick="showReport('ai-nw-forecast')">AI NW Forecast</button>
-      <button class="report-subtab" onclick="showReport('fire')">FIRE</button>
+      <button class="report-subtab active" onclick="showReport('pl',event)">P&amp;L</button>
+      <button class="report-subtab" onclick="showReport('balance',event)">Balance Sheet</button>
+      <button class="report-subtab" onclick="showReport('cashflow',event)">Cash Flow</button>
+      <button class="report-subtab" onclick="showReport('tax',event)">Tax Summary</button>
+      <button class="report-subtab" onclick="showReport('monthly',event)">Monthly</button>
+      <button class="report-subtab" onclick="showReport('projection',event)">Projections</button>
+      <button class="report-subtab" onclick="showReport('savings',event)">Savings Rate</button>
+      <button class="report-subtab" onclick="showReport('spending-trends',event)">Spending Trends</button>
+      <button class="report-subtab" onclick="showReport('budget-actual',event)">Budget vs Actual</button>
+      <button class="report-subtab" onclick="showReport('nw-projection',event)">NW Projection</button>
+      <button class="report-subtab" onclick="showReport('ai-nw-forecast',event)">AI NW Forecast</button>
+      <button class="report-subtab" onclick="showReport('fire',event)">FIRE</button>
     </div>
   </div>
 
@@ -1397,13 +1397,7 @@
 
   <!-- Balance Sheet -->
   <div id="report-balance" class="report-page">
-    <div class="period-selector" id="bs-period-selector">
-      <button class="period-btn active" onclick="setPeriod('balance','lastmonth',this)">Last Month</button>
-      <button class="period-btn" onclick="setPeriod('balance','mtd',this)">Month to Date</button>
-      <button class="period-btn" onclick="setPeriod('balance','last3',this)">Last 3 Months</button>
-      <button class="period-btn" onclick="setPeriod('balance','last6',this)">Last 6 Months</button>
-      <button class="period-btn" onclick="setPeriod('balance','ytd',this)">Year to Date</button>
-    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Current snapshot as of today</div>
     <div class="report-grid">
       <div>
         <div class="chart-area">
@@ -3120,7 +3114,11 @@ function incomeForMonth(month, year, actualOnly = false) {
   const end = new Date(year, month, 0);
   const txs = filteredTx().filter(t => { const d = new Date(t.date); return d >= start && d <= end && t.type === 'credit'; });
   const txInc = txs.reduce((s, t) => s + t.amount, 0);
-  return txInc > 0 || actualOnly ? txInc : effectiveMonthlyIncome();
+  if (txInc > 0 || actualOnly) return txInc;
+  // Only use fallback for current month (historical months with no data should show 0)
+  const n = now();
+  if (month === n.getMonth() + 1 && year === n.getFullYear()) return effectiveMonthlyIncome();
+  return 0;
 }
 
 function monthlyIncome()  { return filteredIncome().reduce((s,i) => s + toMonthly(i.amount,i.freq), 0); }
@@ -3788,6 +3786,8 @@ function importCsv() {
   const tyVal = document.getElementById('map-type').value;
   const tyi = tyVal !== '' ? parseInt(tyVal) : -1;
   const imported = [];
+  const existingKeys = new Set(state.transactions.map(t => `${t.date}|${(t.desc||'').trim().toLowerCase()}|${Math.abs(t.amount||0).toFixed(2)}`));
+  let dupeCount = 0;
   for (const row of csvRaw) {
     const desc = (row[desi]||'').trim();
     let amount = parseAmount(row[ami]);
@@ -3799,7 +3799,11 @@ function importCsv() {
     } else {
       type = amount >= 0 ? 'credit' : 'debit';
     }
-    const newTx = { id:uid(), date:parseDate(row[di]), desc, amount: Math.abs(amount), type, category:autoCategory(desc), mode:state.mode };
+    const dateStr = parseDate(row[di]);
+    const dedupKey = `${dateStr}|${desc.toLowerCase()}|${Math.abs(amount).toFixed(2)}`;
+    if (existingKeys.has(dedupKey)) { dupeCount++; continue; }
+    existingKeys.add(dedupKey);
+    const newTx = { id:uid(), date:dateStr, desc, amount: Math.abs(amount), type, category:autoCategory(desc), mode:state.mode };
     applyTxRulesToOne(newTx);
     imported.push(newTx);
   }
@@ -3808,7 +3812,7 @@ function importCsv() {
   document.getElementById('csv-step-1').style.display='block'; document.getElementById('csv-step-2').style.display='none';
   ['csv-drop-input','csv-modal-input'].forEach(id => { document.getElementById(id).value=''; });
   showPage('transactions');
-  alert(`Imported ${imported.length} transactions.`);
+  alert(`Imported ${imported.length} transactions.` + (dupeCount ? ` Skipped ${dupeCount} duplicate(s).` : ''));
 }
 
 function clearTransactions() {
@@ -4106,9 +4110,21 @@ function getEffectiveDebts() {
 }
 function debtFreeMonths() {
   const debts = getEffectiveDebts(); if (!debts.length) return null;
-  const pmt = debts.reduce((s,d)=>s+d.payment,0); if (pmt <= 0) return null;
-  let bal = debts.reduce((s,d)=>s+d.balance,0), months = 0;
-  while (bal > 0 && months < 1200) { bal += debts.reduce((s,d)=>s+d.balance*(d.rate/100/12),0)-pmt; months++; if (bal<0) bal=0; }
+  const totalPmt = debts.reduce((s,d)=>s+d.payment,0); if (totalPmt <= 0) return null;
+  // Simulate per-debt balance reduction so interest decreases over time
+  var simDebts = debts.map(d => ({ balance: d.balance, rate: d.rate, payment: d.payment }));
+  var months = 0;
+  while (months < 1200) {
+    var totalBal = simDebts.reduce((s,d) => s + d.balance, 0);
+    if (totalBal <= 0) break;
+    simDebts.forEach(d => {
+      if (d.balance <= 0) return;
+      d.balance += d.balance * (d.rate / 100 / 12); // add interest
+      d.balance -= d.payment; // subtract payment
+      if (d.balance < 0) d.balance = 0;
+    });
+    months++;
+  }
   return months < 1200 ? months : null;
 }
 function totalRemainingInterest() { const m = debtFreeMonths(); return m ? Math.max(0, monthlyPayment()*m - totalDebt()) : 0; }
@@ -4235,12 +4251,13 @@ function renderTxCategoryChart(txs) {
 }
 
 // ── REPORT HELPERS ─────────────────────────────────────────────────────────────
-function showReport(name) {
+function showReport(name, evt) {
   document.querySelectorAll('.report-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.report-subtab').forEach(t => t.classList.remove('active'));
   const rp = document.getElementById('report-'+name);
   if (rp) rp.classList.add('active');
-  event.target.classList.add('active');
+  var target = evt ? (evt.target || evt.srcElement) : (typeof event !== 'undefined' ? event.target : null);
+  if (target) target.classList.add('active');
   renderReports();
   renderAdvancedReports();
 }
@@ -4410,7 +4427,9 @@ function renderCashFlow() {
   const period = reportPeriods.cashflow || 'lastmonth';
   const txs = txForPeriod(period);
   const cashIn = txCredits(txs), cashOut = txDebits(txs), cashNet = cashIn - cashOut;
-  const mp = monthlyPayment();
+  const {start, end} = getPeriodRange(period);
+  const periodMonths = Math.max(1, (end.getFullYear() - start.getFullYear()) * 12 + end.getMonth() - start.getMonth() + (end.getDate() >= 15 ? 1 : 0));
+  const mp = monthlyPayment() * periodMonths;
   const rows = state.mode === 'personal' ? [
     {label:'Income & Spending', val:null, cls:'rpt-section'},
     {label:'Cash Inflows (Income)', val:cashIn, cls:''},
@@ -6698,7 +6717,7 @@ function renderTransactions() {
   const monthlyBody = document.getElementById('tx-monthly-body');
   if (monthlyArea && monthlyBody) {
     const byMonth = {};
-    txs.forEach(t => {
+    filtered.forEach(t => {
       const m = (t.date||'').slice(0,7);
       if (!m) return;
       if (!byMonth[m]) byMonth[m] = { credits:0, debits:0, count:0 };
@@ -7804,7 +7823,7 @@ function openAddContribution(bucketId) {
 function saveSavingsContribution() {
   var bucketId = document.getElementById('sc-bucket-id').value;
   var amount = parseFloat(document.getElementById('sc-amount').value);
-  if (!bucketId || isNaN(amount) || amount <= 0) { alert('Please enter a valid amount.'); return; }
+  if (!bucketId || isNaN(amount) || amount === 0) { alert('Please enter a valid amount.'); return; }
   if (!state.savingsContributions) state.savingsContributions = [];
   state.savingsContributions.push({
     id: uid(), bucketId: bucketId, amount: amount,
@@ -8164,8 +8183,8 @@ function autoDetectSubscriptions() {
   // Group by payee (desc) and round amount to detect recurring charges
   const groups = {};
   txs.filter(t => t.type === 'debit').forEach(t => {
-    const key = `${(t.desc||t.description||'').trim().toLowerCase()}|${Math.round((parseFloat(t.amount)||0)*100)}`;
-    if (!groups[key]) groups[key] = { desc: t.desc, amount: parseFloat(t.amount)||0, dates: [] };
+    const key = `${(t.desc||t.description||'').trim().toLowerCase()}|${Math.round(Math.abs(parseFloat(t.amount)||0)*100)}`;
+    if (!groups[key]) groups[key] = { desc: t.desc, amount: Math.abs(parseFloat(t.amount)||0), dates: [] };
     groups[key].dates.push(t.date);
   });
   let added = 0;
@@ -9107,9 +9126,15 @@ async function hidePlaidAccount(accountId) {
 }
 
 async function removePlaidItem(itemId) {
-  if (!confirm('Disconnect this bank entirely? All accounts from this bank will be removed.')) return;
+  if (!confirm('Disconnect this bank entirely? All accounts and transactions from this bank will be removed.')) return;
   if (!window.electronAPI) return;
   try { await window.electronAPI.plaid.removeItem(itemId); } catch(ex) {}
+  // Clean up transactions for all accounts belonging to this item
+  const itemAccounts = state.accounts.filter(a => a.plaidItemId === itemId);
+  const itemAccountIds = new Set(itemAccounts.map(a => a.plaidAccountId).filter(Boolean));
+  if (itemAccountIds.size) {
+    state.transactions = state.transactions.filter(t => !t.plaidAccountId || !itemAccountIds.has(t.plaidAccountId));
+  }
   state.accounts = state.accounts.filter(a => a.plaidItemId !== itemId);
   saveState();
   renderAll();
@@ -9762,7 +9787,7 @@ function buildFinancialContext() {
   const debts = getEffectiveDebts();
   const totalDebtAmt = debts.reduce((s, d) => s + (parseFloat(d.balance) || 0), 0) + plaidAccountDebt();
   const accounts = filteredAccounts();
-  const totalAssetAmt = accounts.reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
+  const totalAssetAmt = accounts.filter(a => (parseFloat(a.balance) || 0) > 0).reduce((s, a) => s + (parseFloat(a.balance) || 0), 0);
   const ninetyDaysAgo = new Date(n.getTime() - 90 * 86400000).toISOString().slice(0, 10);
   const recentTxs = filteredTx().filter(t => t.date >= ninetyDaysAgo);
   const spendByCat = {};
@@ -9806,9 +9831,9 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
       return d.getMonth() + 1 === n.getMonth() + 1 && d.getFullYear() === n.getFullYear();
     });
     ctx += `\n\nCurrent Month Budgets:`;
+    var _budgetSpending = spendingForMonth(n.getMonth() + 1, n.getFullYear());
     budgets.forEach(b => {
-      const spent = currTxs.filter(t => t.type === 'debit' && t.category === b.category)
-        .reduce((s, t) => s + Math.abs(parseFloat(t.amount)||0), 0);
+      const spent = getSpentForCategory(_budgetSpending, b.category);
       ctx += `\n  - ${b.category}: $${spent.toFixed(2)} of $${(b.limit||0).toFixed(2)} budget`;
     });
   }
@@ -10320,15 +10345,15 @@ function dismissAiAction(index) {
 }
 
 async function clearChatHistory() {
-  if (!window.electronAPI) return;
   if (!confirm('Clear conversation history?')) return;
-  await window.electronAPI.ai.clearHistory(CHAT_CONVERSATION_ID);
+  if (window.electronAPI) {
+    await window.electronAPI.ai.clearHistory(CHAT_CONVERSATION_ID);
+  }
+  sessionStorage.removeItem('ledgerly_chat_' + CHAT_CONVERSATION_ID);
   const msgEl = document.getElementById('chat-messages');
   if (msgEl) {
-    msgEl.innerHTML = `<div class="chat-bubble assistant">
-      <div class="chat-bubble-text">Conversation cleared. How can I help with your finances?</div>
-      <div class="chat-bubble-time">${chatTimestamp()}</div>
-    </div>`;
+    msgEl.innerHTML = '';
+    appendChatBubble('assistant', 'Conversation cleared. How can I help with your finances?');
   }
   document.getElementById('chat-suggestions').style.display = '';
 }
@@ -10752,7 +10777,7 @@ function aiConfirmMileageSuggestion(idx, date, purpose, category) {
   const milesEl = document.getElementById(`mile-suggest-miles-${idx}`);
   const miles = parseFloat(milesEl?.value);
   if (!miles || miles <= 0) { alert('Please enter the number of miles.'); return; }
-  const rate = 0.67; // 2024 IRS rate
+  const rate = 0.70; // 2025 IRS rate
   if (!state.mileageLogs) state.mileageLogs = [];
   state.mileageLogs.push({ id: uid(), date, purpose, from: '', to: '', miles, category: 'business', rate, deduction: parseFloat((miles * rate).toFixed(2)), mode: state.mode });
   saveState(); renderMileage();

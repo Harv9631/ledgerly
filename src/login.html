@@ -107,6 +107,19 @@
     }).then(r => r.json());
   }
 
+  // Handle magic link callback — extract token from hash fragment
+  if (window.location.hash) {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const expiresIn = params.get('expires_in');
+    if (accessToken) {
+      sessionStorage.setItem('sb_token', accessToken);
+      if (refreshToken) sessionStorage.setItem('sb_refresh', refreshToken);
+      if (expiresIn) sessionStorage.setItem('sb_expires_at', (Date.now() + parseInt(expiresIn) * 1000).toString());
+      window.location.href = 'app.html';
+    }
+  }
   // Check for existing session on load
   const savedToken = sessionStorage.getItem('sb_token');
   if (savedToken) window.location.href = 'app.html';

@@ -27,6 +27,15 @@ const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
 // Cache token → user mapping for 5 minutes to avoid repeated Supabase API calls
 const _tokenCache = new Map();
 const TOKEN_CACHE_TTL = 5 * 60 * 1000;
+const TOKEN_CACHE_MAX = 500;
+
+// Prune expired entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of _tokenCache) {
+    if (now - v.ts >= TOKEN_CACHE_TTL) _tokenCache.delete(k);
+  }
+}, 10 * 60 * 1000);
 
 async function requireAuth(req, res, next) {
   // Desktop / Electron mode — no auth required
@@ -58,7 +67,11 @@ async function requireAuth(req, res, next) {
 
   if (!resolvedUser) return res.status(401).json({ error: 'Invalid token' });
 
-  // Cache the result
+  // Cache the result (evict oldest if at capacity)
+  if (_tokenCache.size >= TOKEN_CACHE_MAX) {
+    const oldest = _tokenCache.keys().next().value;
+    _tokenCache.delete(oldest);
+  }
   _tokenCache.set(token, { user: resolvedUser, ts: Date.now() });
   req.user = resolvedUser;
   next();
