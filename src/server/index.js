@@ -37,22 +37,53 @@ const { requireAuth } = require('./auth');
 const app = express();
 
 // Per-user rate limiting for AI endpoints (50 requests/day per user)
-const _aiRateLimits = new Map();
-function checkAiRateLimit(userId) {
-  const today = new Date().toISOString().slice(0, 10);
-  const key = userId + ':' + today;
-  const count = _aiRateLimits.get(key) || 0;
-  if (count >= 50) return false;
-  _aiRateLimits.set(key, count + 1);
-  // Clean up old entries daily
-  for (const k of _aiRateLimits.keys()) {
-    if (!k.endsWith(today)) _aiRateLimits.delete(k);
-  }
-  return true;
+// AI rate limiting — Pro: 50/day, Free: 5/month
+const _aiRateLimits = new Map();       // daily: userId:YYYY-MM-DD -> count
+const _aiMonthlyLimits = new Map();    // monthly: userId:YYYY-MM -> count
+const _OWNER_IDS = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
+const _OWNER_EMAILS = ['nick@biglysales.com'];
+
+function _isProUser(userId) {
+  if (_OWNER_IDS.includes(userId)) return true;
+  const adminList = (process.env.ADMIN_USERS || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (adminList.includes(userId)) return true;
+  const { getUserState } = require('./db');
+  const stripeState = getUserState('stripe:' + userId) || {};
+  return stripeState.active === true;
 }
-function getAiRateCount(userId) {
-  const today = new Date().toISOString().slice(0, 10);
-  return _aiRateLimits.get(userId + ':' + today) || 0;
+
+function checkAiRateLimit(userId) {
+  const isPro = _isProUser(userId);
+  if (isPro) {
+    // Pro: 50/day
+    const today = new Date().toISOString().slice(0, 10);
+    const key = userId + ':' + today;
+    const count = _aiRateLimits.get(key) || 0;
+    if (count >= 50) return { allowed: false, count, limit: 50, period: 'day', isPro: true };
+    _aiRateLimits.set(key, count + 1);
+    for (const k of _aiRateLimits.keys()) { if (!k.endsWith(today)) _aiRateLimits.delete(k); }
+    return { allowed: true, count: count + 1, limit: 50, period: 'day', isPro: true };
+  } else {
+    // Free: 5/month
+    const month = new Date().toISOString().slice(0, 7);
+    const key = userId + ':' + month;
+    const count = _aiMonthlyLimits.get(key) || 0;
+    if (count >= 5) return { allowed: false, count, limit: 5, period: 'month', isPro: false };
+    _aiMonthlyLimits.set(key, count + 1);
+    for (const k of _aiMonthlyLimits.keys()) { if (!k.endsWith(month)) _aiMonthlyLimits.delete(k); }
+    return { allowed: true, count: count + 1, limit: 5, period: 'month', isPro: false };
+  }
+}
+
+function getAiRateInfo(userId) {
+  const isPro = _isProUser(userId);
+  if (isPro) {
+    const today = new Date().toISOString().slice(0, 10);
+    return { count: _aiRateLimits.get(userId + ':' + today) || 0, limit: 50, period: 'day', isPro: true };
+  } else {
+    const month = new Date().toISOString().slice(0, 7);
+    return { count: _aiMonthlyLimits.get(userId + ':' + month) || 0, limit: 5, period: 'month', isPro: false };
+  }
 }
 const PORT = process.env.PORT || 3210;
 
@@ -96,8 +127,12 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
   if (!message) return res.status(400).json({ error: 'message required' });
   if (typeof message === 'string' && message.length > 5000) return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
 
-  if (!checkAiRateLimit(req.user.id)) {
-    return res.status(429).json({ error: 'Daily limit reached (50 messages/day). Try again tomorrow.' });
+  const rateResult = checkAiRateLimit(req.user.id);
+  if (!rateResult.allowed) {
+    const msg = rateResult.isPro
+      ? 'Daily limit reached (50 messages/day). Try again tomorrow.'
+      : 'Free plan limit reached (5 messages/month). Upgrade to Pro for 50 messages per day!';
+    return res.status(429).json({ error: msg, rateInfo: rateResult, upgradeUrl: '/upgrade' });
   }
 
   const systemPrompt = `You are a personal financial advisor assistant inside Ledgerly, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
@@ -146,7 +181,8 @@ ${financialContext || 'No financial data available yet.'}`;
       model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages
     });
     const text = response.content[0]?.text || '';
-    res.json({ text, usage: response.usage, rateCount: getAiRateCount(req.user.id) });
+    const rateInfo = getAiRateInfo(req.user.id);
+    res.json({ text, usage: response.usage, rateCount: rateInfo.count, rateInfo });
   } catch (err) {
     res.status(500).json({ error: err.message || 'AI error' });
   }
@@ -154,7 +190,8 @@ ${financialContext || 'No financial data available yet.'}`;
 
 // GET /api/ai/rate-limit — return current usage count
 app.get('/api/ai/rate-limit', requireAuth, (req, res) => {
-  res.json({ ok: true, count: getAiRateCount(req.user.id), limit: 50 });
+  const rateInfo = getAiRateInfo(req.user.id);
+  res.json({ ok: true, ...rateInfo });
 });
 
 // Serve upgrade page with Stripe publishable key + price ID injected

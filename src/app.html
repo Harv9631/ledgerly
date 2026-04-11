@@ -97,7 +97,14 @@
             }).then(function(data) {
               if (!data || data._expired) return;
               if (data.error) {
-                if (self._cbError) self._cbError(data.error);
+                if (data.upgradeUrl && !window._isPro) {
+                  if (self._cbError) self._cbError(data.error);
+                  // Show upgrade prompt after a moment
+                  setTimeout(function() { _showUpgradePrompt('AI Financial Assistant (unlimited)'); }, 500);
+                } else {
+                  if (self._cbError) self._cbError(data.error);
+                }
+                if (data.rateInfo) updateChatRateLabel(data.rateInfo.count, data.rateInfo);
                 return;
               }
               var text = data.text || '';
@@ -9727,7 +9734,7 @@ window._isPro = !window._webToken; // Electron always Pro
 window._isOwner = false;
 const _OWNER_IDS = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
 const _OWNER_EMAILS = ['nick@biglysales.com'];
-const _PRO_PAGES = ['ai-chat', 'mileage', 'invoices'];
+const _PRO_PAGES = ['mileage', 'invoices'];
 const _FREE_TX_LIMIT = 50;
 
 if (window._webToken) {
@@ -9778,11 +9785,12 @@ function _applyFeatureGating() {
   if (!window._isPro) {
     document.querySelectorAll('.tab').forEach(function(tab) {
       const text = tab.textContent.trim().toLowerCase().replace(/\s+/g, '-');
-      if (_PRO_PAGES.includes(text) || text === 'ai-assistant' || text === 'ai' || tab.onclick?.toString().includes("'ai-chat'")) {
+      const isAiTab = text === 'ai-assistant' || text === 'ai' || tab.onclick?.toString().includes("'ai-chat'");
+      if (_PRO_PAGES.includes(text) || isAiTab) {
         if (!tab.querySelector('.pro-badge')) {
           var badge = document.createElement('span');
           badge.className = 'pro-badge';
-          badge.textContent = 'PRO';
+          badge.textContent = isAiTab ? '5 FREE' : 'PRO';
           badge.style.cssText = 'font-size:9px;background:linear-gradient(135deg,#238636,#3fb950);color:#fff;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;letter-spacing:.04em';
           tab.appendChild(badge);
         }
@@ -9912,7 +9920,9 @@ if (sessionStorage.getItem('sb_token')) {
 const CHAT_CONVERSATION_ID = 'main';
 let _chatStreaming = false;
 let _chatRateCount = 0;
-const CHAT_RATE_LIMIT = 50;
+let _chatRateLimit = 50;
+let _chatRatePeriod = 'day';
+const CHAT_RATE_LIMIT = 50; // legacy fallback
 
 function buildFinancialContext() {
   const n = now();
@@ -10183,10 +10193,26 @@ function setChatInputEnabled(enabled) {
   _chatStreaming = !enabled;
 }
 
-function updateChatRateLabel(count) {
-  _chatRateCount = count;
+function updateChatRateLabel(count, rateInfo) {
+  if (rateInfo) {
+    _chatRateCount = rateInfo.count;
+    _chatRateLimit = rateInfo.limit;
+    _chatRatePeriod = rateInfo.period;
+  } else {
+    _chatRateCount = count;
+  }
   const el = document.getElementById('chat-rate-label');
-  if (el) el.textContent = `${count}/${CHAT_RATE_LIMIT} messages today`;
+  if (!el) return;
+  const periodLabel = _chatRatePeriod === 'month' ? 'this month' : 'today';
+  el.textContent = `${_chatRateCount}/${_chatRateLimit} messages ${periodLabel}`;
+  // Warn when close to limit for free users
+  if (!window._isPro && _chatRateCount >= _chatRateLimit) {
+    el.style.color = 'var(--red, #f85149)';
+  } else if (!window._isPro && _chatRateCount >= _chatRateLimit - 1) {
+    el.style.color = 'var(--yellow, #d29922)';
+  } else {
+    el.style.color = 'var(--muted)';
+  }
 }
 
 // ── VOICE INPUT ──────────────────────────────────────────────────────────────
@@ -10282,7 +10308,6 @@ function toggleVoiceInput() {
 }
 
 async function sendChatMessage() {
-  if (_requirePro('AI Financial Assistant')) return;
   if (_chatStreaming) return;
   const inp = document.getElementById('chat-input');
   if (!inp) return;
@@ -10334,7 +10359,8 @@ async function sendChatMessage() {
       }
     }
     setChatInputEnabled(true);
-    if (data && data.rateCount !== undefined) updateChatRateLabel(data.rateCount);
+    if (data && data.rateInfo) updateChatRateLabel(data.rateInfo.count, data.rateInfo);
+    else if (data && data.rateCount !== undefined) updateChatRateLabel(data.rateCount);
     window.electronAPI.ai.removeListeners();
   });
 
@@ -10521,7 +10547,7 @@ async function loadAiConfig() {
     if (el) el.placeholder = 'API key configured (sk-ant-***)';
   }
   const rl = await window.electronAPI.ai.getRateLimit();
-  if (rl) updateChatRateLabel(rl.count);
+  if (rl) updateChatRateLabel(rl.count, rl);
 }
 
 async function eraseAiData() {
