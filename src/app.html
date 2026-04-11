@@ -2957,6 +2957,15 @@ function daysInMonth(d) { return new Date(d.getFullYear(), d.getMonth()+1, 0).ge
 function dayOfMonth(d) { return d.getDate(); }
 function monthProgress(d) { return dayOfMonth(d) / daysInMonth(d); }
 function projectMonthlyPace(partialSpend, d) { const prog = monthProgress(d || now()); return prog > 0 ? partialSpend / prog : 0; }
+function smartProjectCategory(txsForCat, d) {
+  // For fixed payments (1-2 transactions): use actual total — no linear projection
+  // For variable spending (3+ transactions across multiple days): use pace projection
+  const total = txsForCat.reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
+  if (txsForCat.length <= 2) return total;
+  const uniqueDays = new Set(txsForCat.map(t => t.date)).size;
+  if (uniqueDays <= 2) return total;
+  return projectMonthlyPace(total, d);
+}
 function paceLabel(d) { const prog = monthProgress(d || now()); if (prog < 0.17) return ' (early in month — estimate may shift)'; if (prog < 0.5) return ' (projected from ' + Math.round(prog*100) + '% of month)'; return ''; }
 function monthLabel(d) { return d.toLocaleDateString('en-US',{month:'short',year:'numeric'}); }
 
@@ -5354,8 +5363,9 @@ function generateInsights() {
   const cats = [...new Set(txs.map(t => t.category).filter(Boolean))];
   const mProg = monthProgress(n);
   cats.forEach(cat => {
-    const thisSpend = thisMonthTxs.filter(t => t.type === 'debit' && t.category === cat).reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
-    const projectedSpend = projectMonthlyPace(thisSpend, n);
+    const catTxs = thisMonthTxs.filter(t => t.type === 'debit' && t.category === cat);
+    const thisSpend = catTxs.reduce((s,t) => s + Math.abs(parseFloat(t.amount)||0), 0);
+    const projectedSpend = smartProjectCategory(catTxs, n);
     let hist = 0, hm = 0;
     for (let m = 1; m <= 3; m++) {
       const ds = new Date(n.getFullYear(), n.getMonth() - m, 1);
@@ -9683,23 +9693,31 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
   const _ctxDay = dayOfMonth(n);
   const _ctxDays = daysInMonth(n);
   ctx += `\n\nMonth Progress: Day ${_ctxDay} of ${_ctxDays} (${Math.round(_ctxProg * 100)}% through the month)`;
-  ctx += `\nIMPORTANT: When comparing this month's spending to previous months, note we are only ${Math.round(_ctxProg * 100)}% through the month. Use projected/pace amounts for fair comparisons.`;
+  ctx += `\nIMPORTANT: When comparing this month's spending to previous months, note we are only ${Math.round(_ctxProg * 100)}% through the month. Projected amounts below use smart pacing: fixed bills (1-2 transactions like rent, car payment) show actual amount paid; variable spending (3+ transactions like groceries, dining) is projected to full month.`;
   const thisMonthSpend = {};
+  const thisMonthSpendTxs = {};
   const thisMonthIncome = {};
   currMonthTxs.forEach(t => {
     const cat = t.category || 'Uncategorized';
-    if (t.type === 'debit') thisMonthSpend[cat] = (thisMonthSpend[cat] || 0) + Math.abs(parseFloat(t.amount) || 0);
+    if (t.type === 'debit') {
+      thisMonthSpend[cat] = (thisMonthSpend[cat] || 0) + Math.abs(parseFloat(t.amount) || 0);
+      if (!thisMonthSpendTxs[cat]) thisMonthSpendTxs[cat] = [];
+      thisMonthSpendTxs[cat].push(t);
+    }
     else thisMonthIncome[cat] = (thisMonthIncome[cat] || 0) + Math.abs(parseFloat(t.amount) || 0);
   });
   const spendEntries = Object.entries(thisMonthSpend).sort((a, b) => b[1] - a[1]);
   if (spendEntries.length > 0) {
-    const totalThisMonth = spendEntries.reduce((s, e) => s + e[1], 0);
-    const totalProjected = projectMonthlyPace(totalThisMonth, n);
-    ctx += `\n\nThis Month's Spending by Category ($${totalThisMonth.toFixed(2)} so far, ~$${totalProjected.toFixed(2)} projected full month):`;
-    spendEntries.forEach(([cat, amt]) => {
-      const proj = projectMonthlyPace(amt, n);
-      ctx += `\n  - ${cat}: $${amt.toFixed(2)} so far (~$${proj.toFixed(2)} projected)`;
+    let totalProjected = 0;
+    const catLines = spendEntries.map(([cat, amt]) => {
+      const catTxs = thisMonthSpendTxs[cat] || [];
+      const proj = smartProjectCategory(catTxs, n);
+      totalProjected += proj;
+      const isFixed = catTxs.length <= 2 || new Set(catTxs.map(t => t.date)).size <= 2;
+      return `\n  - ${cat}: $${amt.toFixed(2)} so far (~$${proj.toFixed(2)} projected${isFixed ? ', fixed payment' : ''})`;
     });
+    ctx += `\n\nThis Month's Spending by Category ($${spendEntries.reduce((s,e)=>s+e[1],0).toFixed(2)} so far, ~$${totalProjected.toFixed(2)} projected full month):`;
+    catLines.forEach(l => ctx += l);
   }
   const incEntries = Object.entries(thisMonthIncome).sort((a, b) => b[1] - a[1]);
   if (incEntries.length > 0) {
@@ -10673,8 +10691,12 @@ function generateAiInsights() {
     const _mProg = monthProgress(_now);
     const thisMonth = _now.toISOString().slice(0, 7);
     const lastMonth = new Date(_now.getFullYear(), _now.getMonth() - 1, 1).toISOString().slice(0, 7);
-    const thisSpendRaw = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(thisMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
-    const thisSpendProjected = projectMonthlyPace(thisSpendRaw, _now);
+    const thisMonthDebitTxs = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(thisMonth));
+    const thisSpendRaw = thisMonthDebitTxs.reduce((s, t) => s + Math.abs(t.amount), 0);
+    // Smart projection: sum per-category projections (fixed bills stay as-is, variable spending is pace-projected)
+    const catGroups = {};
+    thisMonthDebitTxs.forEach(t => { const c = t.category || 'Other'; if (!catGroups[c]) catGroups[c] = []; catGroups[c].push(t); });
+    const thisSpendProjected = Object.values(catGroups).reduce((s, g) => s + smartProjectCategory(g, _now), 0);
     const lastSpend = txs.filter(t => t.type === 'debit' && t.date && t.date.startsWith(lastMonth)).reduce((s, t) => s + Math.abs(t.amount), 0);
     if (lastSpend > 0 && thisSpendRaw > 0 && _mProg >= 0.17) {
       const pct = Math.round(((thisSpendProjected - lastSpend) / lastSpend) * 100);
@@ -10705,13 +10727,18 @@ function generateAiInsights() {
   // Budget insight (pace-aware: warns if on pace to exceed, not just already exceeded)
   if (budgets.length > 0) {
     const spending = {};
+    const spendingTxs = {};
     const _bNow = new Date();
     const _bProg = monthProgress(_bNow);
     const monthStart = new Date(_bNow.getFullYear(), _bNow.getMonth(), 1).toISOString().slice(0, 10);
-    txs.filter(t => t.type === 'debit' && t.date >= monthStart).forEach(t => { spending[t.category] = (spending[t.category] || 0) + Math.abs(t.amount); });
+    txs.filter(t => t.type === 'debit' && t.date >= monthStart).forEach(t => {
+      spending[t.category] = (spending[t.category] || 0) + Math.abs(t.amount);
+      if (!spendingTxs[t.category]) spendingTxs[t.category] = [];
+      spendingTxs[t.category].push(t);
+    });
     const overBudget = budgets.filter(b => {
       const spent = spending[b.category] || 0;
-      const projected = projectMonthlyPace(spent, _bNow);
+      const projected = smartProjectCategory(spendingTxs[b.category] || [], _bNow);
       return spent > b.limit || (_bProg >= 0.17 && projected > b.limit * 1.1);
     });
     if (overBudget.length > 0) {
