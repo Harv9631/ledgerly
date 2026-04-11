@@ -50,6 +50,10 @@ function checkAiRateLimit(userId) {
   }
   return true;
 }
+function getAiRateCount(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  return _aiRateLimits.get(userId + ':' + today) || 0;
+}
 const PORT = process.env.PORT || 3210;
 
 // Middleware
@@ -142,10 +146,15 @@ ${financialContext || 'No financial data available yet.'}`;
       model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages
     });
     const text = response.content[0]?.text || '';
-    res.json({ text, usage: response.usage });
+    res.json({ text, usage: response.usage, rateCount: getAiRateCount(req.user.id) });
   } catch (err) {
     res.status(500).json({ error: err.message || 'AI error' });
   }
+});
+
+// GET /api/ai/rate-limit — return current usage count
+app.get('/api/ai/rate-limit', requireAuth, (req, res) => {
+  res.json({ ok: true, count: getAiRateCount(req.user.id), limit: 50 });
 });
 
 // Serve upgrade page with Stripe publishable key + price ID injected

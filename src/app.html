@@ -56,7 +56,12 @@
         ai: {
           getConfig: function() { return Promise.resolve({}); },
           setConfig: function() { return Promise.resolve({ ok: true }); },
-          getRateLimit: function() { return Promise.resolve({ ok: true, count: 0 }); },
+          getRateLimit: function() {
+            var currentToken = sessionStorage.getItem('sb_token') || token;
+            return fetch(origin + '/api/ai/rate-limit', { headers: { 'Authorization': 'Bearer ' + currentToken } })
+              .then(function(r) { return r.json(); })
+              .catch(function() { return { ok: true, count: 0 }; });
+          },
           getHistory: function(id) {
             try { return Promise.resolve(JSON.parse(sessionStorage.getItem('ai_hist_' + (id||'default')) || '[]')); }
             catch { return Promise.resolve([]); }
