@@ -1997,7 +1997,11 @@
     <div id="web-auth-section" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Account</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Signed in via Ledgerly web.</p>
-      <button class="btn btn-danger" onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'">Sign Out</button>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-danger" onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'">Sign Out</button>
+        <a href="/privacy" target="_blank" style="font-size:12px;color:var(--muted);text-decoration:none">Privacy Policy</a>
+        <a href="/terms" target="_blank" style="font-size:12px;color:var(--muted);text-decoration:none">Terms of Service</a>
+      </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Backup &amp; Restore</div>

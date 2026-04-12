@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ledgerly — Privacy Policy</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; padding: 40px 20px; }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    .logo { font-size: 20px; font-weight: 800; letter-spacing: -.03em; margin-bottom: 40px; }
+    .logo a { color: #e6edf3; text-decoration: none; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .updated { color: #7d8590; font-size: 13px; margin-bottom: 36px; }
+    h2 { font-size: 17px; font-weight: 600; margin: 32px 0 10px; color: #e6edf3; }
+    p, li { font-size: 14px; line-height: 1.7; color: #c9d1d9; }
+    ul { padding-left: 20px; margin-top: 8px; }
+    li { margin-bottom: 6px; }
+    a { color: #58a6ff; }
+    .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,.08); font-size: 13px; color: #7d8590; display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer a { color: #58a6ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo"><a href="/">Ledgerly</a></div>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: April 12, 2026</div>
+
+  <p>Ledgerly ("we", "us", "our") is a personal finance tracking application. This policy explains what data we collect, how we use it, and your rights.</p>
+
+  <h2>1. Information We Collect</h2>
+  <p>We collect information you provide directly:</p>
+  <ul>
+    <li><strong>Account information</strong> — email address and password (managed by Supabase Auth)</li>
+    <li><strong>Financial data</strong> — income, expenses, debts, budgets, goals, and savings you manually enter</li>
+    <li><strong>Bank data</strong> — if you connect a bank account via Plaid, we receive account balances and transaction history from your financial institution</li>
+    <li><strong>AI conversations</strong> — messages you send to the AI financial assistant (stored in your session)</li>
+    <li><strong>Payment information</strong> — billing details are handled entirely by Stripe; we never see or store your credit card number</li>
+  </ul>
+
+  <h2>2. How We Use Your Information</h2>
+  <ul>
+    <li>To provide and operate the Ledgerly service</li>
+    <li>To sync your financial data across devices</li>
+    <li>To power the AI financial assistant with your financial snapshot</li>
+    <li>To process subscription payments via Stripe</li>
+    <li>To send transactional emails (receipts, account alerts) where applicable</li>
+  </ul>
+  <p>We do not sell your personal data. We do not use your financial data for advertising.</p>
+
+  <h2>3. Third-Party Services</h2>
+  <ul>
+    <li><strong>Supabase</strong> — authentication and user identity (<a href="https://supabase.com/privacy" target="_blank">privacy policy</a>)</li>
+    <li><strong>Plaid</strong> — bank account linking and transaction data (<a href="https://plaid.com/legal/#end-user-privacy-policy" target="_blank">privacy policy</a>)</li>
+    <li><strong>Anthropic (Claude)</strong> — AI financial assistant processing (<a href="https://www.anthropic.com/privacy" target="_blank">privacy policy</a>). Financial context sent to Claude is used solely to answer your question and is not used to train AI models.</li>
+    <li><strong>Stripe</strong> — payment processing (<a href="https://stripe.com/privacy" target="_blank">privacy policy</a>)</li>
+    <li><strong>Railway</strong> — cloud hosting (<a href="https://railway.app/legal/privacy" target="_blank">privacy policy</a>)</li>
+  </ul>
+
+  <h2>4. Data Storage and Security</h2>
+  <p>Your data is stored encrypted at rest. We use HTTPS for all data in transit. Bank access tokens from Plaid are stored server-side and never exposed to the browser. We retain your data for as long as your account is active.</p>
+
+  <h2>5. Your Rights</h2>
+  <p>You may request to:</p>
+  <ul>
+    <li>Access or export all data associated with your account</li>
+    <li>Delete your account and all associated data (right to erasure / GDPR Article 17)</li>
+    <li>Disconnect any linked bank account at any time from the Accounts page</li>
+  </ul>
+  <p>To exercise these rights, contact us at <a href="mailto:privacy@ledgerly.app">privacy@ledgerly.app</a>.</p>
+
+  <h2>6. Children's Privacy</h2>
+  <p>Ledgerly is not directed to children under 13. We do not knowingly collect personal information from children.</p>
+
+  <h2>7. Changes to This Policy</h2>
+  <p>We may update this policy from time to time. We will notify you of material changes by updating the "Last updated" date above. Continued use of the service after changes constitutes acceptance.</p>
+
+  <h2>8. Contact</h2>
+  <p>Questions about this policy? Contact us at <a href="mailto:privacy@ledgerly.app">privacy@ledgerly.app</a>.</p>
+
+  <div class="footer">
+    <a href="/">← Back to Ledgerly</a>
+    <a href="/terms">Terms of Service</a>
+    <a href="/login">Sign In</a>
+  </div>
+</div>
+</body>
+</html>

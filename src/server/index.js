@@ -249,6 +249,8 @@ const parentDir = path.join(__dirname, '..');
 ['style.css', 'plaid-link.html', 'index.html', 'icon.ico', 'manifest.json', 'sw.js'].forEach(file => {
   app.get('/' + file, (_req, res) => res.sendFile(path.join(parentDir, file)));
 });
+app.get('/privacy', (_req, res) => res.sendFile(path.join(parentDir, 'privacy.html')));
+app.get('/terms',   (_req, res) => res.sendFile(path.join(parentDir, 'terms.html')));
 // PWA icons
 app.get('/icons/:file', (req, res) => {
   const safe = path.basename(req.params.file);
