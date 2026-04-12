@@ -246,8 +246,13 @@ app.use(function(req, res, next) {
 
 // Serve only the frontend files the web app needs (not the entire src/ directory)
 const parentDir = path.join(__dirname, '..');
-['style.css', 'plaid-link.html', 'index.html', 'icon.ico'].forEach(file => {
+['style.css', 'plaid-link.html', 'index.html', 'icon.ico', 'manifest.json', 'sw.js'].forEach(file => {
   app.get('/' + file, (_req, res) => res.sendFile(path.join(parentDir, file)));
+});
+// PWA icons
+app.get('/icons/:file', (req, res) => {
+  const safe = path.basename(req.params.file);
+  res.sendFile(path.join(parentDir, 'icons', safe));
 });
 // Serve app.html with Supabase config injected for token refresh
 function serveApp(_req, res) {
