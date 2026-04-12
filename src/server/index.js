@@ -187,10 +187,12 @@ ${financialContext || 'No financial data available yet.'}`;
   try {
     const { default: Anthropic } = require('@anthropic-ai/sdk');
     const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages
-    });
-    const text = response.content[0]?.text || '';
+    const isPro = _isProUser(req.user.id, req.user.email);
+    const requestParams = isPro
+      ? { model: 'claude-opus-4-6', max_tokens: 4096, thinking: { type: 'adaptive' }, system: systemPrompt, messages }
+      : { model: 'claude-sonnet-4-6', max_tokens: 1024, system: systemPrompt, messages };
+    const response = await client.messages.create(requestParams);
+    const text = response.content.find(b => b.type === 'text')?.text || '';
     const rateInfo = getAiRateInfo(req.user.id, req.user.email);
     res.json({ text, usage: response.usage, rateCount: rateInfo.count, rateInfo });
   } catch (err) {
