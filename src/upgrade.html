@@ -95,6 +95,14 @@
 <script>
   const token = sessionStorage.getItem('sb_token');
 
+  // If not logged in, update Pro button to reflect that
+  if (!token) {
+    document.addEventListener('DOMContentLoaded', function() {
+      var btn = document.getElementById('upgrade-btn');
+      if (btn) btn.textContent = 'Sign In to Upgrade';
+    });
+  }
+
   function goToApp() {
     if (token) { window.location.href = '/app.html'; }
     else { window.location.href = '/login'; }

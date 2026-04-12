@@ -37,9 +37,8 @@ const { requireAuth } = require('./auth');
 const app = express();
 
 // Per-user rate limiting for AI endpoints (50 requests/day per user)
-// AI rate limiting — Pro: 50/day, Free: 5/month
-const _aiRateLimits = new Map();       // daily: userId:YYYY-MM-DD -> count
-const _aiMonthlyLimits = new Map();    // monthly: userId:YYYY-MM -> count
+// AI rate limiting — Pro: 50/day (in-memory), Free: 5/month (persisted to db)
+const _aiDailyLimits = new Map();      // daily cache: userId:YYYY-MM-DD -> count
 const _OWNER_IDS = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
 const _OWNER_EMAILS = ['nick@biglysales.com'];
 
@@ -52,25 +51,37 @@ function _isProUser(userId, email) {
   return stripeState.active === true;
 }
 
+// Free tier monthly count — persisted to db.json (survives Railway redeploys)
+function _getMonthlyCount(userId) {
+  const { getUserState } = require('./db');
+  const key = 'ai_rate:' + userId;
+  const data = getUserState(key) || {};
+  const month = new Date().toISOString().slice(0, 7);
+  return (data.month === month) ? (data.count || 0) : 0;
+}
+function _setMonthlyCount(userId, count) {
+  const { saveUserState } = require('./db');
+  const month = new Date().toISOString().slice(0, 7);
+  saveUserState('ai_rate:' + userId, { month, count });
+}
+
 function checkAiRateLimit(userId, email) {
   const isPro = _isProUser(userId, email);
   if (isPro) {
-    // Pro: 50/day
+    // Pro: 50/day — in-memory (daily reset is fine, no persistence needed)
     const today = new Date().toISOString().slice(0, 10);
     const key = userId + ':' + today;
-    const count = _aiRateLimits.get(key) || 0;
+    const count = _aiDailyLimits.get(key) || 0;
     if (count >= 50) return { allowed: false, count, limit: 50, period: 'day', isPro: true };
-    _aiRateLimits.set(key, count + 1);
-    for (const k of _aiRateLimits.keys()) { if (!k.endsWith(today)) _aiRateLimits.delete(k); }
+    _aiDailyLimits.set(key, count + 1);
+    // Clean stale daily entries
+    for (const k of _aiDailyLimits.keys()) { if (!k.endsWith(today)) _aiDailyLimits.delete(k); }
     return { allowed: true, count: count + 1, limit: 50, period: 'day', isPro: true };
   } else {
-    // Free: 5/month
-    const month = new Date().toISOString().slice(0, 7);
-    const key = userId + ':' + month;
-    const count = _aiMonthlyLimits.get(key) || 0;
+    // Free: 5/month — persisted to survive redeploys
+    const count = _getMonthlyCount(userId);
     if (count >= 5) return { allowed: false, count, limit: 5, period: 'month', isPro: false };
-    _aiMonthlyLimits.set(key, count + 1);
-    for (const k of _aiMonthlyLimits.keys()) { if (!k.endsWith(month)) _aiMonthlyLimits.delete(k); }
+    _setMonthlyCount(userId, count + 1);
     return { allowed: true, count: count + 1, limit: 5, period: 'month', isPro: false };
   }
 }
@@ -79,10 +90,9 @@ function getAiRateInfo(userId, email) {
   const isPro = _isProUser(userId, email);
   if (isPro) {
     const today = new Date().toISOString().slice(0, 10);
-    return { count: _aiRateLimits.get(userId + ':' + today) || 0, limit: 50, period: 'day', isPro: true };
+    return { count: _aiDailyLimits.get(userId + ':' + today) || 0, limit: 50, period: 'day', isPro: true };
   } else {
-    const month = new Date().toISOString().slice(0, 7);
-    return { count: _aiMonthlyLimits.get(userId + ':' + month) || 0, limit: 5, period: 'month', isPro: false };
+    return { count: _getMonthlyCount(userId), limit: 5, period: 'month', isPro: false };
   }
 }
 const PORT = process.env.PORT || 3210;

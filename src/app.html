@@ -3382,7 +3382,7 @@ function saveIncome() {
   const name = document.getElementById('inc-name').value.trim();
   const amount = parseFloat(document.getElementById('inc-amount').value);
   if (!name || isNaN(amount) || amount <= 0) { alert('Please fill in name and amount.'); return; }
-  if (!window._isPro && (state.income || []).length >= _FREE_TX_LIMIT) { _showUpgradePrompt('Unlimited Entries'); return; }
+  if (!window._isPro && (state.income || []).filter(i => !i.isPlaid).length >= _FREE_TX_LIMIT) { _showUpgradePrompt('Unlimited Entries'); return; }
   const is1099El = document.getElementById('inc-is1099');
   state.income.push({ id:uid(), name, category:document.getElementById('inc-cat').value, amount, freq:document.getElementById('inc-freq').value, notes:document.getElementById('inc-notes').value, is1099: is1099El ? is1099El.checked : false, mode:state.mode, dateAdded:new Date().toISOString().slice(0,10) });
   saveState(); closeModal('income');
@@ -3398,7 +3398,7 @@ function saveExpense() {
   const name = document.getElementById('exp-name').value.trim();
   const amount = parseFloat(document.getElementById('exp-amount').value);
   if (!name || isNaN(amount) || amount <= 0) { alert('Please fill in name and amount.'); return; }
-  if (!window._isPro && (state.expenses || []).length >= _FREE_TX_LIMIT) { _showUpgradePrompt('Unlimited Entries'); return; }
+  if (!window._isPro && (state.expenses || []).filter(e => !e.isPlaid).length >= _FREE_TX_LIMIT) { _showUpgradePrompt('Unlimited Entries'); return; }
   const schedC = document.getElementById('exp-sched-c') ? document.getElementById('exp-sched-c').value : '';
   const newId = uid();
   state.expenses.push({ id:newId, name, category:document.getElementById('exp-cat').value, expType:document.getElementById('exp-type').value, amount, freq:document.getElementById('exp-freq').value, deductible:document.getElementById('exp-deductible').value, scheduleC:schedC, mode:state.mode });
@@ -9764,11 +9764,17 @@ function _showUpgradePrompt(featureName) {
   overlay.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:400px;width:100%;text-align:center">'
     + '<div style="font-size:32px;margin-bottom:12px">&#9889;</div>'
     + '<div style="font-size:18px;font-weight:700;margin-bottom:8px">Upgrade to Pro</div>'
-    + '<div style="color:var(--muted);font-size:14px;margin-bottom:20px"><strong>' + featureName + '</strong> is a Pro feature. Upgrade for $9.99/mo to unlock everything.</div>'
+    + '<div id="pro-upgrade-desc" style="color:var(--muted);font-size:14px;margin-bottom:20px"></div>'
     + '<div style="display:flex;gap:10px;justify-content:center">'
     + '<button class="btn btn-primary" onclick="window.location.href=\'/upgrade\'" style="padding:10px 24px">Upgrade Now</button>'
     + '<button class="btn btn-ghost" onclick="document.getElementById(\'pro-upgrade-overlay\').remove()" style="padding:10px 24px">Maybe Later</button>'
     + '</div></div>';
+  // Set feature name via textContent to prevent XSS
+  var desc = overlay.querySelector('#pro-upgrade-desc');
+  var strong = document.createElement('strong');
+  strong.textContent = featureName;
+  desc.appendChild(strong);
+  desc.appendChild(document.createTextNode(' is a Pro feature. Upgrade for $9.99/mo to unlock everything.'));
   overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
 }
