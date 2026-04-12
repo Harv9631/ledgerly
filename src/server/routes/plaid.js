@@ -110,6 +110,22 @@ router.post('/exchange-token', async (req, res) => {
     const client = buildPlaidClient();
     const userId = getUserId(req);
 
+    // Free tier: max 1 bank connection — check before exchanging token
+    if (req.user) {
+      const { getUserState } = require('../db');
+      const stripeState = getUserState('stripe:' + userId) || {};
+      const ownerIds = ['26b85e27-13bd-4cc7-8c1e-5150e39dd61d'];
+      const ownerEmails = ['nick@biglysales.com'];
+      const adminList = (process.env.ADMIN_USERS || '').split(',').map(s => s.trim()).filter(Boolean);
+      const isPro = stripeState.active === true || ownerIds.includes(userId) || ownerEmails.includes(req.user.email) || adminList.includes(userId) || adminList.includes(req.user.email);
+      if (!isPro) {
+        const existing = await db.query('SELECT * FROM plaid_items WHERE user_id = $1', [userId]);
+        if (existing.rowCount >= 1) {
+          return res.status(403).json({ error: 'Free plan supports 1 bank connection. Upgrade to Pro for unlimited.', upgradeUrl: '/upgrade' });
+        }
+      }
+    }
+
     const response = await client.itemPublicTokenExchange({ public_token });
     const { access_token, item_id } = response.data;
 

@@ -8845,7 +8845,11 @@ async function loadPlaidConfig() {
 }
 
 async function connectBank() {
-  if (_requirePro('Bank Linking via Plaid')) return;
+  // Free users: allow 1 connection, block if already have one
+  if (!window._isPro) {
+    const linked = (state.accounts || []).filter(a => a.isPlaid).length;
+    if (linked >= 1) { _showUpgradePrompt('Multiple Bank Connections'); return; }
+  }
   if (!window.electronAPI) { alert('Bank connection requires the Ledgerly desktop app.'); return; }
   const btn = document.querySelector('.btn[onclick="connectBank()"]');
   const origText = btn ? btn.textContent : '';
@@ -9801,12 +9805,12 @@ function _applyFeatureGating() {
         }
       }
     });
-    // Add PRO badge to Connect Bank button
+    // Add "1 FREE" badge to Connect Bank button (free users get 1 connection)
     var bankBtn = document.querySelector('.btn[onclick="connectBank()"]');
     if (bankBtn && !bankBtn.querySelector('.pro-badge')) {
       var badge = document.createElement('span');
       badge.className = 'pro-badge';
-      badge.textContent = 'PRO';
+      badge.textContent = '1 FREE';
       badge.style.cssText = 'font-size:9px;background:linear-gradient(135deg,#238636,#3fb950);color:#fff;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;letter-spacing:.04em';
       bankBtn.appendChild(badge);
     }
