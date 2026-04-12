@@ -2021,7 +2021,7 @@
         <button class="btn btn-ghost btn-sm" onclick="clearChatHistory();alert('Chat history cleared.')">Clear Chat History</button>
       </div>
     </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+    <div id="erase-ai-section" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px;display:none">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Erase AI Data</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Permanently delete all AI-generated data stored on this device. This includes chat history, usage tracking, and audit logs. Required for GDPR / right-to-erasure requests.</p>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -9917,11 +9917,18 @@ if (!sessionStorage.getItem('sb_token')) {
   if (navSignout) navSignout.style.display = 'none';
 }
 if (sessionStorage.getItem('sb_token')) {
-  // Running as web app — swap AI settings to web version
+  // Running as web app — swap AI settings to web version, hide desktop-only sections
   const d = document.getElementById('ai-settings-desktop');
   const w = document.getElementById('ai-settings-web');
   if (d) d.style.display = 'none';
   if (w) w.style.display = '';
+  // Hide "Erase AI Data" (API key management) — not relevant for web users
+  const eraseSection = document.getElementById('erase-ai-section');
+  if (eraseSection) eraseSection.style.display = 'none';
+} else {
+  // Electron desktop — show Erase AI Data section
+  const eraseSection = document.getElementById('erase-ai-section');
+  if (eraseSection) eraseSection.style.display = '';
 }
 
 // ── AI CHAT ───────────────────────────────────────────────────────────────────
