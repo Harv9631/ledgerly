@@ -3979,10 +3979,7 @@ function deleteTransaction(id) {
 }
 
 async function aiCategorizeTx() {
-  if (!window.electronAPI) {
-    alert('AI Categorize requires the Ledgerly desktop app.');
-    return;
-  }
+  if (!window.electronAPI) return;
   const txs = filteredTx().filter(t => t.category === 'Other');
   if (!txs.length) {
     const all = filteredTx();
@@ -8818,7 +8815,7 @@ async function saveSetupCredentials() {
 // ── PLAID ─────────────────────────────────────────────────────────────────────
 async function savePlaidConfig() {
   const serverUrl = (document.getElementById('plaid-server-url') || {}).value || '';
-  if (!window.electronAPI) { alert('Electron API not available. Please use the Ledgerly desktop app.'); return; }
+  if (!window.electronAPI) return;
   try {
     const result = await window.electronAPI.plaid.setConfig(serverUrl.trim());
     if (result && result.error) { alert('Error saving config: ' + result.error); return; }
@@ -8850,7 +8847,7 @@ async function connectBank() {
     const linked = (state.accounts || []).filter(a => a.isPlaid).length;
     if (linked >= 1) { _showUpgradePrompt('Multiple Bank Connections'); return; }
   }
-  if (!window.electronAPI) { alert('Bank connection requires the Ledgerly desktop app.'); return; }
+  if (!window.electronAPI) return;
   const btn = document.querySelector('.btn[onclick="connectBank()"]');
   const origText = btn ? btn.textContent : '';
   if (btn) { btn.disabled = true; btn.textContent = 'Opening browser…'; }
@@ -9693,6 +9690,7 @@ function exportAmortizationCsv() {
   if (!lastDigest || Date.now() - lastDigest.ts > weekMs) { generateWeeklyDigest(); }
 
 })();
+// Always run on startup — electronAPI is defined for both Electron and web (via polyfill)
 if (window.electronAPI) { loadPlaidConfig(); syncAllPlaidItems(); checkFirstRun(); }
 
 // ── Transaction month filter ───────────────────────────────────────────────
@@ -10330,10 +10328,7 @@ async function sendChatMessage() {
   const message = inp.value.trim();
   if (!message) return;
 
-  if (!window.electronAPI) {
-    alert('AI Chat requires the Ledgerly desktop app.');
-    return;
-  }
+  if (!window.electronAPI) return;
 
   inp.value = '';
   inp.style.height = '';
