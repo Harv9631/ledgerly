@@ -145,7 +145,7 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
     return res.status(429).json({ error: msg, rateInfo: rateResult, upgradeUrl: '/upgrade' });
   }
 
-  const systemPrompt = `You are a personal financial advisor assistant inside Walify, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
+  const systemPrompt = `You are a personal financial advisor named Wally inside Walify, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
 
 CONSTRAINTS:
 - Only answer questions related to personal finance, budgeting, debt management, savings, income, and financial planning.
