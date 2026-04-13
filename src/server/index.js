@@ -98,7 +98,7 @@ function getAiRateInfo(userId, email) {
 const PORT = process.env.PORT || 3210;
 
 // Middleware
-// CORS_ORIGIN can be a single origin or comma-separated list (e.g. "http://localhost:3210,https://ledgerly.app")
+// CORS_ORIGIN can be a single origin or comma-separated list (e.g. "http://localhost:3210,https://walify.ai")
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (Electron, curl, server-to-server)
@@ -145,7 +145,7 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
     return res.status(429).json({ error: msg, rateInfo: rateResult, upgradeUrl: '/upgrade' });
   }
 
-  const systemPrompt = `You are a personal financial advisor assistant inside Ledgerly, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
+  const systemPrompt = `You are a personal financial advisor assistant inside Walify, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
 
 CONSTRAINTS:
 - Only answer questions related to personal finance, budgeting, debt management, savings, income, and financial planning.
@@ -503,5 +503,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Ledgerly server running on port ${PORT} (Plaid env: ${process.env.PLAID_ENV || 'sandbox'})`);
+  console.log(`Walify server running on port ${PORT} (Plaid env: ${process.env.PLAID_ENV || 'sandbox'})`);
 });

@@ -1,8 +1,8 @@
-// Ledgerly Service Worker
+// Walify Service Worker
 // Only caches static assets (CSS, icons, manifest).
 // app.html is NEVER cached — it's dynamic (server injects Supabase config).
 
-const CACHE = 'ledgerly-v2';
+const CACHE = 'walify-v2';
 const STATIC = [
   '/style.css',
   '/manifest.json',

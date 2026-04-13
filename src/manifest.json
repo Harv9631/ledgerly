@@ -1,6 +1,6 @@
 {
-  "name": "Ledgerly",
-  "short_name": "Ledgerly",
+  "name": "Walify",
+  "short_name": "Walify",
   "description": "The smartest personal finance tracker — budgets, debt payoff, AI advisor, and bank sync.",
   "start_url": "/app.html",
   "display": "standalone",
