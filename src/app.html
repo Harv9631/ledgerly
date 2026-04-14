@@ -11078,7 +11078,9 @@ const _origShowPage = showPage;
   };
 })();
 
-if (window.electronAPI) { loadAiConfig(); document.getElementById('chat-fab').style.display = 'flex'; }
+if (window.electronAPI) { loadAiConfig(); }
+// Show Ask Wally FAB on all platforms
+document.getElementById('chat-fab').style.display = 'flex';
 // Dashboard forecast now loads inside renderAll() after data is ready
 
 // ── AI INSIGHT CARDS & PULSING FAB ───────────────────────────────────────────
