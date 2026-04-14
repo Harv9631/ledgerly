@@ -9909,8 +9909,11 @@ if (window._webToken) {
         // After restoring state, sync Plaid items to refresh balances
         syncAllPlaidItems();
       } else {
-        // No server data yet — sync Plaid items and push current state
+        // No server data yet — push local state up immediately so other devices can load it
         syncAllPlaidItems();
+        fetch(_syncOrigin + '/api/user/state', {
+          method: 'PUT', headers: _getSyncHeaders(), body: JSON.stringify({ state: state })
+        }).catch(() => {});
       }
     })
     .catch(() => { syncAllPlaidItems(); }); // offline fallback — use localStorage
@@ -9929,6 +9932,22 @@ if (window._webToken) {
       }).catch(() => {}); // fire-and-forget, ignore errors
     }, 3000);
   };
+
+  // Force-push state on tab close so data is always on server for other devices
+  window.addEventListener('beforeunload', function() {
+    if (typeof state !== 'undefined') {
+      var headers = _getSyncHeaders();
+      var body = JSON.stringify({ state: state });
+      // sendBeacon is more reliable on mobile during page unload
+      if (navigator.sendBeacon) {
+        var beaconBody = JSON.stringify({ state: state, token: sessionStorage.getItem('sb_token') || window._webToken });
+      var blob = new Blob([beaconBody], { type: 'application/json' });
+        navigator.sendBeacon(_syncOrigin + '/api/user/state-beacon', blob);
+      } else {
+        fetch(_syncOrigin + '/api/user/state', { method: 'PUT', headers: headers, body: body, keepalive: true }).catch(() => {});
+      }
+    }
+  });
 }
 // Show web-specific UI when running in browser (not Electron)
 if (!window.electronAPI || sessionStorage.getItem('sb_token')) {

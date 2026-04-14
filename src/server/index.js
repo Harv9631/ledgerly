@@ -490,6 +490,21 @@ app.put('/api/user/state', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/user/state-beacon — called by sendBeacon on page unload (token in body)
+app.post('/api/user/state-beacon', express.raw({ type: '*/*' }), (req, res) => {
+  try {
+    const body = JSON.parse(req.body.toString());
+    const { state, token } = body;
+    if (!token || !state || typeof state !== 'object') return res.status(400).end();
+    // Parse JWT payload to get user ID (same as requireAuth middleware)
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    const userId = payload.sub;
+    if (!userId) return res.status(401).end();
+    saveUserState(userId, state);
+    res.status(204).end();
+  } catch { res.status(400).end(); }
+});
+
 // Stripe routes — webhook mounted above (before json parser), rest require auth
 app.use('/api/stripe', requireAuth, stripeRoutes);
 
