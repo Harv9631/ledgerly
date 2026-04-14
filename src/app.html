@@ -10289,6 +10289,8 @@ function updateChatRateLabel(count, rateInfo) {
 let _speechRecognition = null;
 let _isRecording = false;
 let _voiceSilenceTimer = null;
+const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const _isMobileVoice = _isIOS || /Android/i.test(navigator.userAgent);
 
 (function initVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -10297,10 +10299,8 @@ let _voiceSilenceTimer = null;
   if (micBtn) micBtn.style.display = '';
 
   _speechRecognition = new SpeechRecognition();
-  // iOS Safari doesn't support continuous mode reliably
-  const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  _speechRecognition.continuous = !_isIOS;
-  _speechRecognition.interimResults = !_isIOS;
+  _speechRecognition.continuous = !_isMobileVoice;
+  _speechRecognition.interimResults = !_isMobileVoice;
   _speechRecognition.lang = 'en-US';
   _speechRecognition.maxAlternatives = 1;
 
@@ -10308,11 +10308,18 @@ let _voiceSilenceTimer = null;
     const inp = document.getElementById('chat-input');
     if (!inp) return;
     let final = '', interim = '';
-    for (let i = 0; i < event.results.length; i++) {
+    // Start from resultIndex to avoid re-processing previous results (fixes iOS repetition)
+    for (let i = event.resultIndex; i < event.results.length; i++) {
       if (event.results[i].isFinal) final += event.results[i][0].transcript;
       else interim += event.results[i][0].transcript;
     }
-    inp.value = final || interim;
+    // Mobile (Android/iOS): replace input with final result — avoids repetition
+    // Desktop: append to support continuous multi-phrase capture
+    if (_isMobileVoice) {
+      inp.value = (final || interim).trim();
+    } else {
+      inp.value = (inp.value + ' ' + (final || interim)).trim();
+    }
     autoResizeChatInput(inp);
     inp.placeholder = 'Listening... (tap mic to send)';
     // Reset silence timer — give 3 seconds of silence before auto-sending
