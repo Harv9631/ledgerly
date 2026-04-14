@@ -601,7 +601,7 @@
       nav { position:fixed; left:-220px; top:0; height:100vh; z-index:100; transition:left .25s; }
       nav.open { left:0; }
       nav.open ~ #nav-overlay { display:block; }
-      main { width:100%; padding:56px 12px 80px; }
+      main { width:100%; padding:56px 12px 80px; overflow-x:hidden; }
       .dash-2col, .dash-3col, .report-grid, .report-grid-3, .account-cards, .budget-grid { grid-template-columns:1fr !important; }
       .cards { grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); }
       .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
@@ -610,7 +610,10 @@
       .tx-filters { flex-wrap:wrap; }
       #dash-kpi-cards { grid-template-columns:1fr 1fr !important; }
       .chat-fab { bottom:70px; }
-      .chat-page-wrap { height: calc(100vh - 240px) !important; }
+      .chat-page-wrap { height: calc(100vh - 240px) !important; max-width: 100% !important; width: 100% !important; }
+      .chat-bubble-text { word-break: break-word; overflow-wrap: break-word; }
+      .chat-messages { overflow-x: hidden; }
+      #page-ai-chat { overflow-x: hidden; max-width: 100vw; }
       /* bottom nav bar */
       #mobile-bottom-nav { display:flex !important; }
     }
