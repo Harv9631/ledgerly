@@ -3320,6 +3320,9 @@ function showPage(name) {
     _showUpgradePrompt(labels[name] || name);
     return;
   }
+  // Close mobile sidebar on any page navigation
+  var navEl = document.querySelector('nav');
+  if (navEl) navEl.classList.remove('open');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   const page = document.getElementById('page-'+name);
@@ -9741,6 +9744,11 @@ function toggleMobileNav() {
   const nav = document.querySelector('nav');
   nav.classList.toggle('open');
 }
+
+// Close sidebar when user taps the main content area on mobile
+document.querySelector('main').addEventListener('touchstart', function() {
+  document.querySelector('nav').classList.remove('open');
+}, { passive: true });
 function mobileNav(page) {
   showPage(page);
   document.querySelector('nav').classList.remove('open');
