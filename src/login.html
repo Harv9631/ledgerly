@@ -50,6 +50,10 @@
     .btn-google { background: #fff; color: #1f1f1f; }
     .btn-google:hover { background: #f5f5f5; }
     .oauth-icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .pw-wrap { position: relative; margin-bottom: 16px; }
+    .pw-wrap input { margin-bottom: 0; }
+    .pw-toggle { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #7d8590; padding: 2px; font-size: 16px; line-height: 1; }
+    .pw-toggle:hover { color: #e6edf3; }
   </style>
 </head>
 <body>
@@ -70,7 +74,10 @@
     <label>Email</label>
     <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
     <label>Password</label>
-    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    <div class="pw-wrap">
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      <button type="button" class="pw-toggle" onclick="togglePw('password',this)" tabindex="-1">👁</button>
+    </div>
     <button class="btn btn-primary" onclick="signIn()">Sign In</button>
     <div class="divider">or</div>
     <button class="btn btn-magic" onclick="magicLink()">Send Magic Link</button>
@@ -82,7 +89,10 @@
     <label>Email</label>
     <input type="email" id="email2" placeholder="you@example.com" autocomplete="email">
     <label>Password</label>
-    <input type="password" id="password2" placeholder="8+ characters" autocomplete="new-password">
+    <div class="pw-wrap">
+      <input type="password" id="password2" placeholder="8+ characters" autocomplete="new-password">
+      <button type="button" class="pw-toggle" onclick="togglePw('password2',this)" tabindex="-1">👁</button>
+    </div>
     <button class="btn btn-primary" onclick="signUp()">Create Account</button>
     <div class="status" id="status2"></div>
     <div class="toggle">Already have one? <a onclick="switchMode('signin')">Sign in</a></div>
@@ -194,6 +204,13 @@
 
   function goToApp() {
     window.location.href = 'app.html';
+  }
+
+  function togglePw(id, btn) {
+    var input = document.getElementById(id);
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁';
   }
 
   function signInWithGoogle() {
