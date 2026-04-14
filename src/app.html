@@ -7306,7 +7306,7 @@ function renderIncomeCategoryChart() {
   }
   const labels = Object.keys(bycat);
   const values = labels.map(l => bycat[l]);
-  if (!labels.length) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if(incomeChartArea) incomeChartArea.style.display='none'; return; }
+  if (!labels.length || labels.length < 2) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if(incomeChartArea) incomeChartArea.style.display='none'; return; }
   if(incomeChartArea) incomeChartArea.style.display='';
   charts.incomeCat = new Chart(ctx, {
     type: 'doughnut',
