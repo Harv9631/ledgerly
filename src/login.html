@@ -146,14 +146,14 @@
     const refreshToken = params.get('refresh_token');
     const expiresIn = params.get('expires_in');
     if (accessToken) {
-      sessionStorage.setItem('sb_token', accessToken);
-      if (refreshToken) sessionStorage.setItem('sb_refresh', refreshToken);
-      if (expiresIn) sessionStorage.setItem('sb_expires_at', (Date.now() + parseInt(expiresIn) * 1000).toString());
+      localStorage.setItem('sb_token', accessToken);
+      if (refreshToken) localStorage.setItem('sb_refresh', refreshToken);
+      if (expiresIn) localStorage.setItem('sb_expires_at', (Date.now() + parseInt(expiresIn) * 1000).toString());
       window.location.href = 'app.html';
     }
   }
   // Check for existing session on load
-  const savedToken = sessionStorage.getItem('sb_token');
+  const savedToken = localStorage.getItem('sb_token');
   if (savedToken) window.location.href = 'app.html';
 
   function setStatus(id, msg, type) {
@@ -168,9 +168,9 @@
     setStatus('status', 'Signing in…', '');
     const data = await sbFetch('token?grant_type=password', { email, password });
     if (data.error || data.error_code) return setStatus('status', data.msg || data.error_description || data.error, 'error');
-    sessionStorage.setItem('sb_token', data.access_token);
-    if (data.refresh_token) sessionStorage.setItem('sb_refresh', data.refresh_token);
-    if (data.expires_in) sessionStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
+    localStorage.setItem('sb_token', data.access_token);
+    if (data.refresh_token) localStorage.setItem('sb_refresh', data.refresh_token);
+    if (data.expires_in) localStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
     window.location.href = 'app.html';
   }
 
@@ -183,9 +183,9 @@
     const data = await sbFetch('signup', { email, password });
     if (data.error || data.error_code) return setStatus('status2', data.msg || data.error_description || data.error, 'error');
     if (data.access_token) {
-      sessionStorage.setItem('sb_token', data.access_token);
-      if (data.refresh_token) sessionStorage.setItem('sb_refresh', data.refresh_token);
-      if (data.expires_in) sessionStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
+      localStorage.setItem('sb_token', data.access_token);
+      if (data.refresh_token) localStorage.setItem('sb_refresh', data.refresh_token);
+      if (data.expires_in) localStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
       window.location.href = 'app.html';
     } else {
       setStatus('status2', 'Check your email to confirm your account, then sign in.', 'success');

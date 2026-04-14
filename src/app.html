@@ -23,13 +23,13 @@
     // in browser context before any function checks it.
     (function() {
       if (window.electronAPI) return; // Electron already defined it
-      var token = sessionStorage.getItem('sb_token');
+      var token = localStorage.getItem('sb_token');
       if (!token) { window.location.replace('/login'); return; }
       window._webToken = token; // exposed for server sync below
       var origin = window.location.origin;
       function apiFetch(path, opts) {
         opts = opts || {};
-        var currentToken = sessionStorage.getItem('sb_token') || token; // refresh on each call
+        var currentToken = localStorage.getItem('sb_token') || token; // refresh on each call
         return fetch(origin + path, {
           method: opts.method || 'GET',
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentToken },
@@ -71,7 +71,7 @@
           getConfig: function() { return Promise.resolve({}); },
           setConfig: function() { return Promise.resolve({ ok: true }); },
           getRateLimit: function() {
-            var currentToken = sessionStorage.getItem('sb_token') || token;
+            var currentToken = localStorage.getItem('sb_token') || token;
             return fetch(origin + '/api/ai/rate-limit', { headers: { 'Authorization': 'Bearer ' + currentToken } })
               .then(function(r) { return r.json(); })
               .catch(function() { return { ok: true, count: 0 }; });
@@ -94,7 +94,7 @@
             var histKey = 'ai_hist_' + (payload.conversationId || 'default');
             var hist = [];
             try { hist = JSON.parse(sessionStorage.getItem(histKey) || '[]'); } catch {}
-            var currentToken = sessionStorage.getItem('sb_token') || token;
+            var currentToken = localStorage.getItem('sb_token') || token;
             fetch(origin + '/api/ai/chat', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + currentToken },
@@ -102,7 +102,7 @@
             }).then(function(r) {
               if (r.status === 401) {
                 // Token expired — redirect to login
-                sessionStorage.removeItem('sb_token');
+                localStorage.removeItem('sb_token');
                 if (self._cbError) self._cbError('Session expired — please log in again.');
                 setTimeout(function() { window.location.replace('/login'); }, 2000);
                 return { _expired: true };
@@ -153,9 +153,9 @@
     })();
     // Auto-refresh Supabase token before it expires
     (function() {
-      if (window.electronAPI && !sessionStorage.getItem('sb_token')) return;
+      if (window.electronAPI && !localStorage.getItem('sb_token')) return;
       function refreshToken() {
-        var refresh = sessionStorage.getItem('sb_refresh');
+        var refresh = localStorage.getItem('sb_refresh');
         if (!refresh) return;
         var sbUrl = window.__SUPABASE_URL__;
         var sbKey = window.__SUPABASE_ANON_KEY__;
@@ -166,15 +166,15 @@
           body: JSON.stringify({ refresh_token: refresh })
         }).then(function(r) { return r.json(); }).then(function(data) {
           if (data.access_token) {
-            sessionStorage.setItem('sb_token', data.access_token);
-            if (data.refresh_token) sessionStorage.setItem('sb_refresh', data.refresh_token);
-            if (data.expires_in) sessionStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
+            localStorage.setItem('sb_token', data.access_token);
+            if (data.refresh_token) localStorage.setItem('sb_refresh', data.refresh_token);
+            if (data.expires_in) localStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
           }
         }).catch(function() {});
       }
       // Refresh 5 minutes before expiry, or immediately if already expired
       function scheduleRefresh() {
-        var expiresAt = parseInt(sessionStorage.getItem('sb_expires_at') || '0');
+        var expiresAt = parseInt(localStorage.getItem('sb_expires_at') || '0');
         if (!expiresAt) { refreshToken(); return; }
         var msLeft = expiresAt - Date.now() - 5 * 60 * 1000;
         if (msLeft <= 0) { refreshToken(); return; }
@@ -537,8 +537,8 @@
     .ai-insight-action { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 8px; }
     .chat-page-wrap { display: flex; flex-direction: column; height: calc(100vh - 180px); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
     /* ── ONBOARDING TOUR ──────────────────────────────────────── */
-    .tour-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9998; transition: opacity .3s; }
-    .tour-card { position: fixed; z-index: 9999; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; max-width: 360px; width: 90vw; box-shadow: 0 16px 48px rgba(0,0,0,.4); animation: tour-pop .25s var(--ease); }
+    .tour-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.82); z-index: 9998; transition: opacity .3s; }
+    .tour-card { position: fixed; z-index: 9999; background: #0d1117; border: 1px solid rgba(63,185,80,.4); border-radius: 14px; padding: 28px 32px; max-width: 380px; width: 90vw; box-shadow: 0 20px 60px rgba(0,0,0,.8), 0 0 0 1px rgba(63,185,80,.15); animation: tour-pop .25s var(--ease); }
     @keyframes tour-pop { from { opacity:0; transform: translateY(12px) scale(.96); } to { opacity:1; transform: translateY(0) scale(1); } }
     .tour-card .tour-step { font-size: 11px; color: var(--green); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
     .tour-card .tour-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
@@ -734,7 +734,7 @@
     <button class="mode-btn" onclick="setMode('business',this)">Business</button>
   </div>
   <div id="nav-signout" style="margin:0 10px 12px">
-    <button onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'" style="width:100%;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.25);color:#f85149;border-radius:6px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Sign Out</button>
+    <button onclick="localStorage.removeItem('sb_token');window.location.href='/login'" style="width:100%;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.25);color:#f85149;border-radius:6px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Sign Out</button>
   </div>
 </nav>
 
@@ -1998,7 +1998,7 @@
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">Account</div>
       <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Signed in via Walify web.</p>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <button class="btn btn-danger" onclick="sessionStorage.removeItem('sb_token');window.location.href='/login'">Sign Out</button>
+        <button class="btn btn-danger" onclick="localStorage.removeItem('sb_token');window.location.href='/login'">Sign Out</button>
         <a href="/privacy" target="_blank" style="font-size:12px;color:var(--muted);text-decoration:none">Privacy Policy</a>
         <a href="/terms" target="_blank" style="font-size:12px;color:var(--muted);text-decoration:none">Terms of Service</a>
       </div>
@@ -9030,7 +9030,7 @@ async function syncAllPlaidItems() {
   if (window._webToken) {
     fetch(window.location.origin + '/api/user/state', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (sessionStorage.getItem('sb_token') || window._webToken) },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('sb_token') || window._webToken) },
       body: JSON.stringify({ state: state })
     }).catch(() => {});
   }
@@ -9267,12 +9267,12 @@ async function renderPlaidLinkedAccounts() {
 
 // Web API shim is in <head> — do not reassign window.electronAPI here.
 // The redirect fallback below handles the case where the user is not logged in.
-(function() { const token = sessionStorage.getItem('sb_token');
+(function() { const token = localStorage.getItem('sb_token');
   if (!token && !window.electronAPI) { window.location.href = '/login'; return; }
   const origin = window.location.origin;
 
   async function apiFetch(path, opts = {}) {
-    var currentToken = sessionStorage.getItem('sb_token') || token;
+    var currentToken = localStorage.getItem('sb_token') || token;
     const res = await fetch(origin + path, {
       method: opts.method || 'GET',
       headers: {
@@ -9282,7 +9282,7 @@ async function renderPlaidLinkedAccounts() {
       },
       body: opts.body ? JSON.stringify(opts.body) : undefined
     });
-    if (res.status === 401) { sessionStorage.removeItem('sb_token'); window.location.href = '/'; return {}; }
+    if (res.status === 401) { localStorage.removeItem('sb_token'); window.location.href = '/'; return {}; }
     return res.json();
   }
 
@@ -9856,7 +9856,7 @@ function _applyFeatureGating() {
 // This makes data available on any browser/device after login.
 if (window._webToken) {
   const _syncOrigin = window.location.origin;
-  function _getSyncHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (sessionStorage.getItem('sb_token') || window._webToken) }; }
+  function _getSyncHeaders() { return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('sb_token') || window._webToken) }; }
   const _syncHeaders = _getSyncHeaders();
 
   // Load from server on startup — merge server state into local
@@ -9942,7 +9942,7 @@ if (window._webToken) {
       var body = JSON.stringify({ state: state });
       // sendBeacon is more reliable on mobile during page unload
       if (navigator.sendBeacon) {
-        var beaconBody = JSON.stringify({ state: state, token: sessionStorage.getItem('sb_token') || window._webToken });
+        var beaconBody = JSON.stringify({ state: state, token: localStorage.getItem('sb_token') || window._webToken });
       var blob = new Blob([beaconBody], { type: 'application/json' });
         navigator.sendBeacon(_syncOrigin + '/api/user/state-beacon', blob);
       } else {
@@ -9952,16 +9952,16 @@ if (window._webToken) {
   });
 }
 // Show web-specific UI when running in browser (not Electron)
-if (!window.electronAPI || sessionStorage.getItem('sb_token')) {
+if (!window.electronAPI || localStorage.getItem('sb_token')) {
   const webSection = document.getElementById('web-auth-section');
   if (webSection) webSection.style.display = '';
 }
 // Hide Sign Out button for Electron users (only web users need it)
-if (!sessionStorage.getItem('sb_token')) {
+if (!localStorage.getItem('sb_token')) {
   const navSignout = document.getElementById('nav-signout');
   if (navSignout) navSignout.style.display = 'none';
 }
-if (sessionStorage.getItem('sb_token')) {
+if (localStorage.getItem('sb_token')) {
   // Running as web app — swap AI settings to web version, hide desktop-only sections
   const d = document.getElementById('ai-settings-desktop');
   const w = document.getElementById('ai-settings-web');
@@ -11264,10 +11264,10 @@ function updateFabBadge(count) {
     renderStep();
   };
 
-  // Auto-start tour for new users after a brief delay
+  // Auto-start tour for new users — wait for server sync to complete first
   setTimeout(function() {
     if (shouldShowTour()) startTour();
-  }, 800);
+  }, 4000);
 })();
 </script>
 </body>
