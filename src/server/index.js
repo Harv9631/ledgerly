@@ -476,10 +476,10 @@ app.post('/api/ai/:feature', requireAuth, async (req, res) => {
 // User app state — cross-browser persistence
 // GET  /api/user/state  → returns stored state blob for this user
 // PUT  /api/user/state  → saves state blob for this user
-const { getUserState, saveUserState } = require('./db');
+const { getUserState, getUserStateAsync, saveUserState } = require('./db');
 
-app.get('/api/user/state', requireAuth, (req, res) => {
-  const state = getUserState(req.user.id);
+app.get('/api/user/state', requireAuth, async (req, res) => {
+  const state = await getUserStateAsync(req.user.id);
   res.json({ state });
 });
 

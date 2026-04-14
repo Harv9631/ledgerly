@@ -224,6 +224,18 @@ function getUserState(userId) {
   try { return (load().user_states || {})[userId] || null; } catch { return null; }
 }
 
+// Async version — queries Supabase directly, falls back to local cache
+async function getUserStateAsync(userId) {
+  const sb = _getSupabase();
+  if (sb) {
+    try {
+      const { data, error } = await sb.from('user_states').select('state').eq('user_id', userId).single();
+      if (!error && data && data.state) return data.state;
+    } catch {}
+  }
+  return getUserState(userId);
+}
+
 function saveUserState(userId, appState) {
   // 1. Write to local file cache immediately (fast)
   try {
@@ -242,4 +254,4 @@ function saveUserState(userId, appState) {
   }
 }
 
-module.exports = { query, getUserState, saveUserState };
+module.exports = { query, getUserState, getUserStateAsync, saveUserState };
