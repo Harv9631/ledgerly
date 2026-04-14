@@ -904,11 +904,36 @@
       <div class="chart-title">Income by Category</div>
       <div class="chart-sub">Breakdown of income streams</div>
       <canvas id="income-category-chart" height="190" style="max-height:180px"></canvas>
+      <!-- Savings Rate widget — shown when income chart is hidden (1 stream) -->
+      <div id="savings-rate-widget" style="display:none;padding:8px 4px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px">How much of your income you're keeping each month</div>
+        <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:12px">
+          <div id="savings-rate-pct" style="font-size:48px;font-weight:800;letter-spacing:-.04em;line-height:1"></div>
+          <div style="font-size:16px;color:var(--muted);margin-bottom:8px">saved</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;height:10px;overflow:hidden;margin-bottom:10px">
+          <div id="savings-rate-bar" style="height:100%;border-radius:8px;transition:width .6s ease"></div>
+        </div>
+        <div id="savings-rate-msg" style="font-size:12px;color:var(--muted)"></div>
+      </div>
     </div>
     <div class="chart-area" style="margin-bottom:0">
       <div class="chart-title">Debt by Type</div>
       <div class="chart-sub">Breakdown of outstanding debt</div>
       <canvas id="debt-category-chart" height="190" style="max-height:180px"></canvas>
+      <!-- Debt Payoff Countdown widget — shown when debt chart is hidden (1 debt) -->
+      <div id="debt-countdown-widget" style="display:none;padding:8px 4px">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px">At your current payment rate</div>
+        <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:6px">
+          <div id="debt-free-months-num" style="font-size:48px;font-weight:800;letter-spacing:-.04em;line-height:1;color:var(--green)"></div>
+          <div style="font-size:16px;color:var(--muted);margin-bottom:8px">months</div>
+        </div>
+        <div id="debt-free-date" style="font-size:15px;font-weight:600;margin-bottom:12px"></div>
+        <div style="background:var(--surface2);border-radius:8px;height:10px;overflow:hidden;margin-bottom:10px">
+          <div id="debt-payoff-bar" style="height:100%;border-radius:8px;background:linear-gradient(90deg,var(--green),#58a6ff);transition:width .6s ease"></div>
+        </div>
+        <div id="debt-interest-msg" style="font-size:12px;color:var(--muted)"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -7306,7 +7331,13 @@ function renderIncomeCategoryChart() {
   }
   const labels = Object.keys(bycat);
   const values = labels.map(l => bycat[l]);
-  if (!labels.length || labels.length < 2) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if(incomeChartArea) incomeChartArea.style.display='none'; return; }
+  if (!labels.length || labels.length < 2) {
+    ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+    if(incomeChartArea) incomeChartArea.style.display='none';
+    renderSavingsRateWidget();
+    return;
+  }
+  document.getElementById('savings-rate-widget').style.display = 'none';
   if(incomeChartArea) incomeChartArea.style.display='';
   charts.incomeCat = new Chart(ctx, {
     type: 'doughnut',
@@ -7329,13 +7360,75 @@ function renderDebtCategoryChart() {
   allDebts.forEach(d => { const k = d.name || d.type || 'Other'; bytype[k] = (bytype[k] || 0) + d.balance; });
   const labels = Object.keys(bytype);
   const values = labels.map(l => bytype[l]);
-  if (labels.length < 2) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if(debtChartArea) debtChartArea.style.display='none'; return; }
+  if (labels.length < 2) {
+    ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+    if(debtChartArea) debtChartArea.style.display='none';
+    renderDebtCountdownWidget();
+    return;
+  }
+  document.getElementById('debt-countdown-widget').style.display = 'none';
   if(debtChartArea) debtChartArea.style.display='';
   charts.debtCat = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderColor: '#1a1d27', borderWidth: 3 }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#7c80a0', padding: 12, font: { size: 11 } } }, tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.raw)}` } } } }
   });
+}
+
+function renderSavingsRateWidget() {
+  const w = document.getElementById('savings-rate-widget');
+  if (!w) return;
+  const mi = effectiveMonthlyIncome();
+  const me = effectiveMonthlyExpenses();
+  const mp = monthlyPayment();
+  const rate = mi > 0 ? Math.max(0, (mi - me - mp) / mi) : 0;
+  const pct = Math.round(rate * 100);
+  const pctEl = document.getElementById('savings-rate-pct');
+  const barEl = document.getElementById('savings-rate-bar');
+  const msgEl = document.getElementById('savings-rate-msg');
+  if (pctEl) pctEl.textContent = pct + '%';
+  const color = pct >= 20 ? '#3fb950' : pct >= 5 ? '#d29922' : '#f85149';
+  if (pctEl) pctEl.style.color = color;
+  if (barEl) { barEl.style.width = Math.min(100, pct) + '%'; barEl.style.background = color; }
+  if (msgEl) {
+    if (pct >= 20) msgEl.textContent = '🎉 Excellent! You\'re saving 20%+ — on track for financial freedom.';
+    else if (pct >= 10) msgEl.textContent = '👍 Good progress. Aim for 20% to build wealth faster.';
+    else if (pct >= 5) msgEl.textContent = '⚡ You\'re saving a little. Try to reach 10-20% of income.';
+    else if (mi > 0) msgEl.textContent = '⚠️ Expenses are close to income. Look for ways to cut costs.';
+    else msgEl.textContent = 'Add income and expenses to see your savings rate.';
+  }
+  w.style.display = '';
+}
+
+function renderDebtCountdownWidget() {
+  const w = document.getElementById('debt-countdown-widget');
+  if (!w) return;
+  const debts = getEffectiveDebts();
+  const monthsEl = document.getElementById('debt-free-months-num');
+  const dateEl = document.getElementById('debt-free-date');
+  const barEl = document.getElementById('debt-payoff-bar');
+  const msgEl = document.getElementById('debt-interest-msg');
+  if (!debts.length) { w.style.display = 'none'; return; }
+  const months = debtFreeMonths();
+  const interest = totalRemainingInterest();
+  const totalOriginal = debts.reduce((s,d) => s + (d.original || d.balance), 0);
+  const totalCurrent = totalDebt();
+  const paidPct = totalOriginal > 0 ? Math.round((1 - totalCurrent / totalOriginal) * 100) : 0;
+  if (monthsEl) monthsEl.textContent = months > 0 ? months : '∞';
+  if (dateEl) {
+    if (months > 0 && months < 999) {
+      const target = new Date(); target.setMonth(target.getMonth() + months);
+      dateEl.textContent = 'Debt-free by ' + target.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      dateEl.style.color = 'var(--green)';
+    } else {
+      dateEl.textContent = months === 0 ? '🎉 You\'re debt free!' : 'Increase payments to see payoff date';
+      dateEl.style.color = 'var(--muted)';
+    }
+  }
+  if (barEl) barEl.style.width = Math.min(100, Math.max(2, paidPct)) + '%';
+  if (msgEl && interest > 0) msgEl.textContent = `Total interest remaining: ${fmt(interest)}`;
+  else if (msgEl) msgEl.textContent = paidPct > 0 ? `${paidPct}% paid off — keep going!` : '';
+  w.style.display = '';
 }
 
 function renderFinancialHealthScore() {
