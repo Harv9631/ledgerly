@@ -4015,10 +4015,12 @@ function changeTxCategory(id, cat) {
   setTimeout(function() {
     var banner = document.createElement('div');
     banner.id = 'tx-cat-toast';
-    banner.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border-hi);border-radius:10px;padding:12px 18px;z-index:300;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:12px;font-size:13px;max-width:90vw';
+    banner.style.cssText = 'position:fixed;bottom:80px;left:12px;right:12px;background:var(--surface);border:1px solid var(--border-hi);border-radius:12px;padding:14px 16px;z-index:300;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;gap:10px;font-size:13px';
     banner.innerHTML = '<span><b>' + matches.length + '</b> other ' + (matches.length===1?'transaction':'transactions') + ' with this description found. Apply <b>' + e(cat) + '</b> to all?</span>'+
-      '<button class="tx-cat-apply-btn" style="background:var(--grad);color:#fff;border:none;border-radius:6px;padding:5px 12px;cursor:pointer;font-weight:600;font-size:12px;white-space:nowrap">Apply All</button>'+
-      '<button class="tx-cat-dismiss-btn" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:12px">Just this one</button>';
+      '<div style="display:flex;gap:8px">'+
+      '<button class="tx-cat-apply-btn" style="flex:1;background:var(--grad);color:#fff;border:none;border-radius:8px;padding:9px 12px;cursor:pointer;font-weight:600;font-size:13px">Apply to All</button>'+
+      '<button class="tx-cat-dismiss-btn" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;cursor:pointer;font-size:13px">Just This One</button>'+
+      '</div>';
     banner.querySelector('.tx-cat-apply-btn').addEventListener('click', function() { applyTxCatToAll(id, cat); });
     banner.querySelector('.tx-cat-dismiss-btn').addEventListener('click', function() { banner.remove(); });
     var old = document.getElementById('tx-cat-toast');
