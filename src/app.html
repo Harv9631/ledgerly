@@ -7325,11 +7325,12 @@ function renderDebtCategoryChart() {
     .map(a => ({ type: a.type === 'credit' ? 'Credit Card' : a.type === 'loan' ? 'Loan' : 'Other Debt', balance: Math.abs(a.balance), name: a.name }));
   const allDebts = [...debts, ...plaidDebts];
   if (!allDebts.length) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if(debtChartArea) debtChartArea.style.display='none'; return; }
-  if(debtChartArea) debtChartArea.style.display='';
   const bytype = {};
   allDebts.forEach(d => { const k = d.name || d.type || 'Other'; bytype[k] = (bytype[k] || 0) + d.balance; });
   const labels = Object.keys(bytype);
   const values = labels.map(l => bytype[l]);
+  if (labels.length < 2) { ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height); if(debtChartArea) debtChartArea.style.display='none'; return; }
+  if(debtChartArea) debtChartArea.style.display='';
   charts.debtCat = new Chart(ctx, {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: PALETTE, borderColor: '#1a1d27', borderWidth: 3 }] },
