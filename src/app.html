@@ -17,6 +17,31 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
     }
+    // Capture install prompt and show banner
+    var _installPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      _installPrompt = e;
+      // Show after a short delay so app has loaded
+      setTimeout(function() {
+        var banner = document.getElementById('install-banner');
+        if (banner) banner.style.display = '';
+      }, 3000);
+    });
+    window.installApp = function() {
+      if (!_installPrompt) return;
+      _installPrompt.prompt();
+      _installPrompt.userChoice.then(function() {
+        _installPrompt = null;
+        var banner = document.getElementById('install-banner');
+        if (banner) banner.style.display = 'none';
+      });
+    };
+    // Hide banner if already installed
+    window.addEventListener('appinstalled', function() {
+      var banner = document.getElementById('install-banner');
+      if (banner) banner.style.display = 'none';
+    });
   </script>
   <script>
     // Web API shim — runs before any other script so window.electronAPI is always defined
@@ -2095,6 +2120,19 @@
 </main>
 
 <!-- Setup modal removed — credentials managed by admin -->
+
+<!-- Install App Banner -->
+<div id="install-banner" style="display:none;position:fixed;bottom:70px;left:0;right:0;z-index:200;padding:0 12px;">
+  <div style="background:linear-gradient(135deg,#161b22,#1c2128);border:1px solid rgba(63,185,80,.4);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+    <img src="/icons/icon-192.png" style="width:42px;height:42px;border-radius:10px;flex-shrink:0;" alt="Walify">
+    <div style="flex:1;min-width:0;">
+      <div style="font-weight:700;font-size:14px;color:#e6edf3">Install Walify</div>
+      <div style="font-size:12px;color:#7d8590">Add to your home screen for quick access</div>
+    </div>
+    <button onclick="installApp()" style="background:linear-gradient(135deg,#238636,#3fb950);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit">Install</button>
+    <button onclick="document.getElementById('install-banner').style.display='none'" style="background:none;border:none;color:#7d8590;cursor:pointer;font-size:18px;padding:4px;line-height:1">✕</button>
+  </div>
+</div>
 
 <!-- Floating AI Chat Button (visible on all pages except ai-chat) -->
 <button class="chat-fab" id="chat-fab" onclick="showPage('ai-chat')" title="Ask Wally" style="display:none"><span class="wally-icon">🤖</span>Ask Wally</button>
