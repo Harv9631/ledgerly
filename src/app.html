@@ -11175,17 +11175,13 @@ function generateAiInsights() {
 }
 
 function updateFabBadge(count) {
+  // No badge on the Ask Wally button — the button text is self-explanatory
   const fab = document.getElementById('chat-fab');
   if (!fab) return;
-  let badge = fab.querySelector('.fab-badge');
-  if (count > 0) {
-    fab.classList.add('has-insights');
-    if (!badge) { badge = document.createElement('span'); badge.className = 'fab-badge'; fab.appendChild(badge); }
-    badge.textContent = count;
-  } else {
-    fab.classList.remove('has-insights');
-    if (badge) badge.remove();
-  }
+  const badge = fab.querySelector('.fab-badge');
+  if (badge) badge.remove();
+  if (count > 0) fab.classList.add('has-insights');
+  else fab.classList.remove('has-insights');
 }
 
 // ── ONBOARDING TOUR ──────────────────────────────────────────────────────────
