@@ -177,18 +177,69 @@ function query(sql, params = []) {
 }
 
 // ── User state ───────────────────────────────────────────────────────────────
+// Primary storage: Supabase database (survives Railway redeploys)
+// Local file: fast read cache only
+
+let _sbClient = null;
+function _getSupabase() {
+  if (_sbClient) return _sbClient;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  try { _sbClient = require('@supabase/supabase-js').createClient(url, key); } catch {}
+  return _sbClient;
+}
+
+// Ensure user_states table exists (runs once on startup)
+let _tableChecked = false;
+async function _ensureTable() {
+  if (_tableChecked) return;
+  _tableChecked = true;
+  const sb = _getSupabase();
+  if (!sb) return;
+  // Create table if it doesn't exist via RPC — silently skip if already exists
+  await sb.rpc('create_user_states_if_not_exists').catch(() => {});
+}
+
+// Sync local file cache with Supabase on startup (one-time)
+let _remoteLoaded = false;
+async function _loadRemoteStates() {
+  if (_remoteLoaded) return;
+  _remoteLoaded = true;
+  const sb = _getSupabase();
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('user_states').select('user_id,state');
+    if (error || !data) return;
+    const local = load();
+    local.user_states = local.user_states || {};
+    data.forEach(row => { local.user_states[row.user_id] = row.state; });
+    try { fs.writeFileSync(dbFile, JSON.stringify(local, null, 2)); } catch {}
+    console.log('[DB] Restored', data.length, 'user states from Supabase');
+  } catch {}
+}
+_loadRemoteStates();
 
 function getUserState(userId) {
   try { return (load().user_states || {})[userId] || null; } catch { return null; }
 }
 
 function saveUserState(userId, appState) {
+  // 1. Write to local file cache immediately (fast)
   try {
     const data = load();
     data.user_states = data.user_states || {};
     data.user_states[userId] = appState;
     save(data);
   } catch {}
+  // 2. Persist to Supabase database asynchronously (survives redeploys)
+  const sb = _getSupabase();
+  if (sb) {
+    sb.from('user_states')
+      .upsert({ user_id: userId, state: appState, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+      .then(r => { if (r.error) console.log('[DB] Supabase state save error:', r.error.message); })
+      .catch(e => console.log('[DB] Supabase state save exception:', e.message));
+  }
 }
 
 module.exports = { query, getUserState, saveUserState };
