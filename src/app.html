@@ -610,6 +610,7 @@
       .tx-filters { flex-wrap:wrap; }
       #dash-kpi-cards { grid-template-columns:1fr 1fr !important; }
       .chat-fab { bottom:70px; }
+      .chat-page-wrap { height: calc(100vh - 240px) !important; }
       /* bottom nav bar */
       #mobile-bottom-nav { display:flex !important; }
     }
@@ -1966,8 +1967,8 @@
   </div>
   <div class="chat-page-wrap">
     <div id="chat-messages" class="chat-messages">
-      <div class="chat-bubble assistant" data-raw="Hello! Hi! I'm Wally, your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?">
-        <div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">Hello! Hi! I'm Wally, your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">Now</div><div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button><button class="chat-email-btn" onclick="emailChatBubble(this)">Email</button></div></div></div></div>
+      <div class="chat-bubble assistant" data-raw="Hi! I'm Wally, your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?">
+        <div class="chat-bubble-row"><div class="chat-avatar">L</div><div style="flex:1;min-width:0"><div class="chat-bubble-text">Hi! I'm Wally, your AI financial assistant. I can help you understand your spending, plan debt payoff, check budget health, and answer questions about your finances. What would you like to know?</div><div style="display:flex;align-items:center;gap:8px"><div class="chat-bubble-time">Now</div><div class="chat-bubble-actions"><button class="chat-copy-btn" onclick="copyChatBubble(this)">Copy</button><button class="chat-email-btn" onclick="emailChatBubble(this)">Email</button></div></div></div></div>
       </div>
     </div>
     <div class="chat-suggestions" id="chat-suggestions">
@@ -10296,8 +10297,10 @@ let _voiceSilenceTimer = null;
   if (micBtn) micBtn.style.display = '';
 
   _speechRecognition = new SpeechRecognition();
-  _speechRecognition.continuous = true;
-  _speechRecognition.interimResults = true;
+  // iOS Safari doesn't support continuous mode reliably
+  const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  _speechRecognition.continuous = !_isIOS;
+  _speechRecognition.interimResults = !_isIOS;
   _speechRecognition.lang = 'en-US';
   _speechRecognition.maxAlternatives = 1;
 
