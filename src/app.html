@@ -524,18 +524,18 @@
     .chat-suggestion:hover { border-color: rgba(63,185,80,.4); color: var(--green); }
     .chat-fab {
       position: fixed; bottom: 24px; right: 24px; width: auto; height: auto;
-      padding: 11px 20px 11px 14px; border-radius: 28px;
+      padding: 8px 14px 8px 10px; border-radius: 22px;
       background: linear-gradient(135deg, #238636, #3fb950);
       border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
       box-shadow: 0 4px 20px rgba(63,185,80,.4), 0 2px 8px rgba(0,0,0,.3);
       z-index: 150; color: #fff; font-weight: 700; font-size: 14px;
-      font-family: inherit; letter-spacing: .01em;
+      font-family: inherit; letter-spacing: .01em; font-size: 13px;
       animation: fab-slide-in .6s cubic-bezier(.175,.885,.32,1.275) both, fab-glow 3s ease-in-out 1s infinite;
       transform-origin: bottom right;
     }
     .chat-fab:hover { transform: scale(1.06) translateY(-2px); box-shadow: 0 6px 28px rgba(63,185,80,.55), 0 3px 12px rgba(0,0,0,.3); }
     .chat-fab:active { transform: scale(0.97); }
-    .chat-fab .wally-icon { font-size: 18px; animation: wally-wave 2.5s ease-in-out 2s infinite; display: inline-block; }
+    .chat-fab .wally-icon { font-size: 15px; animation: wally-wave 2.5s ease-in-out 2s infinite; display: inline-block; }
     @keyframes fab-slide-in {
       from { opacity: 0; transform: translateX(80px) scale(0.6); }
       to   { opacity: 1; transform: translateX(0) scale(1); }
