@@ -538,11 +538,14 @@
     .ai-action-confirm:hover { transform: scale(1.03); }
     .ai-action-dismiss { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 7px 14px; font-size: 12px; cursor: pointer; }
     .ai-action-done { color: var(--green); font-size: 13px; font-weight: 600; }
-    .chat-typing { display: flex; gap: 4px; align-items: center; padding: 10px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; border-bottom-left-radius: 4px; width: fit-content; }
-    .chat-typing span { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: typingDot 1.2s infinite; }
+    .chat-typing { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(--surface2); border: 1px solid rgba(63,185,80,.25); border-radius: 14px; border-bottom-left-radius: 4px; width: fit-content; min-width: 180px; }
+    .chat-typing-label { font-size: 12px; color: var(--green); font-weight: 600; animation: thinkFade 2s ease-in-out infinite; }
+    .chat-typing-dots { display: flex; gap: 4px; align-items: center; }
+    .chat-typing span { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: typingDot 1.2s infinite; opacity: .5; }
     .chat-typing span:nth-child(2) { animation-delay: .2s; }
     .chat-typing span:nth-child(3) { animation-delay: .4s; }
     @keyframes typingDot { 0%,60%,100% { transform: translateY(0); opacity:.4; } 30% { transform: translateY(-6px); opacity:1; } }
+    @keyframes thinkFade { 0%,100% { opacity:.7; } 50% { opacity:1; } }
     .chat-rate-bar { font-size: 11px; color: var(--muted); padding: 4px 20px 0; flex-shrink: 0; }
     .chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 10px; flex-shrink: 0; }
     .chat-suggestion { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; padding: 5px 12px; font-size: 12px; color: var(--muted2); cursor: pointer; transition: border-color .2s, color .2s; white-space: nowrap; }
@@ -10354,6 +10357,14 @@ function appendChatBubble(role, text, isStreaming) {
   return id;
 }
 
+const _thinkingPhrases = [
+  'Wally is thinking…',
+  'Analyzing your finances…',
+  'Crunching the numbers…',
+  'Reviewing your data…',
+  'Thinking it through…',
+  'Checking your budget…'
+];
 function appendTypingIndicator() {
   const msgEl = document.getElementById('chat-messages');
   if (!msgEl) return null;
@@ -10361,9 +10372,19 @@ function appendTypingIndicator() {
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble assistant';
   bubble.id = id;
-  bubble.innerHTML = `<div class="chat-typing"><span></span><span></span><span></span></div>`;
+  const phrase = _thinkingPhrases[Math.floor(Math.random() * _thinkingPhrases.length)];
+  bubble.innerHTML = `<div class="chat-bubble-row"><div class="chat-avatar">🤖</div><div class="chat-typing"><div class="chat-typing-label" id="${id}-label">${phrase}</div><div class="chat-typing-dots"><span></span><span></span><span></span></div></div></div>`;
   msgEl.appendChild(bubble);
   msgEl.scrollTop = msgEl.scrollHeight;
+  // Cycle phrases every 2.5s while thinking
+  let i = 0;
+  const interval = setInterval(function() {
+    const lbl = document.getElementById(id + '-label');
+    if (!lbl) { clearInterval(interval); return; }
+    i = (i + 1) % _thinkingPhrases.length;
+    lbl.textContent = _thinkingPhrases[i];
+  }, 2500);
+  bubble._thinkInterval = interval;
   return id;
 }
 
@@ -10569,10 +10590,13 @@ async function sendChatMessage() {
   let streamingBubbleId = null;
   let accumulated = '';
 
+  function removeTypingIndicator() {
+    const el = document.getElementById(typingId);
+    if (el) { if (el._thinkInterval) clearInterval(el._thinkInterval); el.remove(); }
+  }
   window.electronAPI.ai.onChunk((text) => {
     if (!streamingBubbleId) {
-      const el = document.getElementById(typingId);
-      if (el) el.remove();
+      removeTypingIndicator();
       streamingBubbleId = appendChatBubble('assistant', '', true);
     }
     accumulated += text;
@@ -10580,10 +10604,7 @@ async function sendChatMessage() {
   });
 
   window.electronAPI.ai.onDone((data) => {
-    if (!streamingBubbleId) {
-      const el = document.getElementById(typingId);
-      if (el) el.remove();
-    }
+    if (!streamingBubbleId) { removeTypingIndicator(); }
     // Parse and handle AI action commands
     if (accumulated && streamingBubbleId) {
       const { cleanText, actions } = parseAiActions(accumulated);
@@ -10599,8 +10620,7 @@ async function sendChatMessage() {
   });
 
   window.electronAPI.ai.onError((msg) => {
-    const el = document.getElementById(typingId);
-    if (el) el.remove();
+    removeTypingIndicator();
     if (streamingBubbleId) {
       const bubble = document.getElementById(streamingBubbleId);
       if (bubble) bubble.remove();
