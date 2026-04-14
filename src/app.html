@@ -522,11 +522,36 @@
     .chat-suggestions { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 20px 10px; flex-shrink: 0; }
     .chat-suggestion { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; padding: 5px 12px; font-size: 12px; color: var(--muted2); cursor: pointer; transition: border-color .2s, color .2s; white-space: nowrap; }
     .chat-suggestion:hover { border-color: rgba(63,185,80,.4); color: var(--green); }
-    .chat-fab { position: fixed; bottom: 24px; right: 24px; width: auto; height: auto; padding: 10px 18px; border-radius: 24px; background: var(--grad); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md); z-index: 150; transition: transform .2s var(--ease), box-shadow .2s; color: #fff; font-weight: 700; font-size: 14px; font-family: inherit; letter-spacing: .01em; }
-    .chat-fab:hover { transform: scale(1.08); box-shadow: var(--shadow-lg); }
-    .chat-fab svg { width: 24px; height: 24px; fill: #fff; }
-    .chat-fab.has-insights { animation: fab-pulse 2s ease-in-out infinite; }
-    @keyframes fab-pulse { 0%,100% { box-shadow: var(--shadow-md); } 50% { box-shadow: 0 0 0 8px rgba(63,185,80,.2), var(--shadow-md); } }
+    .chat-fab {
+      position: fixed; bottom: 24px; right: 24px; width: auto; height: auto;
+      padding: 11px 20px 11px 14px; border-radius: 28px;
+      background: linear-gradient(135deg, #238636, #3fb950);
+      border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 20px rgba(63,185,80,.4), 0 2px 8px rgba(0,0,0,.3);
+      z-index: 150; color: #fff; font-weight: 700; font-size: 14px;
+      font-family: inherit; letter-spacing: .01em;
+      animation: fab-slide-in .6s cubic-bezier(.175,.885,.32,1.275) both, fab-glow 3s ease-in-out 1s infinite;
+      transform-origin: bottom right;
+    }
+    .chat-fab:hover { transform: scale(1.06) translateY(-2px); box-shadow: 0 6px 28px rgba(63,185,80,.55), 0 3px 12px rgba(0,0,0,.3); }
+    .chat-fab:active { transform: scale(0.97); }
+    .chat-fab .wally-icon { font-size: 18px; animation: wally-wave 2.5s ease-in-out 2s infinite; display: inline-block; }
+    @keyframes fab-slide-in {
+      from { opacity: 0; transform: translateX(80px) scale(0.6); }
+      to   { opacity: 1; transform: translateX(0) scale(1); }
+    }
+    @keyframes fab-glow {
+      0%,100% { box-shadow: 0 4px 20px rgba(63,185,80,.4), 0 2px 8px rgba(0,0,0,.3); }
+      50%      { box-shadow: 0 4px 28px rgba(63,185,80,.7), 0 0 0 6px rgba(63,185,80,.15), 0 2px 8px rgba(0,0,0,.3); }
+    }
+    @keyframes wally-wave {
+      0%,60%,100% { transform: rotate(0deg); }
+      10%          { transform: rotate(-20deg); }
+      20%          { transform: rotate(16deg); }
+      30%          { transform: rotate(-12deg); }
+      40%          { transform: rotate(8deg); }
+      50%          { transform: rotate(-4deg); }
+    }
     .fab-badge { position: absolute; top: -2px; right: -2px; background: var(--red); color: #fff; font-size: 10px; font-weight: 700; border-radius: 99px; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; padding: 0 4px; line-height: 1; pointer-events: none; }
     /* AI Insight Cards */
     .ai-insight-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 22px; padding: 2px; }
@@ -2072,7 +2097,7 @@
 <!-- Setup modal removed — credentials managed by admin -->
 
 <!-- Floating AI Chat Button (visible on all pages except ai-chat) -->
-<button class="chat-fab" id="chat-fab" onclick="showPage('ai-chat')" title="Ask Wally" style="display:none">Ask Wally</button>
+<button class="chat-fab" id="chat-fab" onclick="showPage('ai-chat')" title="Ask Wally" style="display:none"><span class="wally-icon">🤖</span>Ask Wally</button>
 
 <!-- ADD INCOME MODAL -->
 <div class="modal-backdrop" id="modal-income">
