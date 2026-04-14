@@ -9906,15 +9906,17 @@ if (window._webToken) {
         state = merged;
         saveState();
         renderAll();
-        // After restoring state, sync Plaid items to refresh balances
         syncAllPlaidItems();
       } else {
-        // No server data yet — push local state up immediately so other devices can load it
+        // No server data yet — push local state immediately
         syncAllPlaidItems();
+      }
+      // Always push current state to server on load so other devices stay in sync
+      setTimeout(function() {
         fetch(_syncOrigin + '/api/user/state', {
           method: 'PUT', headers: _getSyncHeaders(), body: JSON.stringify({ state: state })
         }).catch(() => {});
-      }
+      }, 1500);
     })
     .catch(() => { syncAllPlaidItems(); }); // offline fallback — use localStorage
 
