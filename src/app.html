@@ -1274,10 +1274,9 @@
       <div class="page-subtitle">Import, categorize, and analyze your bank activity</div>
     </div>
     <div class="page-header-actions">
-      <button class="btn btn-ghost btn-sm" onclick="exportCsv('transactions')">↓ Export</button>
+      <button id="tx-connect-bank-btn" class="btn btn-ghost btn-sm" onclick="connectBank()" style="display:none">🏦 Connect Bank</button>
       <button class="btn btn-ghost btn-sm" onclick="openModal('tx-rules')" title="Auto-categorize transactions by keyword rules">⚡ Auto-Rules</button>
       <button class="btn btn-ghost btn-sm" onclick="openModal('tx-categories')" title="Add and manage your custom transaction categories">🏷 Categories</button>
-      <button class="btn btn-ghost btn-sm" id="tx-ai-cat-btn" onclick="aiCategorizeTx()" title="Use AI to categorize transactions based on their descriptions">✨ AI Categorize</button>
       <button class="btn btn-primary" onclick="openModal('csv')">↑ Import CSV / PDF</button>
     </div>
   </div>
@@ -2183,6 +2182,14 @@
         <span style="color:var(--green);font-size:13px">&#10003; AI Active</span>
         <button class="btn btn-ghost btn-sm" onclick="clearChatHistory();alert('Chat history cleared.')">Clear Chat History</button>
       </div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">Transaction Tools</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">AI-powered tools for managing your transactions.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="settings-ai-cat-btn" onclick="aiCategorizeTx()">✨ AI Categorize Transactions</button>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-top:10px">Uses AI to automatically assign categories to uncategorized transactions based on their descriptions.</p>
     </div>
     <!-- Push Notifications card -->
     <div id="push-notif-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
@@ -6949,6 +6956,12 @@ function renderDebt() {
 }
 
 function renderTransactions() {
+  // Show Connect Bank only when no Plaid accounts linked
+  var connectBtn = document.getElementById('tx-connect-bank-btn');
+  if (connectBtn) {
+    var hasPlaid = (state.accounts || []).some(function(a) { return a.isPlaid; });
+    connectBtn.style.display = hasPlaid ? 'none' : '';
+  }
   const txs = filteredTx();
   const noData = document.getElementById('tx-no-data');
   const dataDiv = document.getElementById('tx-data');
