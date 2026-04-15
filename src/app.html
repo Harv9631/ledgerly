@@ -10066,7 +10066,7 @@ function _addSplitRowData(cat, amt) {
   var rows = document.getElementById('split-rows');
   if (!rows) return;
   var tx = (state.transactions || []).find(function(t) { return t.id === _splitTxId; });
-  var cats = getAllCategories ? getAllCategories() : [];
+  var cats = typeof getEffectiveCategories === 'function' ? getEffectiveCategories() : [];
   var row = document.createElement('div');
   row.className = 'split-row';
   row.style.cssText = 'display:flex;gap:8px;align-items:center';
