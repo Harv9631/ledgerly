@@ -3051,7 +3051,8 @@ function migrateTransactions() {
     const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
     // Fix wrong categories for Plaid transactions using description-based override
-    const betterCat = tx.plaidTxId ? inferCategoryFromDesc(tx.desc) : null;
+    // BUT skip if user manually set the category (manualCategory flag)
+    const betterCat = (tx.plaidTxId && !tx.manualCategory) ? inferCategoryFromDesc(tx.desc) : null;
     const needsCatFix = betterCat && tx.category !== betterCat;
     if (needsTypeAmountFix || needsModeFix || needsCatFix) {
       changed = true;
@@ -4087,6 +4088,7 @@ function changeTxCategory(id, cat) {
   if (!tx || tx.category === cat) return;
   const oldCat = tx.category;
   tx.category = cat;
+  tx.manualCategory = true; // lock against auto-categorization overrides
   saveState();
 
   // Find ALL other transactions with the same description (case-insensitive, trimmed)
@@ -4131,7 +4133,10 @@ function applyTxCatToAll(sourceId, cat) {
   if (!src) return;
   var norm = (src.desc||'').trim().toLowerCase();
   state.transactions.forEach(function(t){
-    if (t.id !== sourceId && (t.desc||'').trim().toLowerCase() === norm && t.mode === src.mode) t.category = cat;
+    if ((t.desc||'').trim().toLowerCase() === norm && t.mode === src.mode) {
+      t.category = cat;
+      t.manualCategory = true; // lock against auto-categorization overrides
+    }
   });
   saveState(); renderTransactions();
   var toast = document.getElementById('tx-cat-toast'); if (toast) toast.remove();
