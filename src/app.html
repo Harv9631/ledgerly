@@ -2177,6 +2177,16 @@
         <button class="btn btn-ghost btn-sm" onclick="clearChatHistory();alert('Chat history cleared.')">Clear Chat History</button>
       </div>
     </div>
+    <!-- Push Notifications card -->
+    <div id="push-notif-card" style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
+      <div style="font-size:15px;font-weight:600;margin-bottom:6px">🔔 Notifications</div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">Get push notifications and email alerts when bills are due, budgets are exceeded, or your balance is low.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button id="push-subscribe-btn" class="btn btn-primary btn-sm" onclick="subscribePush()">Enable Push Notifications</button>
+        <button class="btn btn-ghost btn-sm" onclick="sendEmailTest()">Test Email Alert</button>
+      </div>
+      <div id="push-status" style="font-size:12px;color:var(--muted);margin-top:10px"></div>
+    </div>
     <!-- Wally Memory card — shown for web users -->
     <div id="wally-memory-card" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
       <div style="font-size:15px;font-weight:600;margin-bottom:6px">🧠 Wally Memory</div>
@@ -2873,6 +2883,21 @@
   </div>
 </div>
 
+<!-- TRANSACTION SPLIT MODAL -->
+<div class="modal-backdrop" id="modal-tx-split">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">✂ Split Transaction</div>
+    <p id="split-tx-info" style="font-size:13px;color:var(--muted);margin-bottom:16px"></p>
+    <div id="split-rows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addSplitRow()" style="margin-bottom:16px">+ Add Split</button>
+    <div id="split-remainder" style="font-size:13px;margin-bottom:16px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal('tx-split')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSplitTx()">Save Split</button>
+    </div>
+  </div>
+</div>
+
 <!-- BACKUP IMPORT PREVIEW MODAL -->
 <div class="modal-backdrop" id="modal-backup-preview">
   <div class="modal" style="max-width:480px">
@@ -3464,7 +3489,14 @@ function effectiveMonthlyExpenses() {
 function spendingByCategory(period) {
   const txs = txForPeriod(period).filter(t => t.type==='debit');
   const map = {};
-  txs.forEach(t => { map[t.category] = (map[t.category]||0) + Math.abs(t.amount); });
+  txs.forEach(t => {
+    if (t.splits && t.splits.length) {
+      // Distribute split amounts across categories
+      t.splits.forEach(s => { map[s.category] = (map[s.category]||0) + s.amount; });
+    } else {
+      map[t.category] = (map[t.category]||0) + Math.abs(t.amount);
+    }
+  });
   return map;
 }
 
@@ -6417,6 +6449,15 @@ function addNotification(type, title, message, dedupeKey) {
   state.notifications = [notif, ...notifications];
   saveState();
   sendOsNotification(title, message);
+  // Send email + push via server (fire-and-forget)
+  if (window._webToken) {
+    var tok = localStorage.getItem('sb_token') || window._webToken;
+    fetch(window.location.origin + '/api/alerts/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({ title, body: message })
+    }).catch(function() {});
+  }
   return true;
 }
 
@@ -7013,7 +7054,11 @@ function renderTransactions() {
         ${_cats.map(c=>`<option ${c===t.category?'selected':''}>${e(c)}</option>`).join('')}
       </select></td>
       ${rcptCell}
-      <td><button class="btn btn-danger btn-sm" onclick="deleteTransaction('${t.id}')">✕</button></td>
+      <td style="white-space:nowrap">
+        ${t.splits && t.splits.length ? '<span title="Split transaction" style="font-size:11px;color:var(--green);cursor:pointer" onclick="openSplitTx(\''+t.id+'\')">✂ Split</span> ' : ''}
+        <button class="btn btn-ghost btn-sm" onclick="openSplitTx('${t.id}')" title="Split this transaction across categories" style="padding:2px 6px;font-size:11px">✂</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTransaction('${t.id}')">✕</button>
+      </td>
     </tr>`);
   });
   document.getElementById('tx-table-body').innerHTML = _rows.join('');
@@ -9968,6 +10013,142 @@ function updateTxMonthFilter() {
 })();
 
 // ── Mobile navigation ──────────────────────────────────────────────────────
+// ── TRANSACTION SPLITTING ─────────────────────────────────────────────────────
+var _splitTxId = null;
+
+function openSplitTx(txId) {
+  var tx = (state.transactions || []).find(function(t) { return t.id === txId; });
+  if (!tx) return;
+  _splitTxId = txId;
+  var info = document.getElementById('split-tx-info');
+  if (info) info.textContent = tx.desc + ' · ' + fmt(Math.abs(tx.amount)) + ' on ' + tx.date;
+  var rows = document.getElementById('split-rows');
+  if (rows) {
+    rows.innerHTML = '';
+    var splits = tx.splits && tx.splits.length ? tx.splits : [
+      { category: tx.category || 'Other', amount: Math.abs(tx.amount) }
+    ];
+    splits.forEach(function(s) { _addSplitRowData(s.category, s.amount); });
+  }
+  updateSplitRemainder();
+  document.getElementById('modal-tx-split').classList.add('open');
+}
+
+function _addSplitRowData(cat, amt) {
+  var rows = document.getElementById('split-rows');
+  if (!rows) return;
+  var tx = (state.transactions || []).find(function(t) { return t.id === _splitTxId; });
+  var cats = getAllCategories ? getAllCategories() : [];
+  var row = document.createElement('div');
+  row.className = 'split-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center';
+  row.innerHTML = '<select style="flex:1;padding:6px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:inherit" onchange="updateSplitRemainder()">'
+    + cats.map(function(c) { return '<option' + (c === cat ? ' selected' : '') + '>' + e(c) + '</option>'; }).join('')
+    + '</select>'
+    + '<input type="number" value="' + (amt || '') + '" min="0" step="0.01" placeholder="Amount" style="width:100px;padding:6px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:inherit" oninput="updateSplitRemainder()">'
+    + '<button onclick="this.parentNode.remove();updateSplitRemainder()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 4px">✕</button>';
+  rows.appendChild(row);
+}
+
+function addSplitRow() { _addSplitRowData('Other', ''); }
+
+function updateSplitRemainder() {
+  var tx = _splitTxId ? (state.transactions || []).find(function(t) { return t.id === _splitTxId; }) : null;
+  if (!tx) return;
+  var total = Math.abs(tx.amount);
+  var rows = document.querySelectorAll('#split-rows .split-row');
+  var allocated = 0;
+  rows.forEach(function(row) {
+    var inp = row.querySelector('input[type=number]');
+    allocated += parseFloat(inp ? inp.value : 0) || 0;
+  });
+  var remaining = Math.round((total - allocated) * 100) / 100;
+  var rem = document.getElementById('split-remainder');
+  if (rem) {
+    rem.textContent = remaining === 0 ? '✓ Fully allocated' : (remaining > 0 ? fmt(remaining) + ' remaining' : fmt(Math.abs(remaining)) + ' over-allocated');
+    rem.style.color = remaining === 0 ? 'var(--green)' : 'var(--red)';
+  }
+}
+
+function saveSplitTx() {
+  var tx = _splitTxId ? (state.transactions || []).find(function(t) { return t.id === _splitTxId; }) : null;
+  if (!tx) return;
+  var rows = document.querySelectorAll('#split-rows .split-row');
+  var splits = [];
+  rows.forEach(function(row) {
+    var sel = row.querySelector('select');
+    var inp = row.querySelector('input[type=number]');
+    var amt = parseFloat(inp ? inp.value : 0) || 0;
+    if (amt > 0) splits.push({ category: sel ? sel.value : 'Other', amount: amt });
+  });
+  if (!splits.length) { alert('Add at least one split.'); return; }
+  var total = splits.reduce(function(s, r) { return s + r.amount; }, 0);
+  if (Math.abs(total - Math.abs(tx.amount)) > 0.01) {
+    if (!confirm('Split amounts (' + fmt(total) + ') don\'t match transaction total (' + fmt(Math.abs(tx.amount)) + '). Save anyway?')) return;
+  }
+  tx.splits = splits;
+  // Set primary category to first split
+  tx.category = splits[0].category;
+  saveState(); renderAll();
+  closeModal('tx-split');
+}
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────────────────
+async function subscribePush() {
+  const btn = document.getElementById('push-subscribe-btn');
+  const status = document.getElementById('push-status');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    if (status) status.textContent = 'Push notifications not supported in this browser.';
+    return;
+  }
+  try {
+    // Get VAPID public key from server
+    const tok = localStorage.getItem('sb_token') || window._webToken;
+    const keyRes = await fetch(window.location.origin + '/api/push/vapid-key').then(r => r.json());
+    if (!keyRes.publicKey) { if (status) status.textContent = 'Push notifications not configured yet.'; return; }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') { if (status) status.textContent = 'Permission denied — enable notifications in browser settings.'; return; }
+
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: _urlB64ToUint8Array(keyRes.publicKey)
+    });
+    await fetch(window.location.origin + '/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + tok },
+      body: JSON.stringify({ subscription: sub.toJSON() })
+    });
+    if (status) status.textContent = '✓ Push notifications enabled!';
+    if (status) status.style.color = 'var(--green)';
+    if (btn) { btn.textContent = 'Push Enabled ✓'; btn.className = 'btn btn-ghost btn-sm'; btn.disabled = true; }
+  } catch (err) {
+    if (status) status.textContent = 'Error: ' + (err.message || 'Could not enable push');
+  }
+}
+
+function _urlB64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+  return outputArray;
+}
+
+async function sendEmailTest() {
+  const status = document.getElementById('push-status');
+  const tok = localStorage.getItem('sb_token') || window._webToken;
+  if (!tok) return;
+  try {
+    await fetch(window.location.origin + '/api/alerts/email-test', {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + tok }
+    });
+    if (status) { status.textContent = '✓ Test email sent! Check your inbox.'; status.style.color = 'var(--green)'; }
+  } catch { if (status) status.textContent = 'Failed to send test email.'; }
+}
+
 // ── WHAT IF SIMULATOR ─────────────────────────────────────────────────────────
 function initWhatIfSimulator() {
   var sel = document.getElementById('whatif-cat');

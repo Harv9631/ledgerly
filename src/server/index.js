@@ -36,6 +36,52 @@ const { requireAuth } = require('./auth');
 
 const app = express();
 
+// ── EMAIL (Resend) ────────────────────────────────────────────────────────────
+let _resend = null;
+function getResend() {
+  if (_resend) return _resend;
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  try { const { Resend } = require('resend'); _resend = new Resend(key); } catch {}
+  return _resend;
+}
+async function sendAlertEmail(toEmail, subject, bodyHtml) {
+  const r = getResend();
+  if (!r || !toEmail) return;
+  const from = process.env.EMAIL_FROM || 'Walify <alerts@walify.ai>';
+  r.emails.send({ from, to: toEmail, subject, html: bodyHtml }).catch(() => {});
+}
+
+// ── PUSH NOTIFICATIONS (Web Push / VAPID) ────────────────────────────────────
+let _webPush = null;
+function getWebPush() {
+  if (_webPush) return _webPush;
+  const pub = process.env.VAPID_PUBLIC_KEY;
+  const prv = process.env.VAPID_PRIVATE_KEY;
+  if (!pub || !prv) return null;
+  try {
+    _webPush = require('web-push');
+    _webPush.setVapidDetails('mailto:alerts@walify.ai', pub, prv);
+  } catch { _webPush = null; }
+  return _webPush;
+}
+async function sendPushNotification(userId, title, body) {
+  const wp = getWebPush();
+  if (!wp) return;
+  const { getUserState } = require('./db');
+  const sub = getUserState('push_sub:' + userId);
+  if (!sub) return;
+  try {
+    await wp.sendNotification(sub, JSON.stringify({ title, body }));
+  } catch (e) {
+    if (e.statusCode === 410) {
+      // Subscription expired — remove it
+      const { saveUserState } = require('./db');
+      saveUserState('push_sub:' + userId, null);
+    }
+  }
+}
+
 // Per-user rate limiting for AI endpoints (50 requests/day per user)
 // AI rate limiting — Pro: 50/day (in-memory), Free: 5/month (persisted to db)
 const _aiDailyLimits = new Map();      // daily cache: userId:YYYY-MM-DD -> count
@@ -255,6 +301,57 @@ app.get('/api/ai/memory', requireAuth, (req, res) => {
 // DELETE /api/ai/memory — clear Wally's memory
 app.delete('/api/ai/memory', requireAuth, (req, res) => {
   saveUserState('wally_memory:' + req.user.id, []);
+  res.json({ ok: true });
+});
+
+// GET /api/push/vapid-key — returns public VAPID key for client subscription
+app.get('/api/push/vapid-key', (_req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null });
+});
+// POST /api/push/subscribe — save push subscription for current user
+app.post('/api/push/subscribe', requireAuth, (req, res) => {
+  const { saveUserState } = require('./db');
+  const { subscription } = req.body;
+  if (!subscription || !subscription.endpoint) return res.status(400).json({ error: 'subscription required' });
+  saveUserState('push_sub:' + req.user.id, subscription);
+  res.json({ ok: true });
+});
+// DELETE /api/push/subscribe — remove push subscription
+app.delete('/api/push/subscribe', requireAuth, (req, res) => {
+  const { saveUserState } = require('./db');
+  saveUserState('push_sub:' + req.user.id, null);
+  res.json({ ok: true });
+});
+
+// POST /api/alerts/email-test — send a test alert email to current user
+app.post('/api/alerts/email-test', requireAuth, async (req, res) => {
+  if (!req.user.email) return res.status(400).json({ error: 'No email on account' });
+  await sendAlertEmail(req.user.email, 'Walify Alert Test',
+    '<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">'
+    + '<h2 style="color:#1a7f37">Walify Alerts Active ✓</h2>'
+    + '<p>Your email alerts are configured. You\'ll receive notifications here when:</p>'
+    + '<ul><li>A bill is due soon</li><li>A budget category is exceeded</li>'
+    + '<li>Your account balance is low</li><li>An unusually large transaction is detected</li></ul>'
+    + '<p style="color:#57606a;font-size:13px">Manage alerts in Walify → Alerts page.</p></div>'
+  );
+  res.json({ ok: true });
+});
+
+// POST /api/alerts/notify — called by client when an alert fires (send email+push)
+app.post('/api/alerts/notify', requireAuth, async (req, res) => {
+  const { title, body } = req.body;
+  if (!title) return res.status(400).json({ error: 'title required' });
+  // Send email
+  if (req.user.email) {
+    sendAlertEmail(req.user.email, 'Walify: ' + title,
+      '<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px">'
+      + '<h2 style="color:#1a7f37">🔔 ' + title + '</h2>'
+      + (body ? '<p>' + body + '</p>' : '')
+      + '<p style="color:#57606a;font-size:13px">Open Walify to view details.</p></div>'
+    );
+  }
+  // Send push notification
+  sendPushNotification(req.user.id, title, body || '');
   res.json({ ok: true });
 });
 

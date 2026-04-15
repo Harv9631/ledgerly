@@ -2,7 +2,36 @@
 // Only caches static assets (CSS, icons, manifest).
 // app.html is NEVER cached — it's dynamic (server injects Supabase config).
 
-const CACHE = 'walify-v2';
+const CACHE = 'walify-v3';
+
+// ── PUSH NOTIFICATIONS ────────────────────────────────────────────────────────
+self.addEventListener('push', event => {
+  if (!event.data) return;
+  let data = {};
+  try { data = event.data.json(); } catch { data = { title: 'Walify Alert', body: event.data.text() }; }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Walify', {
+      body: data.body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: 'walify-alert',
+      renotify: true,
+      data: { url: '/app.html' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(cls => {
+      const url = (event.notification.data || {}).url || '/app.html';
+      const existing = cls.find(c => c.url.includes('/app.html'));
+      if (existing) return existing.focus();
+      return clients.openWindow(url);
+    })
+  );
+});
 const STATIC = [
   '/style.css',
   '/manifest.json',
