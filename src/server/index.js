@@ -125,6 +125,37 @@ app.get('/health', (_req, res) => {
   });
 });
 
+// Extract key facts from a chat turn and store in Wally's memory (max 20 facts)
+async function _extractWallyMemory(userId, userMsg, assistantMsg, existingMemory, apiKey) {
+  // Only extract on every 3rd message to save cost
+  const count = _aiDailyLimits.get(userId + ':facts') || 0;
+  _aiDailyLimits.set(userId + ':facts', count + 1);
+  if (count % 3 !== 0) return;
+
+  try {
+    const { default: Anthropic } = require('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey });
+    const prompt = `Given this conversation exchange, extract any personal financial facts worth remembering about the user for future conversations. Return a JSON array of short strings (max 10 words each), or an empty array [] if nothing is worth remembering. Only extract concrete facts (goals, situations, preferences) — not generic advice.
+
+User: "${userMsg.slice(0, 500)}"
+Assistant: "${assistantMsg.slice(0, 500)}"
+
+Existing memory (don't duplicate): ${JSON.stringify(existingMemory.slice(0, 10))}
+
+Return only valid JSON array, nothing else:`;
+
+    const r = await client.messages.create({
+      model: 'claude-haiku-4-5', max_tokens: 200,
+      messages: [{ role: 'user', content: prompt }]
+    });
+    const raw = r.content.find(b => b.type === 'text')?.text || '[]';
+    const facts = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] || '[]');
+    if (!Array.isArray(facts) || !facts.length) return;
+    const updated = [...existingMemory, ...facts].slice(-20); // keep last 20 facts
+    saveUserState('wally_memory:' + userId, updated);
+  } catch {}
+}
+
 // AI Chat — simple JSON endpoint (SSE buffered by Railway proxy, so use plain request/response)
 // POST /api/ai/chat  { message, history: [{role,content}], financialContext }
 app.post('/api/ai/chat', requireAuth, async (req, res) => {
@@ -137,6 +168,12 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
   if (!message) return res.status(400).json({ error: 'message required' });
   if (typeof message === 'string' && message.length > 5000) return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
 
+  // Load Wally's memory for this user
+  const wallyMemory = getUserState('wally_memory:' + req.user.id) || [];
+  const memoryContext = wallyMemory.length
+    ? '\n\nWALLY MEMORY (facts you\'ve learned about this user across past conversations):\n' + wallyMemory.map((m, i) => `${i+1}. ${m}`).join('\n')
+    : '';
+
   const rateResult = checkAiRateLimit(req.user.id, req.user.email);
   if (!rateResult.allowed) {
     const msg = rateResult.isPro
@@ -145,7 +182,7 @@ app.post('/api/ai/chat', requireAuth, async (req, res) => {
     return res.status(429).json({ error: msg, rateInfo: rateResult, upgradeUrl: '/upgrade' });
   }
 
-  const systemPrompt = `You are a personal financial advisor named Wally inside Walify, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
+  const systemPrompt = `You are a personal financial advisor named Wally inside Walify, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.${memoryContext}
 
 CONSTRAINTS:
 - Only answer questions related to personal finance, budgeting, debt management, savings, income, and financial planning.
@@ -194,6 +231,10 @@ ${financialContext || 'No financial data available yet.'}`;
     const response = await client.messages.create(requestParams);
     const text = response.content.find(b => b.type === 'text')?.text || '';
     const rateInfo = getAiRateInfo(req.user.id, req.user.email);
+
+    // Extract memorable facts from this conversation turn (async, non-blocking)
+    _extractWallyMemory(req.user.id, message, text, wallyMemory, apiKey).catch(() => {});
+
     res.json({ text, usage: response.usage, rateCount: rateInfo.count, rateInfo });
   } catch (err) {
     res.status(500).json({ error: err.message || 'AI error' });
@@ -204,6 +245,17 @@ ${financialContext || 'No financial data available yet.'}`;
 app.get('/api/ai/rate-limit', requireAuth, (req, res) => {
   const rateInfo = getAiRateInfo(req.user.id, req.user.email);
   res.json({ ok: true, ...rateInfo });
+});
+
+// GET /api/ai/memory — get Wally's memory for current user
+app.get('/api/ai/memory', requireAuth, (req, res) => {
+  const memory = getUserState('wally_memory:' + req.user.id) || [];
+  res.json({ memory });
+});
+// DELETE /api/ai/memory — clear Wally's memory
+app.delete('/api/ai/memory', requireAuth, (req, res) => {
+  saveUserState('wally_memory:' + req.user.id, []);
+  res.json({ ok: true });
 });
 
 // Serve upgrade page with Stripe publishable key + price ID injected
