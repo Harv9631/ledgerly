@@ -3075,15 +3075,23 @@ function migrateTransactions() {
     const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
     // Fix wrong categories for Plaid transactions using description-based override
-    // BUT skip if user manually set the category (manualCategory flag)
-    const betterCat = (tx.plaidTxId && !tx.manualCategory) ? inferCategoryFromDesc(tx.desc) : null;
+    // Priority: 1) manualCategory flag (user locked it), 2) txRules (user set a rule), 3) inferCategoryFromDesc
+    const txDescNorm = (tx.desc || '').trim().toLowerCase();
+    const userRule = (state.txRules || []).find(function(r) { return (r.descNorm || (r.desc||'').trim().toLowerCase()) === txDescNorm && (!r.mode || r.mode === tx.mode); });
+    let betterCat = null;
+    if (tx.manualCategory || userRule) {
+      // User explicitly set this — if there's a rule, apply it; if just manualCategory, keep current
+      if (userRule && tx.category !== userRule.category) betterCat = userRule.category;
+    } else if (tx.plaidTxId) {
+      betterCat = inferCategoryFromDesc(tx.desc);
+    }
     const needsCatFix = betterCat && tx.category !== betterCat;
     if (needsTypeAmountFix || needsModeFix || needsCatFix) {
       changed = true;
       const update = {};
       if (needsTypeAmountFix) { update.amount = amount; update.type = inferredType; }
       if (needsModeFix) { update.mode = state.mode; }
-      if (needsCatFix) { update.category = betterCat; }
+      if (needsCatFix) { update.category = betterCat; update.manualCategory = true; }
       return { ...tx, ...update };
     }
     return tx;
