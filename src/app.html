@@ -10045,6 +10045,9 @@ if (window._webToken) {
         merged.mode = state.mode || data.state.mode;
         merged.tourComplete = state.tourComplete || data.state.tourComplete;
         merged.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || data.state.hiddenPlaidAccountIds || [];
+        // Excluded accounts — local always wins (user explicitly excluded these)
+        merged.excludedAccountIds = (state.excludedAccountIds || []).length > 0 ? state.excludedAccountIds : (data.state.excludedAccountIds || []);
+        merged.excludedPlaidIds = (state.excludedPlaidIds || []).length > 0 ? state.excludedPlaidIds : (data.state.excludedPlaidIds || []);
         // For all array fields: local is authoritative if it has been touched in this session
         // (user deletions should stick — the server copy is stale from a prior push)
         var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules'];
