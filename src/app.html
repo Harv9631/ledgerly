@@ -9408,6 +9408,9 @@ async function syncPlaidItem(itemId, btn, forceReset) {
     if (txs && !txs.error) {
       for (const tx of (txs.added || [])) {
         if (state.transactions.find(t => t.plaidTxId === tx.transaction_id)) continue;
+        // Also skip if same date + same amount + same description already exists (prevents ACH settle duplicates)
+        const dupKey = tx.date + '|' + Math.abs(tx.amount).toFixed(2) + '|' + (tx.name||'').trim().toLowerCase();
+        if (state.transactions.find(t => t.date + '|' + Math.abs(t.amount).toFixed(2) + '|' + (t.desc||'').trim().toLowerCase() === dupKey)) continue;
         state.transactions.push({
           id: uid(), date: tx.date, desc: tx.name,
           amount: Math.abs(tx.amount),
