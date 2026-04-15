@@ -1321,7 +1321,7 @@
       </select>
       <button class="btn btn-sm btn-ghost" onclick="openModal('csv')">↑ Import more (CSV / PDF)</button>
       <button class="btn btn-sm btn-ghost" id="tx-receipts-filter-btn" onclick="toggleTxReceiptsFilter(this)" title="Show only transactions with receipts">📎 Receipts only</button>
-      <button class="btn btn-sm btn-danger" onclick="clearTransactions()">Clear all</button>
+      <button class="btn btn-sm btn-ghost" onclick="clearTxFilters()" title="Reset all filters">✕ Clear Filters</button>
     </div>
     <input type="file" id="tx-receipt-input" accept=".jpg,.jpeg,.png,.pdf" style="display:none" onchange="handleTxReceiptFile(this.files[0])">
     <div class="cards" id="tx-summary-cards"></div>
@@ -2159,6 +2159,12 @@
         </div>
         <button class="btn btn-ghost" onclick="triggerImportFile()">&#128193; Choose Backup File (.json)</button>
         <input type="file" id="backup-file-input" accept=".json" style="display:none" onchange="handleBackupFile(event)">
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0">
+      <div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:6px">Clear Transactions</div>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:12px">Delete all transactions in the current mode. Plaid transactions will be re-fetched on next sync.</p>
+        <button class="btn btn-danger" onclick="clearTransactions()">Clear All Transactions</button>
       </div>
     </div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:20px">
@@ -4068,6 +4074,22 @@ function clearTransactions() {
   state.transactions.filter(t => t.mode === state.mode).forEach(t => removeReceipt(t.id));
   state.transactions = state.transactions.filter(t => t.mode !== state.mode);
   saveState(); renderAll();
+}
+
+function clearTxFilters() {
+  var m = document.getElementById('tx-filter-month-m');
+  var y = document.getElementById('tx-filter-month-y');
+  var mh = document.getElementById('tx-filter-month');
+  var type = document.getElementById('tx-filter-type');
+  var cat = document.getElementById('tx-filter-cat');
+  var search = document.getElementById('tx-search');
+  if (m) m.value = '';
+  if (y) y.value = '';
+  if (mh) mh.value = '';
+  if (type) type.value = '';
+  if (cat) cat.value = '';
+  if (search) search.value = '';
+  renderTransactions();
 }
 
 var _txCatApplyAllResolve = null;
