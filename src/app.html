@@ -9277,7 +9277,9 @@ function mapPlaidCategory(tx) {
   if (/RENT/.test(key))                                          return 'Rent & Mortgage';
   if (/MORTGAGE/.test(key))                                      return 'Rent & Mortgage';
   if (/HOME_IMPROVEMENT|HARDWARE/.test(key))                    return 'Home Improvement';
-  if (/INSURANCE/.test(key))                                     return 'Health Insurance';
+  if (/UNITED.?HEALTH|CIGNA|AETNA|BLUE.?CROSS|HUMANA|ANTHEM|OSCAR/.test(key)) return 'Health Insurance';
+  if (/GEICO|PROGRESSIVE|ALLSTATE|STATE.?FARM|LIBERTY.?MUTUAL|NATIONWIDE|USAA/.test(key)) return 'Auto Insurance';
+  if (/INSURANCE|INS.?PREM/.test(key))                           return 'Insurance';
   if (/EDUCATION|TUITION|STUDENT/.test(key))                    return 'Tuition & Student Loans';
   if (/PERSONAL_CARE|SALON|SPA/.test(key))                      return 'Personal Care & Beauty';
   if (/PET/.test(key))                                           return 'Pets';
