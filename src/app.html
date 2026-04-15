@@ -3075,23 +3075,15 @@ function migrateTransactions() {
     const needsTypeAmountFix = tx.type !== inferredType || tx.amount < 0;
     const needsModeFix = !tx.mode;
     // Fix wrong categories for Plaid transactions using description-based override
-    // Priority: 1) manualCategory flag (user locked it), 2) txRules (user set a rule), 3) inferCategoryFromDesc
-    const txDescNorm = (tx.desc || '').trim().toLowerCase();
-    const userRule = (state.txRules || []).find(function(r) { return (r.descNorm || (r.desc||'').trim().toLowerCase()) === txDescNorm && (!r.mode || r.mode === tx.mode); });
-    let betterCat = null;
-    if (tx.manualCategory || userRule) {
-      // User explicitly set this — if there's a rule, apply it; if just manualCategory, keep current
-      if (userRule && tx.category !== userRule.category) betterCat = userRule.category;
-    } else if (tx.plaidTxId) {
-      betterCat = inferCategoryFromDesc(tx.desc);
-    }
+    // Skip if user manually set this transaction's category (manualCategory flag)
+    const betterCat = (tx.plaidTxId && !tx.manualCategory) ? inferCategoryFromDesc(tx.desc) : null;
     const needsCatFix = betterCat && tx.category !== betterCat;
     if (needsTypeAmountFix || needsModeFix || needsCatFix) {
       changed = true;
       const update = {};
       if (needsTypeAmountFix) { update.amount = amount; update.type = inferredType; }
       if (needsModeFix) { update.mode = state.mode; }
-      if (needsCatFix) { update.category = betterCat; update.manualCategory = true; }
+      if (needsCatFix) { update.category = betterCat; }
       return { ...tx, ...update };
     }
     return tx;
@@ -4136,7 +4128,7 @@ function changeTxCategory(id, cat) {
   if (!tx || tx.category === cat) return;
   const oldCat = tx.category;
   tx.category = cat;
-  tx.manualCategory = true; // lock against auto-categorization overrides
+  tx.manualCategory = true; // lock this transaction against auto-categorization overrides
   saveState();
 
   // Find ALL other transactions with the same description (case-insensitive, trimmed)
@@ -4146,13 +4138,7 @@ function changeTxCategory(id, cat) {
     (t.desc || '').trim().toLowerCase() === txDescNorm &&
     t.mode === tx.mode
   );
-
-  // Save rule for future imports (single transaction only)
-  state.txRules = state.txRules || [];
-  var existingRule = state.txRules.find(function(r) { return (r.desc||'').trim().toLowerCase() === txDescNorm; });
-  if (existingRule) { existingRule.category = cat; }
-  else { state.txRules.push({ desc: tx.desc, descNorm: txDescNorm, category: cat, mode: tx.mode }); }
-  saveState();
+  // NOTE: txRule is only saved when user clicks "Apply to All" — not here
 
   if (!matches.length) { renderTransactions(); return; }
 
