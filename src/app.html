@@ -11315,7 +11315,8 @@ async function loadCashFlowForecast() {
       account_id: t.plaidAccountId || '',
       amount: t.type === 'credit' ? Math.abs(t.amount) : -Math.abs(t.amount)
     }));
-    const currentBalance = totalAssets() - totalDebt();
+    const liquidTypes = ['checking', 'savings', 'cash'];
+    const currentBalance = filteredAccounts().filter(a => a.balance > 0 && liquidTypes.includes((a.type || '').toLowerCase())).reduce((s, a) => s + a.balance, 0) || totalAssets();
     // Use local computation if no transactions yet or API fails
     const avgNet = effectiveMonthlyIncome() - effectiveMonthlyExpenses() - monthlyPayment();
     let s;
