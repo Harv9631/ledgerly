@@ -405,6 +405,11 @@ app.get('/icons/:file', (req, res) => {
   const safe = path.basename(req.params.file);
   res.sendFile(path.join(parentDir, 'icons', safe));
 });
+// App screenshots
+app.get('/images/:file', (req, res) => {
+  const safe = path.basename(req.params.file);
+  res.sendFile(path.join(parentDir, 'images', safe));
+});
 // Serve app.html with Supabase config injected for token refresh
 function serveApp(_req, res) {
   const fs = require('fs');

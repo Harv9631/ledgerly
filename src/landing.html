@@ -299,6 +299,23 @@
     /* ── DIVIDER ── */
     .section-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
 
+    /* ── SCREENSHOTS ── */
+    .screenshot-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      width: 780px; flex-shrink: 0;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .screenshot-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,.5); }
+    .screenshot-label {
+      padding: 10px 16px; font-size: 12px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .08em;
+      border-bottom: 1px solid var(--border); background: var(--sidebar-bg);
+    }
+    .screenshot-card img { width: 100%; display: block; }
+    @media (max-width: 860px) { .screenshot-card { width: 88vw; } }
+
     /* ── ANIMATIONS ── */
     /* Hero float */
     @keyframes heroFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
@@ -472,6 +489,34 @@
       <div class="feature-desc">Works in any browser. Install as a native app on your phone — iOS and Android supported.</div>
     </div>
   </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SCREENSHOTS -->
+<section class="section reveal" id="screenshots" style="padding-bottom:60px">
+  <div class="section-center">
+    <div class="section-tag">See it in action</div>
+    <h2 class="section-title">Every tool you need, beautifully organized</h2>
+    <p class="section-sub">From transactions to reports — everything is one click away.</p>
+  </div>
+  <div class="screenshots-scroll" style="margin-top:48px;overflow-x:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch">
+    <div style="display:flex;gap:20px;width:max-content;padding:0 4px">
+      <div class="screenshot-card">
+        <div class="screenshot-label">Financial Dashboard</div>
+        <img src="/images/walify_dashboard.png" alt="Walify Dashboard — financial overview with KPI cards and charts" loading="lazy">
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-label">Bank Transactions</div>
+        <img src="/images/walify_transactions.png" alt="Walify Transactions — categorized bank transactions with monthly totals" loading="lazy">
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-label">Financial Reports</div>
+        <img src="/images/walify_reports.png" alt="Walify Reports — P&L, balance sheet, cash flow and more" loading="lazy">
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:16px">← Scroll to see more</p>
 </section>
 
 <hr class="section-divider">
