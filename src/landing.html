@@ -244,6 +244,50 @@
 
     /* ── DIVIDER ── */
     .section-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* ── ANIMATIONS ── */
+    /* Hero float */
+    @keyframes heroFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .mockup-wrap { animation: heroFloat 6s ease-in-out infinite; }
+
+    /* Hero badge pulse */
+    @keyframes badgePulse { 0%,100% { box-shadow: 0 0 0 0 rgba(63,185,80,0); } 60% { box-shadow: 0 0 0 6px rgba(63,185,80,.12); } }
+    .hero-badge { animation: badgePulse 3s ease-in-out infinite; }
+
+    /* Scroll fade-in */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-left { opacity: 0; transform: translateX(-30px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+    .reveal-right { opacity: 0; transform: translateX(30px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+    /* Stagger children */
+    .stagger > * { opacity: 0; transform: translateY(22px); transition: opacity .5s ease, transform .5s ease; }
+    .stagger.visible > *:nth-child(1) { opacity:1;transform:none;transition-delay:.05s; }
+    .stagger.visible > *:nth-child(2) { opacity:1;transform:none;transition-delay:.15s; }
+    .stagger.visible > *:nth-child(3) { opacity:1;transform:none;transition-delay:.25s; }
+    .stagger.visible > *:nth-child(4) { opacity:1;transform:none;transition-delay:.35s; }
+    .stagger.visible > *:nth-child(5) { opacity:1;transform:none;transition-delay:.45s; }
+    .stagger.visible > *:nth-child(6) { opacity:1;transform:none;transition-delay:.55s; }
+
+    /* Stat counter shimmer */
+    @keyframes statShimmer { from { opacity:.3; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+    .stat-num.counting { animation: statShimmer .4s ease forwards; }
+
+    /* Green glow pulse on CTA */
+    @keyframes ctaGlow { 0%,100% { box-shadow: 0 4px 20px rgba(63,185,80,.35); } 50% { box-shadow: 0 4px 32px rgba(63,185,80,.6); } }
+    .btn-primary-lg { animation: ctaGlow 2.5s ease-in-out infinite; }
+
+    /* Background grid */
+    body::before {
+      content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+      background-image: linear-gradient(rgba(63,185,80,.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(63,185,80,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%);
+    }
+    body > * { position: relative; z-index: 1; }
   </style>
 </head>
 <body>
@@ -331,13 +375,13 @@
 <hr class="section-divider" style="margin-top:80px">
 
 <!-- FEATURES -->
-<section class="section" id="features">
+<section class="section reveal" id="features">
   <div class="section-center">
     <div class="section-tag">Everything you need</div>
     <h2 class="section-title">Personal finance made simple</h2>
     <p class="section-sub">From tracking every transaction to planning your financial future — Walify has it all in one place.</p>
   </div>
-  <div class="features-grid">
+  <div class="features-grid stagger">
     <div class="feature-card">
       <div class="feature-icon">🏦</div>
       <div class="feature-title">Bank Sync via Plaid</div>
@@ -375,7 +419,7 @@
 
 <!-- WALLY SECTION -->
 <section class="wally-section" id="wally">
-  <div class="wally-inner">
+  <div class="wally-inner reveal">
     <div>
       <div class="section-tag">Meet your AI advisor</div>
       <h2 class="section-title">Wally thinks before answering.</h2>
@@ -429,7 +473,7 @@
     <div class="section-tag">Why Walify</div>
     <h2 class="section-title">Built for real people</h2>
   </div>
-  <div class="stats-row" style="justify-content:center;margin-top:40px">
+  <div class="stats-row stagger" style="justify-content:center;margin-top:40px">
     <div class="stat">
       <div class="stat-num">12+</div>
       <div class="stat-label">Financial reports</div>
@@ -458,7 +502,7 @@
     <h2 class="section-title">Start free, upgrade when ready</h2>
     <p class="section-sub">No credit card required. Cancel anytime.</p>
   </div>
-  <div class="pricing-grid">
+  <div class="pricing-grid stagger">
     <div class="pricing-card">
       <div class="plan-name">Free</div>
       <div class="plan-price">$0<span>/mo</span></div>
@@ -522,6 +566,21 @@
   </div>
   <div class="footer-copy">© 2026 Walify</div>
 </footer>
+
+<script>
+// Intersection Observer for scroll animations
+var _observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      _observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach(function(el) {
+  _observer.observe(el);
+});
+</script>
 
 <script>
 var _autoRotate = null;
