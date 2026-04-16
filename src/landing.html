@@ -388,9 +388,10 @@
     </div>
     <div>
       <!-- Conversation tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:20px">
-        <button onclick="showConvo(0,this)" class="convo-tab convo-active" style="background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3);color:var(--green);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Vacation budget</button>
-        <button onclick="showConvo(1,this)" class="convo-tab" style="background:transparent;border:1px solid var(--border);color:var(--muted2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Debt payoff</button>
+      <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
+        <button onclick="showConvo(0,this);stopAutoRotate()" class="convo-tab convo-active" style="background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3);color:var(--green);border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .3s">💸 Vacation budget</button>
+        <button onclick="showConvo(1,this);stopAutoRotate()" class="convo-tab" style="background:transparent;border:1px solid var(--border);color:var(--muted2);border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .3s">💳 Debt payoff</button>
+        <span style="font-size:11px;color:var(--muted);margin-left:4px;white-space:nowrap" id="auto-rotate-label">↻ auto</span>
       </div>
       <!-- Conversation 1 -->
       <div class="wally-chat" id="convo-0">
@@ -523,19 +524,41 @@
 </footer>
 
 <script>
+var _autoRotate = null;
+var _convoIdx = 0;
+
 function showConvo(idx, btn) {
+  _convoIdx = idx;
   document.querySelectorAll('.wally-chat').forEach(function(el, i) {
     el.style.display = i === idx ? 'flex' : 'none';
+    el.style.opacity = '0';
+    if (i === idx) { setTimeout(function() { el.style.opacity = '1'; el.style.transition = 'opacity .4s'; }, 10); }
   });
   document.querySelectorAll('.convo-tab').forEach(function(t) {
     t.style.background = 'transparent';
     t.style.borderColor = 'rgba(255,255,255,.08)';
     t.style.color = '#9198a1';
   });
-  btn.style.background = 'rgba(63,185,80,.12)';
-  btn.style.borderColor = 'rgba(63,185,80,.3)';
-  btn.style.color = '#3fb950';
+  var activebtn = btn || document.querySelectorAll('.convo-tab')[idx];
+  if (activebtn) {
+    activebtn.style.background = 'rgba(63,185,80,.12)';
+    activebtn.style.borderColor = 'rgba(63,185,80,.3)';
+    activebtn.style.color = '#3fb950';
+  }
 }
+
+function stopAutoRotate() {
+  if (_autoRotate) { clearInterval(_autoRotate); _autoRotate = null; }
+  var lbl = document.getElementById('auto-rotate-label');
+  if (lbl) lbl.style.display = 'none';
+}
+
+// Auto-rotate every 5 seconds
+_autoRotate = setInterval(function() {
+  var total = document.querySelectorAll('.wally-chat').length;
+  _convoIdx = (_convoIdx + 1) % total;
+  showConvo(_convoIdx, null);
+}, 5000);
 </script>
 </body>
 </html>
