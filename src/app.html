@@ -854,6 +854,10 @@
   </div>
   <div class="cards" id="dash-kpi-cards">
     <div class="card">
+      <div class="card-icon card-icon-green"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/><path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/></svg></div>
+      <div class="card-label">Balance</div><div class="card-value green" id="dash-balance">$0</div><div class="card-sub" id="dash-balance-sub">checking &amp; savings</div>
+    </div>
+    <div class="card">
       <div class="card-icon card-icon-green"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd"/></svg></div>
       <div class="card-label">Monthly Income</div><div class="card-value green" id="monthly-income">$0</div><div class="card-sub" id="mi-sub">recurring</div>
     </div>
@@ -6864,8 +6868,19 @@ function renderSummaryCards() {
   document.getElementById('total-debt').textContent = fmtShort(td);
   document.getElementById('dti-sub').textContent = 'DTI: '+dti+'%';
   document.getElementById('tx-count').textContent = filteredTx().length.toLocaleString();
-  // Emergency Fund Runway: liquid (checking + savings) ÷ monthly expenses
+  // Balance card: total liquid (checking + savings)
   const liquidAssets = filteredAccounts().filter(a => ['checking','savings'].includes(a.type)).reduce((s,a) => s + Math.max(0, a.balance), 0);
+  const balEl = document.getElementById('dash-balance');
+  const balSubEl = document.getElementById('dash-balance-sub');
+  if (balEl) {
+    balEl.textContent = fmt(liquidAssets);
+    balEl.className = 'card-value ' + (liquidAssets > 0 ? 'green' : 'red');
+  }
+  if (balSubEl) {
+    const acctCount = filteredAccounts().filter(a => ['checking','savings'].includes(a.type) && a.balance > 0).length;
+    balSubEl.textContent = acctCount > 0 ? acctCount + ' account' + (acctCount > 1 ? 's' : '') : 'checking & savings';
+  }
+  // Emergency Fund Runway: liquid (checking + savings) ÷ monthly expenses
   const runwayMonths = effME > 0 ? liquidAssets / effME : null;
   const runwayEl = document.getElementById('emergency-runway');
   const runwaySubEl = document.getElementById('runway-sub');
