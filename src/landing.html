@@ -152,16 +152,53 @@
 
     /* ── WALLY SECTION ── */
     .wally-section {
-      background: linear-gradient(135deg, #0d1f16 0%, #0d1117 100%);
-      border-top: 1px solid rgba(63,185,80,.15);
-      border-bottom: 1px solid rgba(63,185,80,.15);
-      padding: 80px 24px;
+      background: linear-gradient(180deg, #0d1117 0%, #0a1a10 50%, #0d1117 100%);
+      border-top: 1px solid rgba(63,185,80,.12);
+      border-bottom: 1px solid rgba(63,185,80,.12);
+      padding: 96px 24px;
+      overflow: hidden;
+      position: relative;
     }
-    .wally-inner { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
-    .wally-chat { display: flex; flex-direction: column; gap: 14px; }
+    .wally-section::before {
+      content:''; position:absolute; top:-60px; left:50%; transform:translateX(-50%);
+      width:600px; height:300px;
+      background: radial-gradient(ellipse, rgba(63,185,80,.08) 0%, transparent 70%);
+      pointer-events:none;
+    }
+    .wally-inner { max-width: 860px; margin: 0 auto; text-align: center; }
+    .wally-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--grad); display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 20px;
+      box-shadow: 0 0 0 8px rgba(63,185,80,.1), 0 0 0 16px rgba(63,185,80,.05);
+      animation: avatarPulse 3s ease-in-out infinite;
+    }
+    @keyframes avatarPulse {
+      0%,100% { box-shadow: 0 0 0 8px rgba(63,185,80,.1), 0 0 0 16px rgba(63,185,80,.05); }
+      50% { box-shadow: 0 0 0 12px rgba(63,185,80,.15), 0 0 0 24px rgba(63,185,80,.07); }
+    }
+    /* Chat window */
+    .wally-window {
+      background: var(--surface); border: 1px solid rgba(63,185,80,.2);
+      border-radius: 16px; overflow: hidden; margin-top: 48px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(63,185,80,.08);
+    }
+    .wally-window-bar {
+      background: var(--sidebar-bg); padding: 12px 18px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .wally-window-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--grad); display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .wally-window-name { font-size: 13px; font-weight: 700; }
+    .wally-window-status { font-size: 11px; color: var(--green); margin-left: 2px; }
+    .wally-chat { display: flex; flex-direction: column; gap: 16px; padding: 24px; min-height: 280px; }
     .chat-bubble {
-      padding: 14px 18px; border-radius: 16px; font-size: 14px; line-height: 1.6;
-      max-width: 90%;
+      padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.6;
+      max-width: 80%; text-align: left;
     }
     .chat-bubble.user {
       background: var(--grad); color: #fff;
@@ -170,20 +207,37 @@
     }
     .chat-bubble.wally {
       background: var(--surface2); border: 1px solid var(--border);
-      color: var(--text); border-bottom-left-radius: 4px;
+      color: var(--text); border-bottom-left-radius: 4px; align-self: flex-start;
     }
     .chat-bubble.wally .thinking {
       font-size: 11px; color: var(--green); font-weight: 600;
       margin-bottom: 8px; letter-spacing: .03em;
+      display: flex; align-items: center; gap: 5px;
     }
+    .thinking-dots { display: inline-flex; gap: 3px; }
+    .thinking-dots span { width:5px; height:5px; border-radius:50%; background:var(--green); animation: tDot 1.2s infinite; opacity:.5; }
+    .thinking-dots span:nth-child(2) { animation-delay:.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay:.4s; }
+    @keyframes tDot { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-4px);opacity:1} }
     .wally-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; color: var(--muted); margin-top: 8px;
+      font-size: 11px; color: var(--muted); padding: 0 24px 20px;
+      text-align: left;
     }
-    @media (max-width: 760px) {
-      .wally-inner { grid-template-columns: 1fr; }
-      .wally-chat { order: -1; }
+    /* Question pills */
+    .wally-questions {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 32px;
     }
+    .wally-q {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 8px 16px; font-size: 13px; color: var(--muted2);
+      cursor: pointer; transition: all .25s; font-family: inherit;
+    }
+    .wally-q:hover, .wally-q.active {
+      border-color: rgba(63,185,80,.4); color: var(--green);
+      background: rgba(63,185,80,.06);
+    }
+    @media (max-width: 600px) { .chat-bubble { max-width: 92%; } }
 
     /* ── STATS ── */
     .stats-row { display: flex; gap: 40px; flex-wrap: wrap; margin-top: 52px; }
@@ -420,48 +474,33 @@
 <!-- WALLY SECTION -->
 <section class="wally-section" id="wally">
   <div class="wally-inner reveal">
-    <div>
-      <div class="section-tag">Meet your AI advisor</div>
-      <h2 class="section-title">Wally thinks before answering.</h2>
-      <p class="section-sub" style="color:var(--muted2);margin-bottom:28px">
-        Most AI chatbots give you generic advice. Wally uses your actual income, expenses, debt, and spending habits to give answers that mean something.
-      </p>
-      <p class="section-sub" style="color:var(--muted2)">
-        Powered by Claude Opus 4.6 with adaptive thinking — Wally reasons through complex financial questions before responding, just like a real advisor would.
-      </p>
-    </div>
-    <div>
-      <!-- Conversation tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:20px;align-items:center">
-        <button onclick="showConvo(0,this);stopAutoRotate()" class="convo-tab convo-active" style="background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3);color:var(--green);border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .3s">💸 Vacation budget</button>
-        <button onclick="showConvo(1,this);stopAutoRotate()" class="convo-tab" style="background:transparent;border:1px solid var(--border);color:var(--muted2);border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .3s">💳 Debt payoff</button>
-        <span style="font-size:11px;color:var(--muted);margin-left:4px;white-space:nowrap" id="auto-rotate-label">↻ auto</span>
-      </div>
-      <!-- Conversation 1 -->
-      <div class="wally-chat" id="convo-0">
-        <div class="chat-bubble user">Can I afford a vacation next month?</div>
-        <div class="chat-bubble wally">
-          <div class="thinking">🤖 Wally is thinking…</div>
-          Looking at your numbers: you have $2,380 left this month after bills and your usual spending. Your emergency fund covers 3.2 months — solid. A $1,200 vacation would leave you $1,180 buffer. <strong>Yes, you can afford it</strong> — just skip the extra dining out this month to stay on track with your $900 grocery + dining budget.
-        </div>
-        <div class="wally-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-          Wally used your real income, expenses, and savings data
+    <div class="wally-avatar">🤖</div>
+    <div class="section-tag">Meet Wally, your AI financial advisor</div>
+    <h2 class="section-title" style="margin-bottom:14px">Advice that actually knows your numbers.</h2>
+    <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
+      Most AI gives generic tips. Wally reads your income, spending, debt, and savings — then thinks through your question before answering. Powered by Claude Opus 4.6.
+    </p>
+
+    <!-- Chat window -->
+    <div class="wally-window">
+      <div class="wally-window-bar">
+        <div class="wally-window-avatar">🤖</div>
+        <div>
+          <div class="wally-window-name">Wally</div>
+          <div class="wally-window-status">● Online · Analyzing your finances</div>
         </div>
       </div>
-      <!-- Conversation 2 -->
-      <div class="wally-chat" id="convo-1" style="display:none">
-        <div class="chat-bubble user">How do I pay off my credit card faster?</div>
-        <div class="chat-bubble wally">
-          <div class="thinking">🤖 Wally is thinking…</div>
-          You have $4,200 on your Chase card at 24.9% APR with a $150/mo minimum. At that rate you'd pay it off in <strong>34 months and spend $893 in interest</strong>. If you redirect $180/mo from dining (your biggest over-budget category) you'd pay it off in <strong>17 months and save $612 in interest</strong>. Want me to set up the extra payment goal?
-        </div>
-        <div class="wally-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-          Wally used your debt balances, rates, and spending patterns
-        </div>
+      <div class="wally-chat" id="wally-chat-display">
+        <!-- populated by JS -->
+      </div>
+      <div class="wally-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span id="wally-data-used">Wally uses your real financial data</span>
       </div>
     </div>
+
+    <!-- Question pills -->
+    <div class="wally-questions" id="wally-questions"></div>
   </div>
 </section>
 
@@ -583,41 +622,100 @@ document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach
 </script>
 
 <script>
-var _autoRotate = null;
-var _convoIdx = 0;
-
-function showConvo(idx, btn) {
-  _convoIdx = idx;
-  document.querySelectorAll('.wally-chat').forEach(function(el, i) {
-    el.style.display = i === idx ? 'flex' : 'none';
-    el.style.opacity = '0';
-    if (i === idx) { setTimeout(function() { el.style.opacity = '1'; el.style.transition = 'opacity .4s'; }, 10); }
-  });
-  document.querySelectorAll('.convo-tab').forEach(function(t) {
-    t.style.background = 'transparent';
-    t.style.borderColor = 'rgba(255,255,255,.08)';
-    t.style.color = '#9198a1';
-  });
-  var activebtn = btn || document.querySelectorAll('.convo-tab')[idx];
-  if (activebtn) {
-    activebtn.style.background = 'rgba(63,185,80,.12)';
-    activebtn.style.borderColor = 'rgba(63,185,80,.3)';
-    activebtn.style.color = '#3fb950';
+var _wallyConvos = [
+  {
+    q: '💸 Can I afford a vacation?',
+    user: 'Can I afford a vacation next month?',
+    answer: 'Looking at your numbers: you have <strong>$2,380 left</strong> this month after bills. Your emergency fund covers 3.2 months — solid. A $1,200 vacation leaves a $1,180 buffer. <strong>Yes, you can afford it</strong> — just cut back on dining to stay within your $900 budget.',
+    data: 'Used: income, monthly expenses, emergency fund balance'
+  },
+  {
+    q: '💳 How do I kill my debt faster?',
+    user: 'How do I pay off my credit card faster?',
+    answer: 'Your Chase card has $4,200 at 24.9% APR. At $150/mo minimum you\'d pay it off in <strong>34 months costing $893 in interest</strong>. Redirect $180/mo from dining (your most over-budget category) → <strong>17 months and save $612</strong>. Want me to set that up?',
+    data: 'Used: debt balances, interest rates, spending by category'
+  },
+  {
+    q: '📊 How is my budget looking?',
+    user: 'Am I on track with my budget this month?',
+    answer: '<strong>3 of 6 categories are on track.</strong> Groceries: 68% used ✓. Dining: 112% — $52 over. Gas: 45% ✓. Your biggest risk is dining. Cut $50 there and you finish the month <strong>$180 in the black</strong>.',
+    data: 'Used: budget limits, transaction history, current month spend'
   }
+];
+
+var _wIdx = 0;
+var _wTimer = null;
+var _wBusy = false;
+
+function renderQuestions() {
+  var c = document.getElementById('wally-questions');
+  if (!c) return;
+  c.innerHTML = '';
+  _wallyConvos.forEach(function(conv, i) {
+    var btn = document.createElement('button');
+    btn.className = 'wally-q' + (i === _wIdx ? ' active' : '');
+    btn.textContent = conv.q;
+    btn.onclick = function() { stopWally(); showWally(i); };
+    c.appendChild(btn);
+  });
 }
 
-function stopAutoRotate() {
-  if (_autoRotate) { clearInterval(_autoRotate); _autoRotate = null; }
-  var lbl = document.getElementById('auto-rotate-label');
-  if (lbl) lbl.style.display = 'none';
+function showWally(idx) {
+  if (_wBusy) return;
+  _wBusy = true;
+  _wIdx = idx;
+  renderQuestions();
+  var chat = document.getElementById('wally-chat-display');
+  if (!chat) { _wBusy = false; return; }
+  var conv = _wallyConvos[idx];
+
+  // Clear + show user message
+  chat.innerHTML = '';
+  var userBubble = document.createElement('div');
+  userBubble.className = 'chat-bubble user';
+  userBubble.textContent = conv.user;
+  userBubble.style.opacity = '0'; userBubble.style.transition = 'opacity .3s';
+  chat.appendChild(userBubble);
+  setTimeout(function() { userBubble.style.opacity = '1'; }, 50);
+
+  // Show thinking indicator after 400ms
+  setTimeout(function() {
+    var thinking = document.createElement('div');
+    thinking.className = 'chat-bubble wally';
+    thinking.id = 'wally-thinking';
+    thinking.innerHTML = '<div class="thinking"><span>🤖 Wally is thinking</span><div class="thinking-dots"><span></span><span></span><span></span></div></div>';
+    thinking.style.opacity = '0'; thinking.style.transition = 'opacity .3s';
+    chat.appendChild(thinking);
+    setTimeout(function() { thinking.style.opacity = '1'; }, 50);
+
+    // Show answer after 1.8s
+    setTimeout(function() {
+      var th = document.getElementById('wally-thinking');
+      if (th) th.remove();
+      var ans = document.createElement('div');
+      ans.className = 'chat-bubble wally';
+      ans.innerHTML = conv.answer;
+      ans.style.opacity = '0'; ans.style.transition = 'opacity .4s';
+      chat.appendChild(ans);
+      setTimeout(function() { ans.style.opacity = '1'; }, 50);
+      var dataEl = document.getElementById('wally-data-used');
+      if (dataEl) dataEl.textContent = conv.data;
+      _wBusy = false;
+    }, 1800);
+  }, 400);
 }
 
-// Auto-rotate every 5 seconds
-_autoRotate = setInterval(function() {
-  var total = document.querySelectorAll('.wally-chat').length;
-  _convoIdx = (_convoIdx + 1) % total;
-  showConvo(_convoIdx, null);
-}, 5000);
+function stopWally() {
+  if (_wTimer) { clearInterval(_wTimer); _wTimer = null; }
+}
+
+// Init
+renderQuestions();
+showWally(0);
+// Auto-rotate every 6s
+_wTimer = setInterval(function() {
+  if (!_wBusy) { showWally((_wIdx + 1) % _wallyConvos.length); }
+}, 6000);
 </script>
 </body>
 </html>
