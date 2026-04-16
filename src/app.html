@@ -6838,10 +6838,11 @@ function renderSummaryCards() {
   const n = now();
   const monthTxs = filteredTx().filter(t => txInRange(t, startOfMonth(n), endOfMonth(n)));
   const txMI = txCredits(monthTxs), txME = txDebits(monthTxs);
-  // At the start of the month income may not have posted yet. Fall back to the 3-month
-  // rolling average so net doesn't show artificially negative.
   const avgMI = txAvgMonthlyIncome(), avgME = txAvgMonthlyExpenses();
-  const effMI = txMI > 0 ? txMI : (mi > 0 ? mi : avgMI);
+  // Use configured income entries first (prevents mid-month "haven't been paid yet" problem).
+  // Actual transactions may only show a partial paycheck mid-month.
+  // Priority: configured income entries → actual transactions → 3-month average
+  const effMI = mi > 0 ? mi : (txMI > 0 ? txMI : avgMI);
   const effME = txME > 0 ? txME : (me > 0 ? me : avgME);
   const net = effMI - effME;
   const dti = effMI > 0 ? Math.round((monthlyPayment()/effMI)*100) : 0;
@@ -6849,7 +6850,7 @@ function renderSummaryCards() {
   document.getElementById('net-worth').className = 'card-value '+(nw>=0?'blue':'red');
   document.getElementById('monthly-income').textContent = fmtShort(effMI);
   document.getElementById('monthly-exp').textContent = fmtShort(effME);
-  document.getElementById('mi-sub').textContent = txMI > 0 ? 'this month · transactions' : (avgMI > 0 ? '3-month avg' : 'recurring (Income page)');
+  document.getElementById('mi-sub').textContent = mi > 0 ? 'projected · income entries' : (txMI > 0 ? 'this month · transactions' : '3-month avg');
   document.getElementById('me-sub').textContent = txME > 0 ? 'this month · transactions' : (avgME > 0 ? '3-month avg' : 'recurring (Expenses page)');
   document.getElementById('net-monthly').textContent = fmtShort(net);
   document.getElementById('net-monthly').className = 'card-value '+(net>=0?'green':'red');
