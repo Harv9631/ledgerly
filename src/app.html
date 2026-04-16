@@ -10434,8 +10434,13 @@ if (window._webToken) {
         merged.tourComplete = state.tourComplete || data.state.tourComplete;
         merged.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || data.state.hiddenPlaidAccountIds || [];
         // Excluded accounts — local always wins (user explicitly excluded these)
-        merged.excludedAccountIds = (state.excludedAccountIds || []).length > 0 ? state.excludedAccountIds : (data.state.excludedAccountIds || []);
-        merged.excludedPlaidIds = (state.excludedPlaidIds || []).length > 0 ? state.excludedPlaidIds : (data.state.excludedPlaidIds || []);
+        // Excluded accounts — union of local and server so exclusions from any device stick
+        var localExclA = new Set(state.excludedAccountIds || []);
+        var serverExclA = new Set(data.state.excludedAccountIds || []);
+        merged.excludedAccountIds = Array.from(new Set([...localExclA, ...serverExclA]));
+        var localExclP = new Set(state.excludedPlaidIds || []);
+        var serverExclP = new Set(data.state.excludedPlaidIds || []);
+        merged.excludedPlaidIds = Array.from(new Set([...localExclP, ...serverExclP]));
         // For all array fields: local is authoritative if it has been touched in this session
         // (user deletions should stick — the server copy is stale from a prior push)
         var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules','deletedPlaidTxIds'];

@@ -383,10 +383,10 @@ app.get('/supabase.js', (_req, res) => {
   res.sendFile(path.join(__dirname, 'node_modules/@supabase/supabase-js/dist/umd/supabase.js'));
 });
 
-// Serve HTML files with no-cache so browsers always get the latest version
+// Serve HTML files and all API routes with no-cache (Cloudflare must not cache API responses)
 app.use(function(req, res, next) {
-  if (req.path.endsWith('.html') || req.path === '/') {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  if (req.path.startsWith('/api/') || req.path.endsWith('.html') || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
   }
