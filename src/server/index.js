@@ -395,7 +395,7 @@ app.use(function(req, res, next) {
 
 // Serve only the frontend files the web app needs (not the entire src/ directory)
 const parentDir = path.join(__dirname, '..');
-['style.css', 'plaid-link.html', 'index.html', 'icon.ico', 'manifest.json', 'sw.js'].forEach(file => {
+['style.css', 'plaid-link.html', 'index.html', 'icon.ico', 'manifest.json', 'sw.js', 'landing.html'].forEach(file => {
   app.get('/' + file, (_req, res) => res.sendFile(path.join(parentDir, file)));
 });
 app.get('/privacy', (_req, res) => res.sendFile(path.join(parentDir, 'privacy.html')));
@@ -416,7 +416,12 @@ function serveApp(_req, res) {
   res.send(html.replace('</head>', config + '</head>'));
 }
 app.get('/app.html', serveApp);
-app.get('/', serveApp);
+app.get('/app', serveApp);
+// Root serves public landing page — app is at /app.html
+app.get('/', (_req, res) => {
+  const fs = require('fs');
+  res.sendFile(path.join(parentDir, 'landing.html'));
+});
 
 // Serve cached Plaid Link SDK downloaded by the Electron main process via electron.net
 // (Chromium network stack bypasses the Cloudflare bot-protection that blocks Node.js TLS)
