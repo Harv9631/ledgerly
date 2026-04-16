@@ -898,10 +898,6 @@
       <div class="card-label">Budget Health</div><div class="card-value" id="dash-budget-health">—</div><div class="card-sub" id="dash-budget-health-sub">categories on track</div>
     </div>
     <div class="card">
-      <div class="card-icon card-icon-yellow"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg></div>
-      <div class="card-label">Next Bill Due</div><div class="card-value" id="dash-next-bill">—</div><div class="card-sub" id="dash-next-bill-sub">upcoming</div>
-    </div>
-    <div class="card">
       <div class="card-icon card-icon-teal"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg></div>
       <div class="card-label">Saved This Month</div><div class="card-value" id="dash-month-savings">$0</div><div class="card-sub" id="dash-month-savings-sub">income − spending</div>
     </div>
@@ -6962,26 +6958,7 @@ function renderSummaryCards() {
     } else { bhEl.textContent = '—'; bhEl.className = 'card-value'; if (bhSubEl) bhSubEl.textContent = 'no budgets set'; }
   }
 
-  // 4. Next Bill Due
-  const nbEl = document.getElementById('dash-next-bill');
-  const nbSubEl = document.getElementById('dash-next-bill-sub');
-  if (nbEl) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const upcoming = (state.subscriptions || [])
-      .filter(s => s.mode === state.mode && s.status !== 'cancelled' && s.nextBillingDate)
-      .map(s => ({ name: s.name, amount: s.amount, date: new Date(s.nextBillingDate) }))
-      .filter(s => s.date >= today)
-      .sort((a,b) => a.date - b.date);
-    if (upcoming.length) {
-      const next = upcoming[0];
-      const daysAway = Math.round((next.date - today) / 86400000);
-      nbEl.textContent = fmt(next.amount);
-      nbEl.className = 'card-value ' + (daysAway <= 3 ? 'red' : daysAway <= 7 ? 'yellow' : 'blue');
-      if (nbSubEl) nbSubEl.textContent = next.name.length > 14 ? next.name.slice(0,14)+'…' : next.name + ' · ' + (daysAway === 0 ? 'today' : daysAway === 1 ? 'tomorrow' : 'in ' + daysAway + 'd');
-    } else { nbEl.textContent = '—'; nbEl.className = 'card-value'; if (nbSubEl) nbSubEl.textContent = 'no subscriptions'; }
-  }
-
-  // 5. Saved This Month
+  // 4. Saved This Month
   const msEl = document.getElementById('dash-month-savings');
   const msSubEl = document.getElementById('dash-month-savings-sub');
   if (msEl) {
