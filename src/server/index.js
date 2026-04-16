@@ -405,10 +405,15 @@ app.get('/icons/:file', (req, res) => {
   const safe = path.basename(req.params.file);
   res.sendFile(path.join(parentDir, 'icons', safe));
 });
-// App screenshots
+// App screenshots and media
 app.get('/images/:file', (req, res) => {
   const safe = path.basename(req.params.file);
-  res.sendFile(path.join(parentDir, 'images', safe));
+  const filePath = path.join(parentDir, 'images', safe);
+  if (safe.endsWith('.mp4')) {
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  }
+  res.sendFile(filePath);
 });
 // Serve app.html with Supabase config injected for token refresh
 function serveApp(_req, res) {
