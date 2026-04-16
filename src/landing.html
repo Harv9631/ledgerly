@@ -386,15 +386,35 @@
         Powered by Claude Opus 4.6 with adaptive thinking — Wally reasons through complex financial questions before responding, just like a real advisor would.
       </p>
     </div>
-    <div class="wally-chat">
-      <div class="chat-bubble user">Can I afford a vacation next month?</div>
-      <div class="chat-bubble wally">
-        <div class="thinking">🤖 Wally is thinking…</div>
-        Looking at your numbers: you have $2,380 left this month after bills and your usual spending. Your emergency fund covers 3.2 months — solid. A $1,200 vacation would leave you $1,180 buffer. <strong>Yes, you can afford it</strong> — just skip the extra dining out this month to stay on track with your $900 grocery + dining budget.
+    <div>
+      <!-- Conversation tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        <button onclick="showConvo(0,this)" class="convo-tab convo-active" style="background:rgba(63,185,80,.12);border:1px solid rgba(63,185,80,.3);color:var(--green);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Vacation budget</button>
+        <button onclick="showConvo(1,this)" class="convo-tab" style="background:transparent;border:1px solid var(--border);color:var(--muted2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Debt payoff</button>
       </div>
-      <div class="wally-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-        Wally used your real income, expenses, and savings data
+      <!-- Conversation 1 -->
+      <div class="wally-chat" id="convo-0">
+        <div class="chat-bubble user">Can I afford a vacation next month?</div>
+        <div class="chat-bubble wally">
+          <div class="thinking">🤖 Wally is thinking…</div>
+          Looking at your numbers: you have $2,380 left this month after bills and your usual spending. Your emergency fund covers 3.2 months — solid. A $1,200 vacation would leave you $1,180 buffer. <strong>Yes, you can afford it</strong> — just skip the extra dining out this month to stay on track with your $900 grocery + dining budget.
+        </div>
+        <div class="wally-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Wally used your real income, expenses, and savings data
+        </div>
+      </div>
+      <!-- Conversation 2 -->
+      <div class="wally-chat" id="convo-1" style="display:none">
+        <div class="chat-bubble user">How do I pay off my credit card faster?</div>
+        <div class="chat-bubble wally">
+          <div class="thinking">🤖 Wally is thinking…</div>
+          You have $4,200 on your Chase card at 24.9% APR with a $150/mo minimum. At that rate you'd pay it off in <strong>34 months and spend $893 in interest</strong>. If you redirect $180/mo from dining (your biggest over-budget category) you'd pay it off in <strong>17 months and save $612 in interest</strong>. Want me to set up the extra payment goal?
+        </div>
+        <div class="wally-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Wally used your debt balances, rates, and spending patterns
+        </div>
       </div>
     </div>
   </div>
@@ -502,5 +522,20 @@
   <div class="footer-copy">© 2026 Walify</div>
 </footer>
 
+<script>
+function showConvo(idx, btn) {
+  document.querySelectorAll('.wally-chat').forEach(function(el, i) {
+    el.style.display = i === idx ? 'flex' : 'none';
+  });
+  document.querySelectorAll('.convo-tab').forEach(function(t) {
+    t.style.background = 'transparent';
+    t.style.borderColor = 'rgba(255,255,255,.08)';
+    t.style.color = '#9198a1';
+  });
+  btn.style.background = 'rgba(63,185,80,.12)';
+  btn.style.borderColor = 'rgba(63,185,80,.3)';
+  btn.style.color = '#3fb950';
+}
+</script>
 </body>
 </html>
