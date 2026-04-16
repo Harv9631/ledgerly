@@ -822,7 +822,7 @@
   </div>
   <div class="mode-toggle">
     <button class="mode-btn active" onclick="setMode('personal',this)">Personal</button>
-    <button class="mode-btn" onclick="setMode('business',this)">Business</button>
+    <button class="mode-btn" onclick="setMode('business',this)">Business <span style="font-size:8px;background:linear-gradient(135deg,#238636,#3fb950);color:#fff;padding:1px 4px;border-radius:3px;font-weight:700;letter-spacing:.04em;vertical-align:middle">PRO</span></button>
   </div>
   <div id="nav-signout" style="margin:0 10px 12px">
     <button onclick="localStorage.removeItem('sb_token');window.location.href='/login'" style="width:100%;background:rgba(248,81,73,.12);border:1px solid rgba(248,81,73,.25);color:#f85149;border-radius:6px;padding:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">Sign Out</button>
@@ -3550,6 +3550,10 @@ function showPage(name) {
 }
 
 function setMode(mode, el) {
+  if (mode === 'business' && !window._isPro) {
+    _showUpgradePrompt('Business Mode');
+    return;
+  }
   state.mode = mode;
   document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
