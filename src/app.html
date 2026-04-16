@@ -2950,7 +2950,7 @@ const DEFAULT_ALERTS_CONFIG = [
   { id:'goal_milestone', label:'Goal Milestone Notifications', desc:'Celebrate when goals hit 25%, 50%, 75%, or 100%.',              enabled:true,  threshold:0,    unit:'any'     },
   { id:'weekly_digest',  label:'Weekly Summary Digest',        desc:'Show an in-app weekly summary of spend, income, and net worth.',enabled:true,  threshold:0,    unit:'any'     },
 ];
-let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[], tourComplete: false };
+let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[], deletedPlaidTxIds:[], tourComplete: false };
 const STORAGE_KEY = 'walify_v3';
 let reportPeriods = { pl:'lastmonth', balance:'lastmonth', cashflow:'lastmonth' };
 let budgetViewYear = new Date().getFullYear();
@@ -4222,7 +4222,15 @@ function bulkChangeTxCategory() {
 function bulkDeleteTx() {
   if (_txSelected.size === 0) return;
   if (!confirm('Delete ' + _txSelected.size + ' transaction(s)?')) return;
-  _txSelected.forEach(id => removeReceipt(id));
+  // Track deleted Plaid IDs so sync never re-adds them
+  state.deletedPlaidTxIds = state.deletedPlaidTxIds || [];
+  _txSelected.forEach(function(id) {
+    var tx = state.transactions.find(function(t) { return t.id === id; });
+    if (tx && tx.plaidTxId && !state.deletedPlaidTxIds.includes(tx.plaidTxId)) {
+      state.deletedPlaidTxIds.push(tx.plaidTxId);
+    }
+    removeReceipt(id);
+  });
   state.transactions = state.transactions.filter(t => !_txSelected.has(t.id));
   _txSelected.clear();
   saveState();
@@ -9480,7 +9488,7 @@ async function _autoAiCategorize(plaidTxIds) {
         if (!Array.isArray(results)) continue;
         results.forEach(function(r) {
           var tx = state.transactions.find(function(t) { return t.id === r.id; });
-          if (tx && r.category && r.category !== 'Other') { tx.category = r.category; updated++; }
+          if (tx && r.category && r.category !== 'Other' && !tx.manualCategory) { tx.category = r.category; updated++; }
         });
       } catch(ex) { /* silent — don't interrupt user */ }
     }
@@ -9491,7 +9499,7 @@ async function _autoAiCategorize(plaidTxIds) {
         var desc = (tx.desc || '').toLowerCase();
         for (var ri = 0; ri < rules.length; ri++) {
           var kw = rules[ri].keyword || rules[ri].desc || '';
-          if (kw && desc.includes(kw.toLowerCase())) { tx.category = rules[ri].category; updated++; break; }
+          if (kw && desc.includes(kw.toLowerCase()) && !tx.manualCategory) { tx.category = rules[ri].category; updated++; break; }
         }
       });
     }
