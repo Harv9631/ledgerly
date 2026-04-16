@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Walify — Your AI-Powered Personal Finance App</title>
-  <meta name="description" content="Walify connects your bank accounts, tracks spending, and gives you Wally — an AI financial advisor who actually knows your numbers. Free to start.">
+  <title>Walify — The AI That Actually Knows Your Money</title>
+  <meta name="description" content="Meet Wally — the AI financial advisor that reads your real bank data before answering. Debt payoff plans, budget gaps, savings projections. Free to start.">
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -393,8 +393,8 @@
 
 <!-- ANNOUNCEMENT BAR -->
 <div style="background:linear-gradient(90deg,#238636,#1a5c2a);text-align:center;padding:10px 16px;font-size:13px;font-weight:600;color:#fff;letter-spacing:.01em;position:relative;z-index:101">
-  🎉 Founding member pricing — Pro locked at $9.99/mo. Price increases to $14.99 when we exit beta.
-  <a href="/login" style="color:#b3f0be;text-decoration:underline;margin-left:8px;white-space:nowrap">Lock it in →</a>
+  Founding member pricing — Pro locked at $9.99/mo. Goes to $14.99 when we leave beta.
+  <a href="/login" style="color:#b3f0be;text-decoration:underline;margin-left:8px;white-space:nowrap">Claim your price →</a>
 </div>
 
 <!-- NAV -->
@@ -419,23 +419,23 @@
 <!-- HERO -->
 <section class="hero">
   <div class="hero-badge">
-    🤖 Powered by Claude Opus AI
+    🤖 Introducing Wally — AI that reads your money first
   </div>
-  <h1>Stop wondering<br>where your money went.</h1>
+  <h1>Your AI advisor that<br>knows your actual numbers.</h1>
   <p class="hero-sub">
-    Connect your accounts once. <strong>Wally</strong> reads every transaction and answers your real financial questions — debt payoff timelines, budget gaps, savings projections.
+    <strong>Wally</strong> reads your real income, spending, and debt before it says a word. Not generic tips — specific answers about your money. Powered by Claude Opus 4.6.
   </p>
   <div class="hero-buttons">
-    <a href="/login" class="btn-primary-lg">Start for Free →</a>
+    <a href="/login" class="btn-primary-lg">Meet Wally — It's Free →</a>
     <a href="#wally" class="btn-ghost-lg">See Wally in action</a>
   </div>
-  <p class="hero-note">Free forever · No credit card required</p>
+  <p class="hero-note">Free forever · No credit card · No catch</p>
   <!-- Trust bar -->
   <div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:32px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)">
     <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🔒 256-bit encrypted</div>
     <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">👁 Read-only bank access</div>
     <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🏦 Powered by Plaid</div>
-    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🚫 We never sell your data</div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🚫 Your data is never sold</div>
   </div>
 </section>
 
@@ -454,43 +454,81 @@
 
 <hr class="section-divider" style="margin-top:80px">
 
+<!-- WALLY SECTION — moved to top as primary selling point -->
+<section class="wally-section" id="wally">
+  <div class="wally-inner reveal">
+    <div class="wally-avatar">🤖</div>
+    <div class="section-tag">Your AI financial advisor</div>
+    <h2 class="section-title" style="margin-bottom:14px">Other finance apps give you charts.<br>Wally gives you answers.</h2>
+    <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
+      Most AI gives you the same generic advice it gives everyone. Wally reads your actual transactions, income, debt, and savings first — then reasons through your specific situation. It's the difference between a brochure and a conversation with a knowledgeable friend.
+    </p>
+
+    <!-- Chat window -->
+    <div class="wally-window">
+      <div class="wally-window-bar">
+        <div class="wally-window-avatar">🤖</div>
+        <div>
+          <div class="wally-window-name">Wally</div>
+          <div class="wally-window-status">● Online · Reading your real data</div>
+        </div>
+      </div>
+      <div class="wally-chat" id="wally-chat-display">
+        <!-- populated by JS -->
+      </div>
+      <div class="wally-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span id="wally-data-used">Wally uses your real financial data</span>
+      </div>
+    </div>
+
+    <!-- Question pills -->
+    <div class="wally-questions" id="wally-questions"></div>
+    <div style="margin-top:36px">
+      <a href="/login" class="btn-primary-lg" style="font-size:15px">Talk to Wally — It's Free →</a>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
 <!-- FEATURES -->
 <section class="section reveal" id="features">
   <div class="section-center">
-    <div class="section-tag">Everything you need</div>
-    <h2 class="section-title">Personal finance made simple</h2>
-    <p class="section-sub">From tracking every transaction to planning your financial future — Walify has it all in one place.</p>
+    <div class="section-tag">Everything in one place</div>
+    <h2 class="section-title">Every tool you need to feel in control</h2>
+    <p class="section-sub">Most people don't have a money problem — they have a clarity problem. Walify fixes that.</p>
   </div>
   <div class="features-grid stagger">
     <div class="feature-card">
       <div class="feature-icon">🏦</div>
-      <div class="feature-title">Bank Sync via Plaid</div>
-      <div class="feature-desc">Connect your accounts securely. Transactions import automatically, categorized and ready to review.</div>
+      <div class="feature-title">Your banks, automatically synced</div>
+      <div class="feature-desc">Connect once via Plaid and your transactions show up categorized and clean. No more manual imports, no more guessing what hit your account.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🤖</div>
-      <div class="feature-title">Wally AI Advisor</div>
-      <div class="feature-desc">Ask Wally anything — debt payoff plans, budget advice, spending analysis. Powered by Claude Opus 4.6 with adaptive thinking.</div>
+      <div class="feature-title">Wally — AI that knows your situation</div>
+      <div class="feature-desc">Ask anything. "Can I afford this?" "When am I debt-free?" "Where's my money going?" Wally reads your data, then answers. Powered by Claude Opus 4.6.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📊</div>
-      <div class="feature-title">12 Financial Reports</div>
-      <div class="feature-desc">P&L, balance sheet, cash flow, tax summary, FIRE projections, net worth trends and more.</div>
+      <div class="feature-title">12 reports that actually explain things</div>
+      <div class="feature-desc">P&L, net worth, FIRE projections, tax summary — the same reports an accountant would run, without the hourly rate.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">💸</div>
-      <div class="feature-title">Debt Optimizer</div>
-      <div class="feature-desc">Avalanche or snowball strategy — Walify calculates your exact debt-free date and total interest saved.</div>
+      <div class="feature-title">A real plan to kill your debt</div>
+      <div class="feature-desc">Pick avalanche or snowball. Walify calculates your exact debt-free date, total interest saved, and the monthly payment that gets you there fastest.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🎯</div>
-      <div class="feature-title">Budgets & Goals</div>
-      <div class="feature-desc">Set spending limits by category, track savings goals, and get alerts before you overspend.</div>
+      <div class="feature-title">Budgets that warn you before it's too late</div>
+      <div class="feature-desc">Set limits by category and get notified when you're trending over — not after you've already blown the budget.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📱</div>
-      <div class="feature-title">Any Device</div>
-      <div class="feature-desc">Works in any browser. Install as a native app on your phone — iOS and Android supported.</div>
+      <div class="feature-title">Runs everywhere, installs anywhere</div>
+      <div class="feature-desc">Use it in your browser or install it as a native app on your iPhone or Android. Your finances travel with you.</div>
     </div>
   </div>
 </section>
@@ -501,20 +539,20 @@
 <section class="section reveal">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
     <div>
-      <div class="section-tag">Any device, anywhere</div>
-      <h2 class="section-title">Desktop or phone —<br>your finances follow you.</h2>
+      <div class="section-tag">On your phone, on your desk, everywhere</div>
+      <h2 class="section-title">Check in on your money<br>wherever you are.</h2>
       <p class="section-sub" style="color:var(--muted2);margin-bottom:28px">
-        Walify works in any browser and installs as a native app on iOS and Android. Your data syncs instantly across all your devices.
+        Walify works in any browser and installs as a native app on iOS and Android. Everything syncs instantly — open it on your laptop, pick it up on your phone.
       </p>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
-          <span style="color:var(--green);font-size:18px">✓</span> Sync across all devices in real-time
+          <span style="color:var(--green);font-size:18px">✓</span> Instant sync across all your devices
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
-          <span style="color:var(--green);font-size:18px">✓</span> Install to home screen on iPhone &amp; Android
+          <span style="color:var(--green);font-size:18px">✓</span> Add to your home screen on iPhone &amp; Android
         </div>
         <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
-          <span style="color:var(--green);font-size:18px">✓</span> Ask Wally on the go — voice input supported
+          <span style="color:var(--green);font-size:18px">✓</span> Ask Wally a quick question from your phone
         </div>
       </div>
     </div>
@@ -551,29 +589,29 @@
 <section class="section reveal" id="screenshots" style="padding-bottom:60px">
   <div class="section-center">
     <div class="section-tag">See it in action</div>
-    <h2 class="section-title">Every tool you need, beautifully organized</h2>
-    <p class="section-sub">From transactions to reports — everything is one click away.</p>
+    <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+    <p class="section-sub">Clean, fast, and designed to give you answers at a glance — not drown you in data.</p>
   </div>
   <div class="screenshots-scroll" style="margin-top:48px;overflow-x:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch">
     <div style="display:flex;gap:20px;width:max-content;padding:0 4px">
       <div class="screenshot-card">
-        <div class="screenshot-label">Financial Dashboard</div>
+        <div class="screenshot-label">Your Money at a Glance</div>
         <img src="/images/walify_dashboard.png" alt="Walify Dashboard — financial overview with KPI cards and charts" loading="lazy">
       </div>
       <div class="screenshot-card">
-        <div class="screenshot-label">Bank Transactions</div>
+        <div class="screenshot-label">Every Transaction, Organized</div>
         <img src="/images/walify_transactions.png" alt="Walify Transactions — categorized bank transactions with monthly totals" loading="lazy">
       </div>
       <div class="screenshot-card">
-        <div class="screenshot-label">Financial Reports</div>
+        <div class="screenshot-label">Reports That Actually Mean Something</div>
         <img src="/images/walify_reports.png" alt="Walify Reports — P&L, balance sheet, cash flow and more" loading="lazy">
       </div>
       <div class="screenshot-card">
-        <div class="screenshot-label">Monthly Budget</div>
+        <div class="screenshot-label">Budgets That Keep You Honest</div>
         <img src="/images/walify_budget.png" alt="Walify Budget — set limits, track spending by category with progress bars" loading="lazy">
       </div>
       <div class="screenshot-card">
-        <div class="screenshot-label">AI Insights Feed</div>
+        <div class="screenshot-label">Wally Spots What You Miss</div>
         <img src="/images/walify_insights.png" alt="Walify AI Insights — spending spikes, savings opportunities, budget suggestions" loading="lazy">
       </div>
     </div>
@@ -583,66 +621,28 @@
 
 <hr class="section-divider">
 
-<!-- WALLY SECTION -->
-<section class="wally-section" id="wally">
-  <div class="wally-inner reveal">
-    <div class="wally-avatar">🤖</div>
-    <div class="section-tag">Meet Wally, your AI financial advisor</div>
-    <h2 class="section-title" style="margin-bottom:14px">Wally doesn't guess.<br>It reads your last 90 days first.</h2>
-    <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
-      Most AI gives generic tips. Wally reads your income, spending, debt, and savings — then thinks through your question before answering. Powered by Claude Opus 4.6.
-    </p>
-
-    <!-- Chat window -->
-    <div class="wally-window">
-      <div class="wally-window-bar">
-        <div class="wally-window-avatar">🤖</div>
-        <div>
-          <div class="wally-window-name">Wally</div>
-          <div class="wally-window-status">● Online · Analyzing your finances</div>
-        </div>
-      </div>
-      <div class="wally-chat" id="wally-chat-display">
-        <!-- populated by JS -->
-      </div>
-      <div class="wally-badge">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-        <span id="wally-data-used">Wally uses your real financial data</span>
-      </div>
-    </div>
-
-    <!-- Question pills -->
-    <div class="wally-questions" id="wally-questions"></div>
-    <div style="margin-top:36px">
-      <a href="/login" class="btn-primary-lg" style="font-size:15px">Ask Wally about your finances — Start Free →</a>
-    </div>
-  </div>
-</section>
-
-<hr class="section-divider">
-
 <!-- STATS -->
 <section class="section" style="padding-bottom:40px">
   <div class="section-center">
-    <div class="section-tag">Why Walify</div>
-    <h2 class="section-title">Built for real people</h2>
+    <div class="section-tag">By the numbers</div>
+    <h2 class="section-title">More insight than a spreadsheet.<br>Less friction than a financial advisor.</h2>
   </div>
   <div class="stats-row stagger" style="justify-content:center;margin-top:40px">
     <div class="stat">
       <div class="stat-num">12+</div>
-      <div class="stat-label">Financial reports</div>
+      <div class="stat-label">Reports — P&L to FIRE to net worth</div>
     </div>
     <div class="stat">
       <div class="stat-num">50</div>
-      <div class="stat-label">AI messages/day on Pro</div>
+      <div class="stat-label">AI conversations/day on Pro</div>
     </div>
     <div class="stat">
       <div class="stat-num">$0</div>
-      <div class="stat-label">To get started</div>
+      <div class="stat-label">To get started — free forever</div>
     </div>
     <div class="stat">
-      <div class="stat-num">∞</div>
-      <div class="stat-label">Devices supported</div>
+      <div class="stat-num">12k+</div>
+      <div class="stat-label">Banks supported via Plaid</div>
     </div>
   </div>
 </section>
@@ -653,30 +653,30 @@
 <section class="section" id="pricing">
   <div class="section-center">
     <div class="section-tag">Pricing</div>
-    <h2 class="section-title">Start free, upgrade when ready</h2>
-    <p class="section-sub">No credit card required. Cancel anytime.</p>
+    <h2 class="section-title">Free to start. $9.99 to go all in.</h2>
+    <p class="section-sub">No credit card. No trial period. Free means free.</p>
   </div>
   <div class="pricing-grid stagger">
     <div class="pricing-card">
       <div class="plan-name">Free</div>
       <div class="plan-price">$0<span>/mo</span></div>
-      <div class="plan-desc">Start tracking — no card, no commitment</div>
+      <div class="plan-desc">Real tools, no card required — use it forever</div>
       <ul class="plan-features">
         <li>Manual income &amp; expense tracking</li>
         <li>Budget tracking &amp; goals</li>
         <li>Debt payoff optimizer</li>
         <li>1 bank connection (Plaid)</li>
-        <li>5 AI messages/month with Wally</li>
+        <li>5 AI conversations/month with Wally</li>
         <li>3 financial reports</li>
-        <li>Calendar &amp; subscription tracker</li>
+        <li>Subscription &amp; bill tracker</li>
       </ul>
-      <a href="/login" class="plan-btn plan-btn-ghost" style="display:block;text-align:center">Get Started Free</a>
+      <a href="/login" class="plan-btn plan-btn-ghost" style="display:block;text-align:center">Start for Free — No Card</a>
     </div>
     <div class="pricing-card featured">
-      <div class="pricing-badge">Most Popular</div>
+      <div class="pricing-badge">Best Value</div>
       <div class="plan-name" style="color:var(--green)">Pro</div>
       <div class="plan-price">$9<span>.99/mo</span></div>
-      <div class="plan-desc">50 AI questions/day · Unlimited banks · Full reports</div>
+      <div class="plan-desc">Unlimited AI · All banks · Every report · Full power</div>
       <ul class="plan-features">
         <li>Everything in Free, plus:</li>
         <li><strong>Unlimited bank connections</strong></li>
@@ -698,54 +698,54 @@
         <li>Invoicing &amp; payment tracking</li>
         <li>Spending insights &amp; alerts</li>
       </ul>
-      <a href="/upgrade" class="plan-btn plan-btn-primary" style="display:block;text-align:center">Upgrade to Pro →</a>
+      <a href="/upgrade" class="plan-btn plan-btn-primary" style="display:block;text-align:center">Get Pro — $9.99/mo →</a>
     </div>
   </div>
   <p class="pricing-note">
     <a href="/upgrade" style="color:var(--green)">See full feature comparison →</a>
   </p>
-  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:10px">🔒 Cancel anytime · Your bank credentials are never stored · Plaid read-only access</p>
+  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:10px">🔒 Cancel anytime · Bank credentials never stored · Plaid read-only access · Your data stays yours</p>
 </section>
 
 <!-- FAQ -->
 <section class="section reveal" style="max-width:760px">
   <div class="section-center">
-    <div class="section-tag">Common questions</div>
-    <h2 class="section-title">Everything you need to know</h2>
+    <div class="section-tag">Fair questions</div>
+    <h2 class="section-title">The things people actually want to know</h2>
   </div>
   <div style="margin-top:40px;display:flex;flex-direction:column;gap:2px" id="faq-list">
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Can you see my bank passwords or move my money? <span class="faq-icon">+</span></button>
-      <div class="faq-a">No. Walify connects via Plaid, which uses read-only access. We can see your transactions and balances — we cannot log in to your bank, move money, or store your credentials. Your username and password never touch our servers.</div>
+      <button class="faq-q" onclick="toggleFaq(this)">Is my banking data actually safe? Can Walify move my money? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Walify connects via Plaid — the same bank-linking technology used by thousands of financial apps. It's read-only: we can see your transactions and balances, nothing else. We cannot log into your bank, initiate transfers, or touch your money. Your username and password never touch Walify's servers, ever.</div>
     </div>
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">What banks are supported? <span class="faq-icon">+</span></button>
-      <div class="faq-a">Plaid supports 12,000+ financial institutions including Chase, Bank of America, Wells Fargo, Capital One, Citibank, US Bank, and most credit unions. If your bank is listed on Plaid's network, it works with Walify.</div>
+      <button class="faq-q" onclick="toggleFaq(this)">Is Wally actually AI or just a glorified chatbot? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Wally is powered by Claude Opus 4.6 — one of the most capable AI models available — with adaptive thinking enabled. That means before it responds, it reads your actual transaction history, income, expenses, and debt, then reasons through your specific situation. It's not keyword matching or scripts. It genuinely thinks about your question in the context of your real financial data.</div>
     </div>
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">I used Mint. Is this similar? <span class="faq-icon">+</span></button>
-      <div class="faq-a">Yes — Walify does everything Mint did (bank sync, spending categories, budgets, net worth) plus things Mint never had: an AI advisor who answers specific questions about your finances, debt payoff strategies, FIRE projections, and mileage tracking.</div>
+      <button class="faq-q" onclick="toggleFaq(this)">Do I have to link my bank account? What if I don't want to? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Not at all. Bank sync is optional. You can use Walify entirely by entering transactions manually — the Free plan fully supports this. Plaid bank sync is available on Free (1 connection) and unlimited on Pro, but it's always your choice.</div>
     </div>
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">What is the free plan? What's the catch? <span class="faq-icon">+</span></button>
-      <div class="faq-a">Free gives you 1 bank connection, manual entry, budgeting, goals, 3 reports, and 5 Wally AI messages per month. No credit card required, no trial period — it's free forever. Pro ($9.99/mo) unlocks unlimited banks, 50 AI messages/day, all 12 reports, and imports.</div>
+      <button class="faq-q" onclick="toggleFaq(this)">What banks does it work with? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Plaid supports 12,000+ financial institutions — Chase, Bank of America, Wells Fargo, Capital One, Citi, US Bank, and the vast majority of credit unions. If your bank has online banking, it almost certainly works.</div>
     </div>
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">What is Wally? How is the AI powered? <span class="faq-icon">+</span></button>
-      <div class="faq-a">Wally is your personal AI financial advisor inside Walify. Wally is powered by Claude Opus 4.6 — Anthropic's most capable model — with adaptive thinking, meaning it reasons through your specific financial situation before answering rather than giving generic advice.</div>
+      <button class="faq-q" onclick="toggleFaq(this)">What's actually free? What's the catch? <span class="faq-icon">+</span></button>
+      <div class="faq-a">The Free plan is genuinely free — no credit card, no 14-day trial, no expiry. You get manual tracking, budgeting, goals, debt optimizer, 3 reports, and 5 Wally AI conversations per month. The only catch is you want to use it more. Pro ($9.99/mo) unlocks unlimited banks, 50 AI conversations/day, all 12 reports, CSV/PDF import, and business mode.</div>
     </div>
     <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span class="faq-icon">+</span></button>
-      <div class="faq-a">Yes. Cancel from the billing portal in one click — no emails, no phone calls, no hassle. Your data is yours and you can export it at any time from Settings → Backup & Restore.</div>
+      <button class="faq-q" onclick="toggleFaq(this)">Can I cancel Pro anytime? What happens to my data? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Yes — cancel in one click from the billing portal, no phone calls required. If you cancel, you stay on Pro until the end of your billing period, then drop to Free. Your data is never deleted. You can export everything anytime from Settings → Backup & Restore.</div>
     </div>
   </div>
 </section>
 
 <!-- CTA -->
 <section class="cta-section">
-  <h2>You're one bank connection away<br>from knowing exactly where you stand.</h2>
-  <p>Join Walify free — founding member pricing locked at $9.99/mo before it increases.</p>
-  <a href="/login" class="btn-primary-lg">Get Started Free →</a>
+  <h2>Stop guessing about your money.<br>Start knowing.</h2>
+  <p>It's free to start, takes two minutes to set up, and Wally is waiting to answer your first question.</p>
+  <a href="/login" class="btn-primary-lg">Try Walify Free — No Card Needed →</a>
 </section>
 
 <!-- FOOTER -->
@@ -877,21 +877,21 @@ document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach
 var _wallyConvos = [
   {
     q: '💸 Can I afford a vacation?',
-    user: 'Can I afford a vacation next month?',
-    answer: 'Looking at your numbers: you have <strong>$2,380 left</strong> this month after bills. Your emergency fund covers 3.2 months — solid. A $1,200 vacation leaves a $1,180 buffer. <strong>Yes, you can afford it</strong> — just cut back on dining to stay within your $900 budget.',
-    data: 'Used: income, monthly expenses, emergency fund balance'
+    user: 'Can I actually afford a vacation next month?',
+    answer: 'Based on your real numbers: you have <strong>$2,380 left this month</strong> after all fixed bills. Your emergency fund covers 3.2 months — you\'re in solid shape. A $1,200 trip leaves a $1,180 buffer. <strong>Yes, you can afford it.</strong> The one thing to watch: dining is running $80 over this month. Keep that in check and you\'re all clear.',
+    data: 'Read: income, fixed expenses, emergency fund, current month spending'
   },
   {
-    q: '💳 How do I kill my debt faster?',
-    user: 'How do I pay off my credit card faster?',
-    answer: 'Your Chase card has $4,200 at 24.9% APR. At $150/mo minimum you\'d pay it off in <strong>34 months costing $893 in interest</strong>. Redirect $180/mo from dining (your most over-budget category) → <strong>17 months and save $612</strong>. Want me to set that up?',
-    data: 'Used: debt balances, interest rates, spending by category'
+    q: '💳 When am I debt-free?',
+    user: 'How long until I pay off my credit card debt?',
+    answer: 'Your Chase card is at $4,200 with 24.9% APR. At the $150 minimum you\'re paying now, you\'d be done in <strong>34 months</strong> and hand over <strong>$893 in interest</strong>. Here\'s the better move: your dining spend is $180 over budget every month. Redirect that — and you\'re debt-free in <strong>17 months, saving $612.</strong> Same income, different choice.',
+    data: 'Read: debt balances, interest rates, spending by category, budget limits'
   },
   {
-    q: '📊 How is my budget looking?',
-    user: 'Am I on track with my budget this month?',
-    answer: '<strong>3 of 6 categories are on track.</strong> Groceries: 68% used ✓. Dining: 112% — $52 over. Gas: 45% ✓. Your biggest risk is dining. Cut $50 there and you finish the month <strong>$180 in the black</strong>.',
-    data: 'Used: budget limits, transaction history, current month spend'
+    q: '📊 Where is my money going?',
+    user: 'I feel like my money just disappears. Where does it actually go?',
+    answer: 'I looked at your last 90 days. Your top three spend categories: <strong>Dining $847/mo, Subscriptions $214/mo, Shopping $390/mo.</strong> That\'s $1,451 — about 38% of your take-home. Subscriptions jumped $60 last month; looks like a streaming service and a gym you haven\'t used in 6 weeks. Want me to flag the ones worth cutting?',
+    data: 'Read: 90 days of transactions, spending by category, subscription detection'
   }
 ];
 
