@@ -5644,18 +5644,25 @@ function renderCalendar() {
   });
 
   // Build daily balance projection
-  // Only projected events (income/expense/subscription) affect future balance.
-  // Actual transactions ("paid") are already reflected in totalAssets().
+  // totalAssets() already reflects all past transactions.
+  // Only apply projected recurring events for FUTURE days (after today).
+  // This prevents double-counting past income and ensures mid-month projections are accurate.
+  const today = new Date();
+  const todayDay = (calYear === today.getFullYear() && calMonth === today.getMonth())
+    ? today.getDate() : (calMonth < today.getMonth() || calYear < today.getFullYear() ? daysInMonth + 1 : 0);
   const startingBal = totalAssets();
   const dailyBal = [];
   let runBal = startingBal;
   for (let d = 1; d <= daysInMonth; d++) {
     const dayEvents = events[d] || [];
-    dayEvents.forEach(ev => {
-      if (ev.type === 'income') runBal += ev.amount;
-      else if (ev.type === 'expense' || ev.type === 'subscription') runBal -= ev.amount;
-      // 'paid' events are actual transactions — don't add to projection
-    });
+    if (d > todayDay) {
+      // Future day — apply projected recurring income/expenses
+      dayEvents.forEach(ev => {
+        if (ev.type === 'income') runBal += ev.amount;
+        else if (ev.type === 'expense' || ev.type === 'subscription') runBal -= ev.amount;
+      });
+    }
+    // Past days: actual transactions are already in startingBal — don't re-apply
     dailyBal.push(runBal);
   }
 
