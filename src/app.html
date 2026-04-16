@@ -885,6 +885,26 @@
       <div class="card-icon card-icon-purple"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg></div>
       <div class="card-label">Transactions</div><div class="card-value" id="tx-count">0</div><div class="card-sub">imported</div>
     </div>
+    <div class="card">
+      <div class="card-icon card-icon-green"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clip-rule="evenodd"/></svg></div>
+      <div class="card-label">Savings Rate</div><div class="card-value" id="dash-savings-rate">—</div><div class="card-sub" id="dash-savings-rate-sub">of income saved</div>
+    </div>
+    <div class="card">
+      <div class="card-icon card-icon-teal"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg></div>
+      <div class="card-label">Debt-Free Date</div><div class="card-value" id="dash-debt-free-date">—</div><div class="card-sub" id="dash-debt-free-sub">at current payments</div>
+    </div>
+    <div class="card">
+      <div class="card-icon card-icon-blue"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg></div>
+      <div class="card-label">Budget Health</div><div class="card-value" id="dash-budget-health">—</div><div class="card-sub" id="dash-budget-health-sub">categories on track</div>
+    </div>
+    <div class="card">
+      <div class="card-icon card-icon-yellow"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg></div>
+      <div class="card-label">Next Bill Due</div><div class="card-value" id="dash-next-bill">—</div><div class="card-sub" id="dash-next-bill-sub">upcoming</div>
+    </div>
+    <div class="card">
+      <div class="card-icon card-icon-teal"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/></svg></div>
+      <div class="card-label">Saved This Month</div><div class="card-value" id="dash-month-savings">$0</div><div class="card-sub" id="dash-month-savings-sub">income − spending</div>
+    </div>
   </div>
   <div id="ai-insights-container" class="ai-insight-cards" style="display:none"></div>
 
@@ -6894,6 +6914,82 @@ function renderSummaryCards() {
     }
   }
   if (runwaySubEl) runwaySubEl.textContent = fmtShort(liquidAssets) + ' liquid ÷ ' + fmtShort(effME) + '/mo';
+
+  // ── 5 new KPI cards ────────────────────────────────────────────────────────
+
+  // 1. Savings Rate
+  const srEl = document.getElementById('dash-savings-rate');
+  const srSubEl = document.getElementById('dash-savings-rate-sub');
+  if (srEl) {
+    if (effMI > 0) {
+      const rate = Math.round(((effMI - effME) / effMI) * 100);
+      srEl.textContent = rate + '%';
+      srEl.className = 'card-value ' + (rate >= 20 ? 'green' : rate >= 10 ? 'yellow' : 'red');
+      if (srSubEl) srSubEl.textContent = rate >= 20 ? 'excellent' : rate >= 10 ? 'good' : rate >= 0 ? 'below target' : 'spending > income';
+    } else {
+      srEl.textContent = '—'; srEl.className = 'card-value';
+    }
+  }
+
+  // 2. Debt-Free Date
+  const dfEl = document.getElementById('dash-debt-free-date');
+  const dfSubEl = document.getElementById('dash-debt-free-sub');
+  if (dfEl) {
+    if (td > 0) {
+      const dfMonths = debtFreeMonths();
+      if (dfMonths) {
+        const dfDate = new Date(); dfDate.setMonth(dfDate.getMonth() + dfMonths);
+        dfEl.textContent = dfDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        dfEl.className = 'card-value green';
+        if (dfSubEl) dfSubEl.textContent = dfMonths + ' mo · ' + fmtShort(totalRemainingInterest()) + ' interest';
+      } else { dfEl.textContent = '—'; dfEl.className = 'card-value'; }
+    } else { dfEl.textContent = 'Debt free! 🎉'; dfEl.className = 'card-value green'; if (dfSubEl) dfSubEl.textContent = 'no outstanding debt'; }
+  }
+
+  // 3. Budget Health
+  const bhEl = document.getElementById('dash-budget-health');
+  const bhSubEl = document.getElementById('dash-budget-health-sub');
+  if (bhEl) {
+    const curMonth = n.getMonth() + 1, curYear = n.getFullYear();
+    const budgets = budgetsForMonth(curMonth, curYear);
+    if (budgets.length) {
+      const catSpend = {};
+      filteredTx().filter(t => { const d = new Date(t.date); return d.getMonth()+1 === curMonth && d.getFullYear() === curYear && t.type === 'debit'; }).forEach(t => { catSpend[t.category] = (catSpend[t.category]||0) + t.amount; });
+      const onTrack = budgets.filter(b => (catSpend[b.category]||0) <= b.limit).length;
+      bhEl.textContent = onTrack + '/' + budgets.length;
+      bhEl.className = 'card-value ' + (onTrack === budgets.length ? 'green' : onTrack >= budgets.length * 0.7 ? 'yellow' : 'red');
+      if (bhSubEl) bhSubEl.textContent = (budgets.length - onTrack) > 0 ? (budgets.length - onTrack) + ' over budget' : 'all on track';
+    } else { bhEl.textContent = '—'; bhEl.className = 'card-value'; if (bhSubEl) bhSubEl.textContent = 'no budgets set'; }
+  }
+
+  // 4. Next Bill Due
+  const nbEl = document.getElementById('dash-next-bill');
+  const nbSubEl = document.getElementById('dash-next-bill-sub');
+  if (nbEl) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const upcoming = (state.subscriptions || [])
+      .filter(s => s.mode === state.mode && s.status !== 'cancelled' && s.nextBillingDate)
+      .map(s => ({ name: s.name, amount: s.amount, date: new Date(s.nextBillingDate) }))
+      .filter(s => s.date >= today)
+      .sort((a,b) => a.date - b.date);
+    if (upcoming.length) {
+      const next = upcoming[0];
+      const daysAway = Math.round((next.date - today) / 86400000);
+      nbEl.textContent = fmt(next.amount);
+      nbEl.className = 'card-value ' + (daysAway <= 3 ? 'red' : daysAway <= 7 ? 'yellow' : 'blue');
+      if (nbSubEl) nbSubEl.textContent = next.name.length > 14 ? next.name.slice(0,14)+'…' : next.name + ' · ' + (daysAway === 0 ? 'today' : daysAway === 1 ? 'tomorrow' : 'in ' + daysAway + 'd');
+    } else { nbEl.textContent = '—'; nbEl.className = 'card-value'; if (nbSubEl) nbSubEl.textContent = 'no subscriptions'; }
+  }
+
+  // 5. Saved This Month
+  const msEl = document.getElementById('dash-month-savings');
+  const msSubEl = document.getElementById('dash-month-savings-sub');
+  if (msEl) {
+    const saved = txMI - txME;
+    msEl.textContent = fmtShort(Math.abs(saved));
+    msEl.className = 'card-value ' + (saved >= 0 ? 'green' : 'red');
+    if (msSubEl) msSubEl.textContent = saved >= 0 ? '+' + fmtShort(saved) + ' ahead' : fmtShort(Math.abs(saved)) + ' over';
+  }
 }
 
 function renderIncome() {
