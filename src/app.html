@@ -890,10 +890,6 @@
       <div class="card-label">Savings Rate</div><div class="card-value" id="dash-savings-rate">—</div><div class="card-sub" id="dash-savings-rate-sub">of income saved</div>
     </div>
     <div class="card">
-      <div class="card-icon card-icon-teal"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg></div>
-      <div class="card-label">Debt-Free Date</div><div class="card-value" id="dash-debt-free-date">—</div><div class="card-sub" id="dash-debt-free-sub">at current payments</div>
-    </div>
-    <div class="card">
       <div class="card-icon card-icon-blue"><svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg></div>
       <div class="card-label">Budget Health</div><div class="card-value" id="dash-budget-health">—</div><div class="card-sub" id="dash-budget-health-sub">categories on track</div>
     </div>
@@ -6927,22 +6923,7 @@ function renderSummaryCards() {
     }
   }
 
-  // 2. Debt-Free Date
-  const dfEl = document.getElementById('dash-debt-free-date');
-  const dfSubEl = document.getElementById('dash-debt-free-sub');
-  if (dfEl) {
-    if (td > 0) {
-      const dfMonths = debtFreeMonths();
-      if (dfMonths) {
-        const dfDate = new Date(); dfDate.setMonth(dfDate.getMonth() + dfMonths);
-        dfEl.textContent = dfDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-        dfEl.className = 'card-value green';
-        if (dfSubEl) dfSubEl.textContent = dfMonths + ' mo · ' + fmtShort(totalRemainingInterest()) + ' interest';
-      } else { dfEl.textContent = '—'; dfEl.className = 'card-value'; }
-    } else { dfEl.textContent = 'Debt free! 🎉'; dfEl.className = 'card-value green'; if (dfSubEl) dfSubEl.textContent = 'no outstanding debt'; }
-  }
-
-  // 3. Budget Health
+  // 2. Budget Health
   const bhEl = document.getElementById('dash-budget-health');
   const bhSubEl = document.getElementById('dash-budget-health-sub');
   if (bhEl) {
@@ -6958,14 +6939,14 @@ function renderSummaryCards() {
     } else { bhEl.textContent = '—'; bhEl.className = 'card-value'; if (bhSubEl) bhSubEl.textContent = 'no budgets set'; }
   }
 
-  // 4. Saved This Month
+  // 3. Saved This Month — projected income minus actual spending so far
   const msEl = document.getElementById('dash-month-savings');
   const msSubEl = document.getElementById('dash-month-savings-sub');
   if (msEl) {
-    const saved = txMI - txME;
+    const saved = effMI - txME;
     msEl.textContent = fmtShort(Math.abs(saved));
     msEl.className = 'card-value ' + (saved >= 0 ? 'green' : 'red');
-    if (msSubEl) msSubEl.textContent = saved >= 0 ? '+' + fmtShort(saved) + ' ahead' : fmtShort(Math.abs(saved)) + ' over';
+    if (msSubEl) msSubEl.textContent = saved >= 0 ? fmtShort(saved) + ' remaining' : fmtShort(Math.abs(saved)) + ' over income';
   }
 }
 
