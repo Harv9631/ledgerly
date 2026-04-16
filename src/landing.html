@@ -316,6 +316,29 @@
     .screenshot-card img { width: 100%; display: block; }
     @media (max-width: 860px) { .screenshot-card { width: 88vw; } }
 
+    /* ── FAQ ── */
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      width:100%; text-align:left; background:none; border:none; color:var(--text);
+      font-size:15px; font-weight:600; padding:18px 4px; cursor:pointer; font-family:inherit;
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      transition:color .2s;
+    }
+    .faq-q:hover { color:var(--green); }
+    .faq-icon { font-size:20px; flex-shrink:0; color:var(--green); transition:transform .25s; }
+    .faq-a {
+      font-size:14px; color:var(--muted2); line-height:1.7;
+      max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s;
+      padding:0 4px;
+    }
+    .faq-item.open .faq-a { max-height:200px; padding-bottom:18px; }
+    .faq-item.open .faq-icon { transform:rotate(45deg); }
+
+    /* Mobile sign-in visible */
+    @media (max-width:600px) {
+      .nav-signin-mobile { display:block !important; }
+    }
+
     /* ── ANIMATIONS ── */
     /* Hero float */
     @keyframes heroFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
@@ -368,6 +391,12 @@
 <body>
 <canvas id="particle-canvas"></canvas>
 
+<!-- ANNOUNCEMENT BAR -->
+<div style="background:linear-gradient(90deg,#238636,#1a5c2a);text-align:center;padding:10px 16px;font-size:13px;font-weight:600;color:#fff;letter-spacing:.01em;position:relative;z-index:101">
+  🎉 Founding member pricing — Pro locked at $9.99/mo. Price increases to $14.99 when we exit beta.
+  <a href="/login" style="color:#b3f0be;text-decoration:underline;margin-left:8px;white-space:nowrap">Lock it in →</a>
+</div>
+
 <!-- NAV -->
 <nav>
   <a href="/" class="nav-logo">
@@ -392,16 +421,22 @@
   <div class="hero-badge">
     🤖 Powered by Claude Opus AI
   </div>
-  <h1>Your money,<br>finally under control.</h1>
+  <h1>Stop wondering<br>where your money went.</h1>
   <p class="hero-sub">
-    Walify connects your bank accounts, tracks spending, and gives you
-    <strong>Wally</strong> — an AI financial advisor who actually knows your numbers.
+    Connect your accounts once. <strong>Wally</strong> reads every transaction and answers your real financial questions — debt payoff timelines, budget gaps, savings projections.
   </p>
   <div class="hero-buttons">
     <a href="/login" class="btn-primary-lg">Start for Free →</a>
-    <a href="#pricing" class="btn-ghost-lg">See Pricing</a>
+    <a href="#wally" class="btn-ghost-lg">See Wally in action</a>
   </div>
   <p class="hero-note">Free forever · No credit card required</p>
+  <!-- Trust bar -->
+  <div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:32px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🔒 256-bit encrypted</div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">👁 Read-only bank access</div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🏦 Powered by Plaid</div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🚫 We never sell your data</div>
+  </div>
 </section>
 
 <!-- HERO VIDEO -->
@@ -508,7 +543,7 @@
   <div class="wally-inner reveal">
     <div class="wally-avatar">🤖</div>
     <div class="section-tag">Meet Wally, your AI financial advisor</div>
-    <h2 class="section-title" style="margin-bottom:14px">Advice that actually knows your numbers.</h2>
+    <h2 class="section-title" style="margin-bottom:14px">Wally doesn't guess.<br>It reads your last 90 days first.</h2>
     <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
       Most AI gives generic tips. Wally reads your income, spending, debt, and savings — then thinks through your question before answering. Powered by Claude Opus 4.6.
     </p>
@@ -533,6 +568,9 @@
 
     <!-- Question pills -->
     <div class="wally-questions" id="wally-questions"></div>
+    <div style="margin-top:36px">
+      <a href="/login" class="btn-primary-lg" style="font-size:15px">Ask Wally about your finances — Start Free →</a>
+    </div>
   </div>
 </section>
 
@@ -577,7 +615,7 @@
     <div class="pricing-card">
       <div class="plan-name">Free</div>
       <div class="plan-price">$0<span>/mo</span></div>
-      <div class="plan-desc">Everything you need to get started</div>
+      <div class="plan-desc">Start tracking — no card, no commitment</div>
       <ul class="plan-features">
         <li>Manual income &amp; expense tracking</li>
         <li>Budget tracking &amp; goals</li>
@@ -593,7 +631,7 @@
       <div class="pricing-badge">Most Popular</div>
       <div class="plan-name" style="color:var(--green)">Pro</div>
       <div class="plan-price">$9<span>.99/mo</span></div>
-      <div class="plan-desc">Unlimited access to everything</div>
+      <div class="plan-desc">50 AI questions/day · Unlimited banks · Full reports</div>
       <ul class="plan-features">
         <li>Everything in Free, plus:</li>
         <li><strong>Unlimited bank connections</strong></li>
@@ -609,12 +647,47 @@
   <p class="pricing-note">
     <a href="/upgrade" style="color:var(--green)">See full feature comparison →</a>
   </p>
+  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:10px">🔒 Cancel anytime · Your bank credentials are never stored · Plaid read-only access</p>
+</section>
+
+<!-- FAQ -->
+<section class="section reveal" style="max-width:760px">
+  <div class="section-center">
+    <div class="section-tag">Common questions</div>
+    <h2 class="section-title">Everything you need to know</h2>
+  </div>
+  <div style="margin-top:40px;display:flex;flex-direction:column;gap:2px" id="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Can you see my bank passwords or move my money? <span class="faq-icon">+</span></button>
+      <div class="faq-a">No. Walify connects via Plaid, which uses read-only access. We can see your transactions and balances — we cannot log in to your bank, move money, or store your credentials. Your username and password never touch our servers.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What banks are supported? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Plaid supports 12,000+ financial institutions including Chase, Bank of America, Wells Fargo, Capital One, Citibank, US Bank, and most credit unions. If your bank is listed on Plaid's network, it works with Walify.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">I used Mint. Is this similar? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Yes — Walify does everything Mint did (bank sync, spending categories, budgets, net worth) plus things Mint never had: an AI advisor who answers specific questions about your finances, debt payoff strategies, FIRE projections, and mileage tracking.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What is the free plan? What's the catch? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Free gives you 1 bank connection, manual entry, budgeting, goals, 3 reports, and 5 Wally AI messages per month. No credit card required, no trial period — it's free forever. Pro ($9.99/mo) unlocks unlimited banks, 50 AI messages/day, all 12 reports, and imports.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What is Wally? How is the AI powered? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Wally is your personal AI financial advisor inside Walify. Wally is powered by Claude Opus 4.6 — Anthropic's most capable model — with adaptive thinking, meaning it reasons through your specific financial situation before answering rather than giving generic advice.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Yes. Cancel from the billing portal in one click — no emails, no phone calls, no hassle. Your data is yours and you can export it at any time from Settings → Backup & Restore.</div>
+    </div>
+  </div>
 </section>
 
 <!-- CTA -->
 <section class="cta-section">
-  <h2>Take control of your finances today.</h2>
-  <p>Join Walify — free forever, no credit card needed.</p>
+  <h2>You're one bank connection away<br>from knowing exactly where you stand.</h2>
+  <p>Join Walify free — founding member pricing locked at $9.99/mo before it increases.</p>
   <a href="/login" class="btn-primary-lg">Get Started Free →</a>
 </section>
 
@@ -717,6 +790,15 @@
   init();
   draw();
 })();
+</script>
+
+<script>
+function toggleFaq(btn) {
+  var item = btn.parentElement;
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!isOpen) item.classList.add('open');
+}
 </script>
 
 <script>
