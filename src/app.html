@@ -4230,6 +4230,14 @@ function bulkDeleteTx() {
 }
 
 function deleteTransaction(id) {
+  const tx = state.transactions.find(t => t.id === id);
+  // Track deleted Plaid transaction IDs so sync never re-adds them
+  if (tx && tx.plaidTxId) {
+    state.deletedPlaidTxIds = state.deletedPlaidTxIds || [];
+    if (!state.deletedPlaidTxIds.includes(tx.plaidTxId)) {
+      state.deletedPlaidTxIds.push(tx.plaidTxId);
+    }
+  }
   state.transactions = state.transactions.filter(t => t.id !== id);
   removeReceipt(id);
   saveState();
@@ -9406,6 +9414,8 @@ async function syncPlaidItem(itemId, btn, forceReset) {
     console.log('[PLAID-SYNC] itemId=' + itemId + ' reset=' + needsReset + ' added=' + ((txs&&txs.added)||[]).length + ' modified=' + ((txs&&txs.modified)||[]).length + ' removed=' + ((txs&&txs.removed)||[]).length);
     if (txs && !txs.error) {
       for (const tx of (txs.added || [])) {
+        // Skip if user deleted this transaction — never re-add
+        if ((state.deletedPlaidTxIds || []).includes(tx.transaction_id)) continue;
         if (state.transactions.find(t => t.plaidTxId === tx.transaction_id)) continue;
         // Also skip if same date + same amount + same description already exists (prevents ACH settle duplicates)
         const dupKey = tx.date + '|' + Math.abs(tx.amount).toFixed(2) + '|' + (tx.name||'').trim().toLowerCase();
@@ -10420,7 +10430,7 @@ if (window._webToken) {
         merged.excludedPlaidIds = (state.excludedPlaidIds || []).length > 0 ? state.excludedPlaidIds : (data.state.excludedPlaidIds || []);
         // For all array fields: local is authoritative if it has been touched in this session
         // (user deletions should stick — the server copy is stale from a prior push)
-        var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules'];
+        var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules','deletedPlaidTxIds'];
         arrayFields.forEach(function(key) {
           var local = state[key] || [];
           var server = data.state[key] || [];
@@ -10435,18 +10445,42 @@ if (window._webToken) {
         // Merge transactions: keep all unique transactions from both local and server
         var localTxs = state.transactions || [];
         var serverTxs = data.state.transactions || [];
-        if (localTxs.length && serverTxs.length) {
+        // Merge deletedPlaidTxIds — union of both so deletions from either device stick
+        var localDeleted = state.deletedPlaidTxIds || [];
+        var serverDeleted = data.state.deletedPlaidTxIds || [];
+        var allDeleted = new Set([...localDeleted, ...serverDeleted]);
+        merged.deletedPlaidTxIds = Array.from(allDeleted);
+
+        if (localTxs.length || serverTxs.length) {
+          // Build local lookup for user-modified properties
+          var localById = {};
+          var localByPlaid = {};
+          localTxs.forEach(function(t) {
+            localById[t.id] = t;
+            if (t.plaidTxId) localByPlaid[t.plaidTxId] = t;
+          });
           var seenIds = new Set();
           var mergedTxs = [];
-          // Server transactions take priority (may have updated categories, etc.)
-          serverTxs.forEach(function(t) { seenIds.add(t.id); if (t.plaidTxId) seenIds.add(t.plaidTxId); mergedTxs.push(t); });
-          // Add any local-only transactions the server didn't have
+          // Filter out deleted transactions, then merge user-set fields from local into server version
+          serverTxs.forEach(function(t) {
+            if (allDeleted.has(t.plaidTxId) || allDeleted.has(t.id)) return; // skip deleted
+            var local = localById[t.id] || (t.plaidTxId && localByPlaid[t.plaidTxId]);
+            seenIds.add(t.id);
+            if (t.plaidTxId) seenIds.add(t.plaidTxId);
+            if (local && local.manualCategory) {
+              // User manually set category — preserve it over server value
+              mergedTxs.push({ ...t, category: local.category, manualCategory: true,
+                notes: local.notes || t.notes, splits: local.splits || t.splits });
+            } else {
+              mergedTxs.push(t);
+            }
+          });
+          // Add local-only transactions not deleted and not on server
           localTxs.forEach(function(t) {
+            if (allDeleted.has(t.plaidTxId) || allDeleted.has(t.id)) return;
             if (!seenIds.has(t.id) && !(t.plaidTxId && seenIds.has(t.plaidTxId))) mergedTxs.push(t);
           });
           merged.transactions = mergedTxs;
-        } else if (localTxs.length > serverTxs.length) {
-          merged.transactions = localTxs;
         }
         state = merged;
         saveState();
