@@ -439,7 +439,7 @@
   </div>
 </section>
 
-<!-- HERO VIDEO -->
+<!-- HERO MOCKUP -->
 <div class="mockup-wrap">
   <div class="mockup">
     <div class="mockup-bar">
@@ -448,12 +448,7 @@
       <div class="mockup-dot" style="background:#27c93f"></div>
       <div class="mockup-url">walify.ai/app.html</div>
     </div>
-    <video autoplay muted loop playsinline
-      style="width:100%;display:block;max-height:520px;object-fit:cover;object-position:top"
-      poster="/images/walify_dashboard.png">
-      <source src="/images/walify_hero.mp4" type="video/mp4">
-      <img src="/images/walify_dashboard.png" alt="Walify app dashboard">
-    </video>
+    <img src="/images/walify_dashboard.png" alt="Walify Financial Dashboard" style="width:100%;display:block">
   </div>
 </div>
 
@@ -499,6 +494,56 @@
     </div>
   </div>
 </section>
+
+<hr class="section-divider">
+
+<!-- DEVICES SECTION -->
+<section class="section reveal">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+    <div>
+      <div class="section-tag">Any device, anywhere</div>
+      <h2 class="section-title">Desktop or phone —<br>your finances follow you.</h2>
+      <p class="section-sub" style="color:var(--muted2);margin-bottom:28px">
+        Walify works in any browser and installs as a native app on iOS and Android. Your data syncs instantly across all your devices.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
+          <span style="color:var(--green);font-size:18px">✓</span> Sync across all devices in real-time
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
+          <span style="color:var(--green);font-size:18px">✓</span> Install to home screen on iPhone &amp; Android
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
+          <span style="color:var(--green);font-size:18px">✓</span> Ask Wally on the go — voice input supported
+        </div>
+      </div>
+    </div>
+    <!-- Phone mockup -->
+    <div style="display:flex;justify-content:center;align-items:flex-end;gap:24px">
+      <div style="width:220px;background:#0d1117;border:3px solid rgba(255,255,255,.12);border-radius:36px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(63,185,80,.1);flex-shrink:0">
+        <div style="background:#090d13;height:28px;display:flex;align-items:center;justify-content:center">
+          <div style="width:60px;height:6px;background:rgba(255,255,255,.15);border-radius:3px"></div>
+        </div>
+        <img src="/images/walify_mobile.jpg" alt="Walify on mobile" style="width:100%;display:block">
+        <div style="background:#090d13;height:20px"></div>
+      </div>
+      <div style="flex:1;min-width:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.4)">
+        <div style="background:var(--sidebar-bg);padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <div style="width:8px;height:8px;border-radius:50%;background:#ff5f56"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#27c93f"></div>
+          <div style="flex:1;background:rgba(255,255,255,.06);border-radius:4px;padding:3px 8px;font-size:10px;color:var(--muted);text-align:center">walify.ai</div>
+        </div>
+        <img src="/images/walify_dashboard.png" alt="Walify on desktop" style="width:100%;display:block;max-height:280px;object-fit:cover;object-position:top">
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  @media (max-width:760px) {
+    #devices-grid { grid-template-columns:1fr !important; }
+  }
+</style>
 
 <hr class="section-divider">
 
