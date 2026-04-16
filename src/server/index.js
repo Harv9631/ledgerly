@@ -419,7 +419,10 @@ app.get('/app.html', serveApp);
 app.get('/app', serveApp);
 // Root serves public landing page — app is at /app.html
 app.get('/', (_req, res) => {
-  const fs = require('fs');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('CDN-Cache-Control', 'no-store');
+  res.setHeader('Cloudflare-CDN-Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(parentDir, 'landing.html'));
 });
 
