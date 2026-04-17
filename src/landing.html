@@ -246,16 +246,16 @@
 
     /* ── WALLY SECTION ── */
     .wally-section {
-      background: linear-gradient(180deg, #0d1117 0%, #0a1a10 40%, #091510 70%, #0d1117 100%);
-      border-bottom: 1px solid rgba(63,185,80,.12);
+      background: linear-gradient(180deg, transparent 0%, rgba(10,26,16,0.25) 30%, rgba(9,21,14,0.45) 60%, transparent 100%);
+      border-bottom: 1px solid rgba(63,185,80,.08);
       padding: 80px 24px 96px;
       overflow: hidden;
       position: relative;
     }
     .wally-section::before {
-      content:''; position:absolute; top:-60px; left:50%; transform:translateX(-50%);
-      width:600px; height:300px;
-      background: radial-gradient(ellipse, rgba(63,185,80,.08) 0%, transparent 70%);
+      content:''; position:absolute; top:80px; left:50%; transform:translateX(-50%);
+      width:700px; height:400px;
+      background: radial-gradient(ellipse, rgba(63,185,80,.06) 0%, transparent 70%);
       pointer-events:none;
     }
     .wally-inner { max-width: 860px; margin: 0 auto; text-align: center; }
