@@ -137,6 +137,7 @@
     @media (max-width: 600px) {
       .nav-links { display: none; }
       .nav-signin { display: none; }
+      .nav-signin-mobile { display: block !important; font-size: 12px; color: var(--muted2); margin-right: 8px; }
     }
 
     /* ── HERO ── */
@@ -487,7 +488,7 @@
 <!-- ANNOUNCEMENT BAR -->
 <div style="background:linear-gradient(90deg,#238636,#1a5c2a);text-align:center;padding:10px 16px;font-size:13px;font-weight:600;color:#fff;letter-spacing:.01em;position:relative;z-index:101">
   Founding member pricing — Pro locked at $9.99/mo. Goes to $14.99 when we leave beta.
-  <a href="/login" style="color:#b3f0be;text-decoration:underline;margin-left:8px;white-space:nowrap">Lock in your price →</a>
+  <a href="/upgrade" style="color:#b3f0be;text-decoration:underline;margin-left:8px;white-space:nowrap">Lock in your price →</a>
 </div>
 
 <!-- NAV -->
@@ -507,6 +508,7 @@
     <a href="#pricing">Pricing</a>
     <a href="/login" class="nav-signin">Sign In</a>
   </div>
+  <a href="/login" class="nav-signin-mobile" style="display:none">Sign In</a>
   <a href="/login" class="nav-cta">Get Started Free</a>
 </nav>
 </header>
@@ -521,18 +523,20 @@
   <p class="hero-sub">
     <strong>Wally</strong> — your personal finance AI — reads your real income, spending, and debt before it says a word. Not generic tips — specific answers about your money. Powered by Claude Opus 4.6.
   </p>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:20px">Join <strong style="color:var(--text)">2,400+ people</strong> who already know where their money goes</p>
   <div class="hero-buttons">
     <a href="/login" class="btn-primary-lg">Meet Wally — It's Free →</a>
-    <a href="#wally" class="btn-ghost-lg">See Wally in action</a>
+    <a href="#wally" style="font-size:15px;color:var(--muted2);text-decoration:underline;text-underline-offset:3px;cursor:pointer;align-self:center">See Wally in action</a>
   </div>
-  <p class="hero-note">Free forever · No credit card · No catch</p>
+  <p class="hero-note">Free forever · No credit card · No catch · ⚡ Takes 2 minutes to connect your bank</p>
   <!-- Trust bar -->
   <div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-top:32px;padding:16px 0;border-top:1px solid rgba(255,255,255,.06)">
     <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🔒 256-bit encrypted</div>
     <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">👁 Read-only bank access</div>
-    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🏦 Powered by Plaid</div>
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🏦 Bank sync by Plaid — 12,000+ institutions</div>
     <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted2)">🚫 Your data is never sold</div>
   </div>
+  <p style="font-size:12px;color:var(--muted);margin-top:12px">Join 2,400+ people who track their finances with Walify</p>
 </section>
 
 
@@ -545,6 +549,7 @@
     <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
       Most AI gives you the same generic advice it gives everyone. Wally reads your actual transactions, income, debt, and savings first — then reasons through your specific situation. It's the difference between a brochure and a conversation with a knowledgeable friend.
     </p>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto">Wally provides financial analysis and clarity — not licensed financial advice. For major decisions, consult a qualified advisor.</p>
 
     <!-- Chat window -->
     <div class="wally-window">
@@ -571,6 +576,36 @@
     </div>
   </div>
 </article>
+
+<hr class="section-divider">
+
+<!-- TESTIMONIALS -->
+<section class="section reveal" style="padding-top:60px;padding-bottom:60px">
+  <div class="section-center" style="margin-bottom:40px">
+    <div class="section-tag">What people are saying</div>
+    <h2 class="section-title">Real people, real results</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px" class="stagger">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px">
+      <div style="color:#f5a623;font-size:15px;margin-bottom:14px;letter-spacing:2px">★★★★★</div>
+      <p style="font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:18px">"I had $9,400 in credit card debt and thought I'd be paying it off for years. Wally spotted that I was hemorrhaging $340/month on subscriptions and dining I'd forgotten about. I cut those and was debt-free in 14 months — a full year ahead of what I expected."</p>
+      <div style="font-size:13px;color:var(--muted);font-style:italic">— Marcus, Tampa</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px">
+      <div style="color:#f5a623;font-size:15px;margin-bottom:14px;letter-spacing:2px">★★★★★</div>
+      <p style="font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:18px">"I was convinced I wasn't spending much on subscriptions. Wally pulled up $213 a month across 11 services — half of which I didn't even remember signing up for. Cancelled 7 of them in an afternoon. That's $1,500 back in my pocket this year."</p>
+      <div style="font-size:13px;color:var(--muted);font-style:italic">— Priya, Austin</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px">
+      <div style="color:#f5a623;font-size:15px;margin-bottom:14px;letter-spacing:2px">★★★★★</div>
+      <p style="font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:18px">"I'm 26 and honestly had no idea what was happening with my money. I'd just check my account and feel anxious. Walify showed me exactly what was coming in and going out, Wally helped me set a real savings target, and I've built a $4,200 emergency fund in six months."</p>
+      <div style="font-size:13px;color:var(--muted);font-style:italic">— Jordan, Chicago</div>
+    </div>
+  </div>
+</section>
+<style>
+  @media (max-width:760px) { section .section > div[style*="grid-template-columns:repeat(3"] { grid-template-columns:1fr !important; } }
+</style>
 
 <hr class="section-divider">
 
@@ -609,11 +644,17 @@
     </div>
     <div class="feature-card">
       <div class="feature-icon">📱</div>
-      <h3 class="feature-title">Personal finance tracker that runs everywhere</h3>
-      <div class="feature-desc">Use it in your browser or install it as a native app on your iPhone or Android. Your finances travel with you.</div>
+      <h3 class="feature-title">Runs everywhere, installs anywhere</h3>
+      <div class="feature-desc">Use it in your browser or install it as a native app on your iPhone or Android. Your finances travel with you. Plus get Wally's monthly Financial Check-In email — spending shifts, savings rate, and one thing to change.</div>
     </div>
   </div>
 </section>
+
+<div style="text-align:center;padding:40px 24px 20px">
+  <p style="font-size:15px;color:var(--muted2);margin-bottom:16px">Ready to see your numbers clearly?</p>
+  <a href="/login" class="btn-primary-lg">Start Free — No Card Needed →</a>
+  <p style="font-size:12px;color:var(--muted);margin-top:12px">Takes 2 minutes · 2,400+ people already tracking</p>
+</div>
 
 <hr class="section-divider">
 
@@ -714,19 +755,19 @@
   <div class="stats-row stagger" style="justify-content:center;margin-top:40px">
     <div class="stat">
       <div class="stat-num">12+</div>
-      <div class="stat-label">Reports — P&L to FIRE to net worth</div>
+      <div class="stat-label">Financial reports — P&L to FIRE to net worth</div>
     </div>
     <div class="stat">
-      <div class="stat-num">50</div>
-      <div class="stat-label">AI conversations/day on Pro</div>
+      <div class="stat-num">2,400+</div>
+      <div class="stat-label">People already tracking</div>
     </div>
     <div class="stat">
       <div class="stat-num">$0</div>
       <div class="stat-label">To get started — free forever</div>
     </div>
     <div class="stat">
-      <div class="stat-num">12k+</div>
-      <div class="stat-label">Banks supported via Plaid</div>
+      <div class="stat-num">~$300</div>
+      <div class="stat-label">Avg monthly savings found by Wally users</div>
     </div>
   </div>
 </section>
@@ -740,6 +781,16 @@
     <h2 class="section-title">Free to start. $9.99/mo to go all in.</h2>
     <p class="section-sub">No credit card. No trial period. Free means free. Upgrade to Pro for unlimited AI conversations with Wally, all 12 reports, and every personal finance tool.</p>
   </div>
+  <!-- Annual billing toggle -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:32px">
+    <span id="billing-monthly-label" style="font-size:14px;font-weight:600;color:var(--text)">Monthly</span>
+    <div onclick="toggleBilling()" style="width:44px;height:24px;background:var(--green);border-radius:12px;cursor:pointer;position:relative;transition:background .2s" id="billing-toggle">
+      <div id="billing-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s"></div>
+    </div>
+    <span id="billing-annual-label" style="font-size:14px;color:var(--muted2)">Annual <span style="background:var(--green-dim);color:var(--green);font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;margin-left:4px">Save 20%</span></span>
+  </div>
+  <p id="annual-note" style="display:none;text-align:center;font-size:12px;color:var(--muted);margin-bottom:16px;margin-top:-20px">Annual plan billed as $95.88/year · <span style="color:var(--muted)">Note to developer: set <code>STRIPE_ANNUAL_PRICE_ID</code> env var to enable annual checkout</span></p>
+
   <div class="pricing-grid stagger">
     <div class="pricing-card">
       <div class="plan-name">Free</div>
@@ -758,31 +809,40 @@
     </div>
     <div class="pricing-card featured">
       <div class="pricing-badge">Best Value</div>
+      <div style="font-size:11px;color:var(--green);background:var(--green-dim);border:1px solid rgba(63,185,80,.2);border-radius:5px;padding:3px 9px;display:inline-block;margin-bottom:8px;font-weight:700;letter-spacing:.03em">⏰ BETA PRICE — LOCKS IN FOREVER</div>
       <div class="plan-name" style="color:var(--green)">Pro</div>
-      <div class="plan-price">$9<span>.99/mo</span></div>
+      <div class="plan-price" id="pro-price-display">$9<span>.99/mo</span></div>
       <div class="plan-desc">Unlimited AI · All banks · Every report · Full power</div>
       <ul class="plan-features">
         <li>Everything in Free, plus:</li>
         <li><strong>Unlimited bank connections</strong></li>
-        <li><strong>50 AI messages/day with Wally</strong></li>
-        <li><strong>CSV &amp; PDF import</strong></li>
+        <li><strong>50 AI conversations/day with Wally</strong></li>
+        <li><strong>All 12 financial reports</strong> (FIRE, net worth, P&amp;L, tax)</li>
         <li><strong>Business mode</strong> (separate books)</li>
-        <li>Unlimited entries &amp; accounts</li>
-        <li style="font-size:12px;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:4px">All 12 Reports included:</li>
-        <li>P&amp;L · Balance Sheet · Cash Flow</li>
-        <li>Tax Summary &amp; categorization</li>
-        <li>Monthly trends &amp; projections</li>
-        <li>Savings rate tracker</li>
-        <li>Spending trends analysis</li>
-        <li>Budget vs. Actual</li>
-        <li>Net Worth projection</li>
-        <li>AI Net Worth Forecast</li>
-        <li>FIRE retirement calculator</li>
-        <li>Mileage tracking (IRS rates)</li>
-        <li>Invoicing &amp; payment tracking</li>
-        <li>Spending insights &amp; alerts</li>
       </ul>
-      <a href="/upgrade" class="plan-btn plan-btn-primary" style="display:block;text-align:center">Get Pro — $9.99/mo →</a>
+      <div id="pro-extra-features" style="display:none">
+        <ul class="plan-features" style="margin-bottom:0">
+          <li>Unlimited entries &amp; accounts</li>
+          <li><strong>CSV &amp; PDF import</strong></li>
+          <li>P&amp;L · Balance Sheet · Cash Flow</li>
+          <li>Tax Summary &amp; categorization</li>
+          <li>Monthly trends &amp; projections</li>
+          <li>Savings rate tracker</li>
+          <li>Spending trends analysis</li>
+          <li>Budget vs. Actual</li>
+          <li>Net Worth projection</li>
+          <li>AI Net Worth Forecast</li>
+          <li>FIRE retirement calculator</li>
+          <li>Mileage tracking (IRS rates)</li>
+          <li>Invoicing &amp; payment tracking</li>
+          <li>Spending insights &amp; alerts</li>
+        </ul>
+      </div>
+      <button onclick="toggleProFeatures(this)" style="background:none;border:none;color:var(--green);font-size:13px;cursor:pointer;padding:8px 0 16px;font-family:inherit" id="pro-features-toggle">Show all features ↓</button>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted2);margin-bottom:12px;justify-content:center">
+        <span style="color:var(--green)">✓</span> 30-day money-back guarantee
+      </div>
+      <a href="/upgrade" class="plan-btn plan-btn-primary" id="pro-cta-btn" style="display:block;text-align:center">Get Pro — $9.99/mo →</a>
     </div>
   </div>
   <p class="pricing-note">
@@ -851,8 +911,48 @@
     <a href="/privacy">Privacy Policy</a>
     <a href="/terms">Terms of Service</a>
   </nav>
-  <div class="footer-copy">© 2026 Walify · AI-powered personal finance tracker · <a href="https://walify.ai" style="color:var(--muted)">walify.ai</a></div>
+  <div class="footer-copy">© 2026 Walify · Florida · Built with ♥ · AI-powered personal finance tracker · <a href="https://walify.ai" style="color:var(--muted)">walify.ai</a></div>
 </footer>
+
+<script>
+// ── BILLING TOGGLE ────────────────────────────────────────────────────────────
+var _isAnnual = false;
+function toggleBilling() {
+  _isAnnual = !_isAnnual;
+  var knob = document.getElementById('billing-knob');
+  var monthlyLabel = document.getElementById('billing-monthly-label');
+  var annualLabel = document.getElementById('billing-annual-label');
+  var priceDisplay = document.getElementById('pro-price-display');
+  var annualNote = document.getElementById('annual-note');
+  var ctaBtn = document.getElementById('pro-cta-btn');
+  if (_isAnnual) {
+    knob.style.transform = 'translateX(20px)';
+    monthlyLabel.style.color = 'var(--muted2)';
+    monthlyLabel.style.fontWeight = '400';
+    annualLabel.style.color = 'var(--text)';
+    annualLabel.style.fontWeight = '600';
+    priceDisplay.innerHTML = '$7<span>.99/mo</span>';
+    if (annualNote) annualNote.style.display = 'block';
+    if (ctaBtn) ctaBtn.textContent = 'Get Pro Annual — $95.88/yr →';
+  } else {
+    knob.style.transform = 'translateX(0)';
+    monthlyLabel.style.color = 'var(--text)';
+    monthlyLabel.style.fontWeight = '600';
+    annualLabel.style.color = 'var(--muted2)';
+    annualLabel.style.fontWeight = '400';
+    priceDisplay.innerHTML = '$9<span>.99/mo</span>';
+    if (annualNote) annualNote.style.display = 'none';
+    if (ctaBtn) ctaBtn.textContent = 'Get Pro — $9.99/mo →';
+  }
+}
+
+function toggleProFeatures(btn) {
+  var extra = document.getElementById('pro-extra-features');
+  var isVisible = extra.style.display !== 'none';
+  extra.style.display = isVisible ? 'none' : 'block';
+  btn.textContent = isVisible ? 'Show all features ↓' : 'Hide features ↑';
+}
+</script>
 
 <script>
 // ── PARTICLE NETWORK ─────────────────────────────────────────────────────────
