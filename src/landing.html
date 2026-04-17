@@ -1161,5 +1161,16 @@ _wTimer = setInterval(function() {
   if (!_wBusy) { showWally((_wIdx + 1) % _wallyConvos.length); }
 }, 6000);
 </script>
+<script>
+// Referral tracking — capture ?ref= param and store for checkout
+(function() {
+  var ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref) {
+    ref = ref.trim().toLowerCase().slice(0, 64);
+    localStorage.setItem('walify_ref', ref);
+    fetch('/api/affiliate/click?ref=' + encodeURIComponent(ref)).catch(function(){});
+  }
+})();
+</script>
 </body>
 </html>

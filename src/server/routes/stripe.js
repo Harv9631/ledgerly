@@ -19,7 +19,7 @@ function getStripe() {
   return require('stripe')(key);
 }
 
-const { getUserState, saveUserState } = require('../db');
+const { getUserState, saveUserState, trackAffiliateConversion, getAffiliateStats } = require('../db');
 
 // ── GET /api/stripe/status ───────────────────────────────────────────────────
 // Returns { active: bool, plan: string|null }
@@ -45,7 +45,7 @@ router.get('/status', (req, res) => {
 router.post('/checkout', async (req, res) => {
   try {
     const stripe = getStripe();
-    const { priceId } = req.body;
+    const { priceId, ref } = req.body;
     if (!priceId) return res.status(400).json({ error: 'priceId required' });
 
     // Retrieve or create Stripe customer tied to this user
@@ -68,7 +68,7 @@ router.post('/checkout', async (req, res) => {
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: origin + '/app.html?subscribed=1',
       cancel_url:  origin + '/upgrade.html',
-      metadata: { ledgerly_user_id: req.user.id }
+      metadata: { ledgerly_user_id: req.user.id, ref: ref || '' }
     });
 
     res.json({ url: session.url });
@@ -125,6 +125,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
 
     if (event.type === 'checkout.session.completed') {
       saveUserState(stripeKey, { ...current, active: true, plan: 'pro', subscriptionId: obj.subscription });
+      trackAffiliateConversion(obj.metadata?.ref, obj.amount_total);
     } else if (event.type === 'customer.subscription.updated') {
       const active = ['active', 'trialing'].includes(obj.status);
       saveUserState(stripeKey, { ...current, active, plan: active ? 'pro' : null, status: obj.status });
@@ -134,6 +135,17 @@ router.post('/webhook', express.raw({ type: 'application/json' }), (req, res) =>
   }
 
   res.json({ received: true });
+});
+
+// ── GET /api/stripe/affiliate-stats ─────────────────────────────────────────
+// Admin-only endpoint to view referral code stats.
+router.get('/affiliate-stats', (req, res) => {
+  const adminList = (process.env.ADMIN_USERS || '').split(',').map(s => s.trim()).filter(Boolean);
+  const ownerEmails = ['nick@biglysales.com'];
+  if (!ownerEmails.includes(req.user.email) && !adminList.includes(req.user.email) && !adminList.includes(req.user.id)) {
+    return res.status(403).json({ error: 'Admin only' });
+  }
+  res.json(getAffiliateStats());
 });
 
 function findUserByCustomer(customerId) {

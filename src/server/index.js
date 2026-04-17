@@ -672,6 +672,14 @@ app.post('/api/user/state-beacon', express.raw({ type: '*/*' }), (req, res) => {
   } catch { res.status(400).end(); }
 });
 
+// Affiliate click tracking — no auth needed (fires on landing page)
+const { trackAffiliateClick } = require('./db');
+app.get('/api/affiliate/click', (req, res) => {
+  const ref = (req.query.ref || '').trim().toLowerCase().slice(0, 64);
+  if (ref) trackAffiliateClick(ref);
+  res.json({ ok: true });
+});
+
 // Stripe routes — webhook mounted above (before json parser), rest require auth
 app.use('/api/stripe', requireAuth, stripeRoutes);
 

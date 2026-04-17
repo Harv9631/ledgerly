@@ -254,4 +254,29 @@ function saveUserState(userId, appState) {
   }
 }
 
-module.exports = { query, getUserState, getUserStateAsync, saveUserState };
+// ── Affiliate tracking ───────────────────────────────────────────────────────
+
+function trackAffiliateClick(ref) {
+  if (!ref) return;
+  const data = load();
+  data.affiliates = data.affiliates || {};
+  data.affiliates[ref] = data.affiliates[ref] || { clicks: 0, conversions: 0, revenue: 0 };
+  data.affiliates[ref].clicks++;
+  save(data);
+}
+
+function trackAffiliateConversion(ref, amountCents) {
+  if (!ref) return;
+  const data = load();
+  data.affiliates = data.affiliates || {};
+  data.affiliates[ref] = data.affiliates[ref] || { clicks: 0, conversions: 0, revenue: 0 };
+  data.affiliates[ref].conversions++;
+  data.affiliates[ref].revenue += Math.round(amountCents || 0);
+  save(data);
+}
+
+function getAffiliateStats() {
+  return (load().affiliates) || {};
+}
+
+module.exports = { query, getUserState, getUserStateAsync, saveUserState, trackAffiliateClick, trackAffiliateConversion, getAffiliateStats };
