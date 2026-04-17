@@ -537,7 +537,7 @@
 
 <!-- DEVICES SECTION -->
 <section class="section reveal">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+  <div id="devices-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
     <div>
       <div class="section-tag">On your phone, on your desk, everywhere</div>
       <h2 class="section-title">Check in on your money<br>wherever you are.</h2>
@@ -579,7 +579,9 @@
 </section>
 <style>
   @media (max-width:760px) {
-    #devices-grid { grid-template-columns:1fr !important; }
+    #devices-grid { grid-template-columns:1fr !important; gap:32px !important; }
+    #devices-grid > div:last-child { justify-content:center !important; }
+    #devices-grid > div:last-child > div:last-child { display:none !important; }
   }
 </style>
 
