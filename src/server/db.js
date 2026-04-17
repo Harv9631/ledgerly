@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Ledgerly database — JSON file with Supabase Storage backup.
+ * Walify AI database — JSON file with Supabase Storage backup.
  *
  * Priority:
  *   1. Local file (fast, used as write-through cache)

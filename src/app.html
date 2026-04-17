@@ -7931,7 +7931,7 @@ function exportTaxPDF() {
   ).join('\n');
 
   const content = [
-    `LEDGERLY TAX SUMMARY – TAX YEAR ${yr}`,
+    `WALIFY AI TAX SUMMARY – TAX YEAR ${yr}`,
     `Generated: ${new Date().toLocaleDateString()}`,
     `Filing Status: ${fs}`,
     ``,
@@ -9011,7 +9011,7 @@ function exportMileagePdf() {
   const totalMiles = logs.reduce((s, m) => s + m.miles, 0);
   const totalDed = logs.reduce((s, m) => s + m.miles * m.rate, 0);
   const content = [
-    `LEDGERLY MILEAGE LOG`,
+    `WALIFY AI MILEAGE LOG`,
     `Generated: ${new Date().toLocaleDateString()}`,
     ``,
     `DATE         PURPOSE                        MILES      CATEGORY    DEDUCTION`,

@@ -8,7 +8,7 @@ const fs   = require('fs');
 
 app.whenReady().then(() => {
   try {
-    const credPath = path.join(process.env.APPDATA, 'Ledgerly', 'plaid-credentials.json');
+    const credPath = path.join(process.env.APPDATA, 'Walify AI', 'plaid-credentials.json');
     const data = JSON.parse(fs.readFileSync(credPath, 'utf8'));
     let creds;
     if (data.encrypted) {

@@ -1,7 +1,7 @@
 -- Migration: 005_plaid_items
 -- Description: Server-side storage for Plaid linked items and access tokens.
 --              Access tokens are stored here so users never need their own Plaid account.
---              The Ledgerly backend holds the Plaid credentials and proxies all calls.
+--              The Walify AI backend holds the Plaid credentials and proxies all calls.
 
 BEGIN;
 

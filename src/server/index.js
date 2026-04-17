@@ -48,7 +48,7 @@ function getResend() {
 async function sendAlertEmail(toEmail, subject, bodyHtml) {
   const r = getResend();
   if (!r || !toEmail) return;
-  const from = process.env.EMAIL_FROM || 'Walify <alerts@walify.ai>';
+  const from = process.env.EMAIL_FROM || 'Walify <info@walify.ai>';
   r.emails.send({ from, to: toEmail, subject, html: bodyHtml }).catch(() => {});
 }
 
@@ -61,7 +61,7 @@ function getWebPush() {
   if (!pub || !prv) return null;
   try {
     _webPush = require('web-push');
-    _webPush.setVapidDetails('mailto:alerts@walify.ai', pub, prv);
+    _webPush.setVapidDetails('mailto:info@walify.ai', pub, prv);
   } catch { _webPush = null; }
   return _webPush;
 }

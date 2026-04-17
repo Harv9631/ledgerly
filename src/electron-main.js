@@ -13,7 +13,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: 'Ledgerly',
+    title: 'Walify AI',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -97,9 +97,9 @@ ipcMain.handle('plaid:has-credentials', () => {
   return !!(creds && creds.clientId && creds.secret);
 });
 
-// All Plaid calls go through the Ledgerly server. No credentials on the client.
+// All Plaid calls go through the Walify AI server. No credentials on the client.
 
-function getLedgerlyServerUrl() {
+function getWalifyServerUrl() {
   try {
     const cfgPath = require('path').join(app.getPath('userData'), 'server-config.json');
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
@@ -111,14 +111,14 @@ function getLedgerlyServerUrl() {
 
 async function serverFetch(path, options = {}) {
   const { net } = require('electron');
-  const url = getLedgerlyServerUrl() + path;
+  const url = getWalifyServerUrl() + path;
   const method = options.method || 'GET';
   const body = options.body ? JSON.stringify(options.body) : undefined;
 
   return new Promise((resolve, reject) => {
     const request = net.request({ method, url });
     request.setHeader('Content-Type', 'application/json');
-    request.setHeader('X-User-Id', 'ledgerly-user');
+    request.setHeader('X-User-Id', 'walify-user');
     const timer = setTimeout(() => {
       try { request.abort(); } catch {}
       reject(new Error('Server request timed out after 30s'));
@@ -141,7 +141,7 @@ async function serverFetch(path, options = {}) {
 
 ipcMain.handle('plaid:get-config', async () => {
   // No user-facing config needed — server holds credentials
-  return { serverUrl: getLedgerlyServerUrl() };
+  return { serverUrl: getWalifyServerUrl() };
 });
 
 ipcMain.handle('plaid:set-config', async (_event, { serverUrl }) => {
@@ -453,7 +453,7 @@ ipcMain.on('ai:chat', async (event, { message, conversationId, financialContext 
   const messages = history.slice(-40).map(h => ({ role: h.role, content: h.content }));
   messages.push({ role: 'user', content: message });
 
-  const systemPrompt = `You are a personal financial advisor assistant inside Ledgerly, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
+  const systemPrompt = `You are a personal financial advisor assistant inside Walify AI, an income and debt tracking app. Help users understand their financial situation and provide actionable, data-driven advice.
 
 CONSTRAINTS:
 - Only answer questions related to personal finance, budgeting, debt management, savings, income, and financial planning.

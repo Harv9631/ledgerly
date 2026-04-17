@@ -1,5 +1,5 @@
 /* ============================================================
-   LEDGERLY — Main Script
+   WALIFY AI — Main Script
    Canvas animations + GSAP + Chart.js
    ============================================================ */
 

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Stripe subscription routes for Ledgerly web app.
+ * Stripe subscription routes for Walify AI web app.
  *
  * POST /api/stripe/checkout   — create a Checkout Session, returns { url }
  * POST /api/stripe/portal     — create a Customer Portal session, returns { url }

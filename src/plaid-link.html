@@ -80,14 +80,14 @@
     })
     .then(function(r) {
       if (r.ok) {
-        show('Bank connected successfully! You can close this tab and return to Ledgerly.');
+        show('Bank connected successfully! You can close this tab and return to Walify AI.');
         try { window.close(); } catch(e) {}
       } else {
-        showError('Server error (' + r.status + '). Ledgerly may not have received the result.');
+        showError('Server error (' + r.status + '). Walify AI may not have received the result.');
       }
     })
     .catch(function(err) {
-      showError('Could not reach Ledgerly server: ' + err.message + '. Try restarting Ledgerly.');
+      showError('Could not reach Walify AI server: ' + err.message + '. Try restarting Walify AI.');
     });
   }
 

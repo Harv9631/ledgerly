@@ -1,4 +1,4 @@
-# Ledgerly — AI Database Schema
+# Walify AI — AI Database Schema
 
 PostgreSQL schema for Phase 1 AI features: transaction categorization, ML feature store, and model output storage.
 

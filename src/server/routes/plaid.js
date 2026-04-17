@@ -56,7 +56,7 @@ router.get('/redirect', (req, res) => {
   }
   res.send(`<!DOCTYPE html><html><head><title>Connected!</title></head><body>
     <p style="font-family:sans-serif;margin:40px auto;max-width:400px;text-align:center">
-      Bank connected successfully!<br><br>You can close this tab and return to Ledgerly.
+      Bank connected successfully!<br><br>You can close this tab and return to Walify AI.
     </p>
     <script>try{window.close();}catch(e){}</script>
   </body></html>`);
@@ -88,7 +88,7 @@ router.post('/link-token', async (req, res) => {
     const userId = getUserId(req);
     const response = await client.linkTokenCreate({
       user: { client_user_id: userId },
-      client_name: 'Ledgerly',
+      client_name: 'Walify AI',
       products: ['transactions'],
       country_codes: ['US'],
       language: 'en'
