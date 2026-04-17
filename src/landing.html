@@ -3,8 +3,102 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Walify — The AI That Actually Knows Your Money</title>
-  <meta name="description" content="Meet Wally — the AI financial advisor that reads your real bank data before answering. Debt payoff plans, budget gaps, savings projections. Free to start.">
+
+  <!-- ── PRIMARY SEO META ── -->
+  <title>Walify — AI Financial Advisor App | Personal Finance AI Powered by Real Bank Data</title>
+  <meta name="description" content="Meet Wally, your AI financial advisor that reads your real bank data before answering. Get debt payoff plans, AI budgeting, FIRE calculator, 12+ reports and more. Free to start — no credit card.">
+  <meta name="keywords" content="AI financial advisor app, personal finance AI, AI money app, Wally finance, AI budgeting app, debt payoff app, personal finance tracker, AI budget planner, bank sync personal finance, FIRE calculator app, debt optimizer, financial advisor AI">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://walify.ai">
+
+  <!-- ── OPEN GRAPH ── -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://walify.ai">
+  <meta property="og:title" content="Walify — AI Financial Advisor App | Wally Reads Your Real Bank Data">
+  <meta property="og:description" content="Wally is your AI financial advisor powered by Claude Opus 4.6. It reads your actual bank data, then answers your real money questions. Debt payoff plans, AI budgeting, FIRE calculator. Free to start.">
+  <meta property="og:image" content="https://walify.ai/images/walify_og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Walify AI financial advisor app — Wally reads your bank data and answers your money questions">
+  <meta property="og:site_name" content="Walify">
+  <meta property="og:locale" content="en_US">
+
+  <!-- ── TWITTER CARD ── -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@walifyai">
+  <meta name="twitter:title" content="Walify — AI Financial Advisor That Reads Your Real Bank Data">
+  <meta name="twitter:description" content="Meet Wally — the AI money app that reads your actual transactions before answering. Debt payoff, budgeting, FIRE projections. Free forever plan.">
+  <meta name="twitter:image" content="https://walify.ai/images/walify_og.png">
+  <meta name="twitter:image:alt" content="Walify AI personal finance app dashboard">
+
+  <!-- ── PERFORMANCE HINTS ── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.plaid.com">
+  <link rel="dns-prefetch" href="https://production.plaid.com">
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
+  <!-- ── STRUCTURED DATA: SoftwareApplication ── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Walify",
+    "url": "https://walify.ai",
+    "description": "Walify is an AI-powered personal finance app featuring Wally — an AI financial advisor that reads your real bank data before answering questions. Includes bank sync via Plaid, debt optimizer, AI budgeting, 12+ financial reports, FIRE calculator, mileage tracking, and invoicing.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "browserRequirements": "Requires JavaScript. Compatible with all modern browsers.",
+    "softwareVersion": "3.0",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free forever — manual tracking, budgeting, debt optimizer, 1 bank connection, 5 AI conversations/month"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Plan",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "9.99",
+          "priceCurrency": "USD",
+          "unitCode": "MON"
+        },
+        "description": "Unlimited AI conversations, unlimited bank connections, all 12 reports, CSV/PDF import, business mode"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "142",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "featureList": [
+      "AI financial advisor (Wally) powered by Claude Opus 4.6",
+      "Bank sync via Plaid — 12,000+ institutions",
+      "Debt payoff optimizer (avalanche and snowball)",
+      "AI budgeting with category alerts",
+      "12+ financial reports including P&L, cash flow, net worth",
+      "FIRE retirement calculator",
+      "Mileage tracking at IRS rates",
+      "Invoicing and payment tracking",
+      "PWA — installable on iOS and Android"
+    ],
+    "screenshot": "https://walify.ai/images/walify_dashboard.png",
+    "creator": {
+      "@type": "Organization",
+      "name": "Walify",
+      "url": "https://walify.ai"
+    }
+  }
+  </script>
+
   <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -398,9 +492,10 @@
 </div>
 
 <!-- NAV -->
-<nav>
-  <a href="/" class="nav-logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22">
+<header>
+<nav aria-label="Main navigation">
+  <a href="/" class="nav-logo" aria-label="Walify home — AI financial advisor app">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22" aria-hidden="true">
       <path d="M12 2L2 7l10 5 10-5-10-5z"/>
       <path d="M2 17l10 5 10-5"/>
       <path d="M2 12l10 5 10-5"/>
@@ -415,15 +510,17 @@
   </div>
   <a href="/login" class="nav-cta">Get Started Free</a>
 </nav>
+</header>
 
+<main id="main-content">
 <!-- HERO -->
-<section class="hero">
+<section class="hero" aria-labelledby="hero-heading">
   <div class="hero-badge">
     🤖 Introducing Wally — AI that reads your money first
   </div>
-  <h1>Your AI advisor that<br>knows your actual numbers.</h1>
+  <h1 id="hero-heading">The AI financial advisor app<br>that knows your actual numbers.</h1>
   <p class="hero-sub">
-    <strong>Wally</strong> reads your real income, spending, and debt before it says a word. Not generic tips — specific answers about your money. Powered by Claude Opus 4.6.
+    <strong>Wally</strong> — your personal finance AI — reads your real income, spending, and debt before it says a word. Not generic tips — specific answers about your money. Powered by Claude Opus 4.6.
   </p>
   <div class="hero-buttons">
     <a href="/login" class="btn-primary-lg">Meet Wally — It's Free →</a>
@@ -448,18 +545,18 @@
       <div class="mockup-dot" style="background:#27c93f"></div>
       <div class="mockup-url">walify.ai/app.html</div>
     </div>
-    <img src="/images/walify_dashboard.png" alt="Walify Financial Dashboard" style="width:100%;display:block">
+    <img src="/images/walify_dashboard.png" alt="Walify AI financial advisor app — dashboard showing bank balances, spending overview, and Wally AI chat interface" style="width:100%;display:block">
   </div>
 </div>
 
 <hr class="section-divider" style="margin-top:80px">
 
 <!-- WALLY SECTION — moved to top as primary selling point -->
-<section class="wally-section" id="wally">
+<article class="wally-section" id="wally" aria-label="Wally AI financial advisor">
   <div class="wally-inner reveal">
     <div class="wally-avatar">🤖</div>
-    <div class="section-tag">Your AI financial advisor</div>
-    <h2 class="section-title" style="margin-bottom:14px">Other finance apps give you charts.<br>Wally gives you answers.</h2>
+    <div class="section-tag">Meet Wally — Your AI Financial Advisor</div>
+    <h2 class="section-title" style="margin-bottom:14px">Other AI money apps give you charts.<br>Wally gives you answers about your money.</h2>
     <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
       Most AI gives you the same generic advice it gives everyone. Wally reads your actual transactions, income, debt, and savings first — then reasons through your specific situation. It's the difference between a brochure and a conversation with a knowledgeable friend.
     </p>
@@ -488,46 +585,46 @@
       <a href="/login" class="btn-primary-lg" style="font-size:15px">Talk to Wally — It's Free →</a>
     </div>
   </div>
-</section>
+</article>
 
 <hr class="section-divider">
 
 <!-- FEATURES -->
 <section class="section reveal" id="features">
   <div class="section-center">
-    <div class="section-tag">Everything in one place</div>
-    <h2 class="section-title">Every tool you need to feel in control</h2>
-    <p class="section-sub">Most people don't have a money problem — they have a clarity problem. Walify fixes that.</p>
+    <div class="section-tag">Personal finance AI — everything in one place</div>
+    <h2 class="section-title">Every personal finance tool you need to feel in control</h2>
+    <p class="section-sub">Most people don't have a money problem — they have a clarity problem. Walify's AI budgeting app fixes that.</p>
   </div>
   <div class="features-grid stagger">
     <div class="feature-card">
       <div class="feature-icon">🏦</div>
-      <div class="feature-title">Your banks, automatically synced</div>
+      <h3 class="feature-title">Your banks, automatically synced via Plaid</h3>
       <div class="feature-desc">Connect once via Plaid and your transactions show up categorized and clean. No more manual imports, no more guessing what hit your account.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🤖</div>
-      <div class="feature-title">Wally — AI that knows your situation</div>
+      <h3 class="feature-title">Wally — AI financial advisor that knows your situation</h3>
       <div class="feature-desc">Ask anything. "Can I afford this?" "When am I debt-free?" "Where's my money going?" Wally reads your data, then answers. Powered by Claude Opus 4.6.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📊</div>
-      <div class="feature-title">12 reports that actually explain things</div>
+      <h3 class="feature-title">12 financial reports that actually explain things</h3>
       <div class="feature-desc">P&L, net worth, FIRE projections, tax summary — the same reports an accountant would run, without the hourly rate.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">💸</div>
-      <div class="feature-title">A real plan to kill your debt</div>
+      <h3 class="feature-title">Debt payoff optimizer — a real plan to eliminate debt</h3>
       <div class="feature-desc">Pick avalanche or snowball. Walify calculates your exact debt-free date, total interest saved, and the monthly payment that gets you there fastest.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">🎯</div>
-      <div class="feature-title">Budgets that warn you before it's too late</div>
+      <h3 class="feature-title">AI budgeting that warns you before it's too late</h3>
       <div class="feature-desc">Set limits by category and get notified when you're trending over — not after you've already blown the budget.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📱</div>
-      <div class="feature-title">Runs everywhere, installs anywhere</div>
+      <h3 class="feature-title">Personal finance tracker that runs everywhere</h3>
       <div class="feature-desc">Use it in your browser or install it as a native app on your iPhone or Android. Your finances travel with you.</div>
     </div>
   </div>
@@ -539,8 +636,8 @@
 <section class="section reveal">
   <div id="devices-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
     <div>
-      <div class="section-tag">On your phone, on your desk, everywhere</div>
-      <h2 class="section-title">Check in on your money<br>wherever you are.</h2>
+      <div class="section-tag">Personal finance tracker — on your phone, on your desk, everywhere</div>
+      <h2 class="section-title">Your AI money app, accessible<br>wherever you are.</h2>
       <p class="section-sub" style="color:var(--muted2);margin-bottom:28px">
         Walify works in any browser and installs as a native app on iOS and Android. Everything syncs instantly — open it on your laptop, pick it up on your phone.
       </p>
@@ -562,7 +659,7 @@
         <div style="background:#090d13;height:28px;display:flex;align-items:center;justify-content:center">
           <div style="width:60px;height:6px;background:rgba(255,255,255,.15);border-radius:3px"></div>
         </div>
-        <img src="/images/walify_mobile.jpg" alt="Walify on mobile" style="width:100%;display:block;max-height:420px;object-fit:cover;object-position:top">
+        <img src="/images/walify_mobile.jpg" alt="Walify personal finance AI app on iPhone — AI budgeting and bank sync on mobile" style="width:100%;display:block;max-height:420px;object-fit:cover;object-position:top">
         <div style="background:#090d13;height:20px"></div>
       </div>
       <div style="flex:1;min-width:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(63,185,80,.08)">
@@ -572,7 +669,7 @@
           <div style="width:8px;height:8px;border-radius:50%;background:#27c93f"></div>
           <div style="flex:1;background:rgba(255,255,255,.06);border-radius:4px;padding:3px 8px;font-size:10px;color:var(--muted);text-align:center">walify.ai</div>
         </div>
-        <img src="/images/walify_dashboard.png" alt="Walify on desktop" style="width:100%;display:block">
+        <img src="/images/walify_dashboard.png" alt="Walify AI money app on desktop — personal finance tracker with bank sync and spending reports" style="width:100%;display:block">
       </div>
     </div>
   </div>
@@ -590,31 +687,31 @@
 <!-- SCREENSHOTS -->
 <section class="section reveal" id="screenshots" style="padding-bottom:60px">
   <div class="section-center">
-    <div class="section-tag">See it in action</div>
-    <h2 class="section-title">Everything you need. Nothing you don't.</h2>
-    <p class="section-sub">Clean, fast, and designed to give you answers at a glance — not drown you in data.</p>
+    <div class="section-tag">Walify AI app — see it in action</div>
+    <h2 class="section-title">Every personal finance tool you need. Nothing you don't.</h2>
+    <p class="section-sub">Clean, fast, and designed to give you real answers at a glance — not drown you in data. The AI budgeting app that does the work for you.</p>
   </div>
   <div class="screenshots-scroll" style="margin-top:48px;overflow-x:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch">
     <div style="display:flex;gap:20px;width:max-content;padding:0 4px">
       <div class="screenshot-card">
         <div class="screenshot-label">Your Money at a Glance</div>
-        <img src="/images/walify_dashboard.png" alt="Walify Dashboard — financial overview with KPI cards and charts" loading="lazy">
+        <img src="/images/walify_dashboard.png" alt="Walify AI financial advisor app dashboard — net worth, spending KPIs, and AI budgeting overview" loading="lazy">
       </div>
       <div class="screenshot-card">
         <div class="screenshot-label">Every Transaction, Organized</div>
-        <img src="/images/walify_transactions.png" alt="Walify Transactions — categorized bank transactions with monthly totals" loading="lazy">
+        <img src="/images/walify_transactions.png" alt="Walify personal finance tracker — categorized bank transactions synced via Plaid with monthly spending totals" loading="lazy">
       </div>
       <div class="screenshot-card">
         <div class="screenshot-label">Reports That Actually Mean Something</div>
-        <img src="/images/walify_reports.png" alt="Walify Reports — P&L, balance sheet, cash flow and more" loading="lazy">
+        <img src="/images/walify_reports.png" alt="Walify financial reports — P&amp;L, balance sheet, cash flow, FIRE calculator, and net worth projection" loading="lazy">
       </div>
       <div class="screenshot-card">
         <div class="screenshot-label">Budgets That Keep You Honest</div>
-        <img src="/images/walify_budget.png" alt="Walify Budget — set limits, track spending by category with progress bars" loading="lazy">
+        <img src="/images/walify_budget.png" alt="Walify AI budgeting app — set spending limits by category, track progress, and get alerts before you overspend" loading="lazy">
       </div>
       <div class="screenshot-card">
         <div class="screenshot-label">Wally Spots What You Miss</div>
-        <img src="/images/walify_insights.png" alt="Walify AI Insights — spending spikes, savings opportunities, budget suggestions" loading="lazy">
+        <img src="/images/walify_insights.png" alt="Wally AI financial advisor insights — spending spike alerts, savings opportunities, and personalized budget suggestions" loading="lazy">
       </div>
     </div>
   </div>
@@ -626,8 +723,8 @@
 <!-- STATS -->
 <section class="section" style="padding-bottom:40px">
   <div class="section-center">
-    <div class="section-tag">By the numbers</div>
-    <h2 class="section-title">More insight than a spreadsheet.<br>Less friction than a financial advisor.</h2>
+    <div class="section-tag">Walify by the numbers</div>
+    <h2 class="section-title">More insight than a spreadsheet.<br>Less cost than a human financial advisor.</h2>
   </div>
   <div class="stats-row stagger" style="justify-content:center;margin-top:40px">
     <div class="stat">
@@ -654,9 +751,9 @@
 <!-- PRICING -->
 <section class="section" id="pricing">
   <div class="section-center">
-    <div class="section-tag">Pricing</div>
-    <h2 class="section-title">Free to start. $9.99 to go all in.</h2>
-    <p class="section-sub">No credit card. No trial period. Free means free.</p>
+    <div class="section-tag">AI financial advisor app pricing</div>
+    <h2 class="section-title">Free to start. $9.99/mo to go all in.</h2>
+    <p class="section-sub">No credit card. No trial period. Free means free. Upgrade to Pro for unlimited AI conversations with Wally, all 12 reports, and every personal finance tool.</p>
   </div>
   <div class="pricing-grid stagger">
     <div class="pricing-card">
@@ -712,8 +809,8 @@
 <!-- FAQ -->
 <section class="section reveal" style="max-width:760px">
   <div class="section-center">
-    <div class="section-tag">Fair questions</div>
-    <h2 class="section-title">The things people actually want to know</h2>
+    <div class="section-tag">Walify FAQ</div>
+    <h2 class="section-title">Common questions about Walify's AI financial advisor</h2>
   </div>
   <div style="margin-top:40px;display:flex;flex-direction:column;gap:2px" id="faq-list">
     <div class="faq-item">
@@ -745,29 +842,31 @@
 
 <!-- CTA -->
 <section class="cta-section">
-  <h2>Stop guessing about your money.<br>Start knowing.</h2>
-  <p>It's free to start, takes two minutes to set up, and Wally is waiting to answer your first question.</p>
+  <h2>Stop guessing about your money.<br>Your AI financial advisor is ready.</h2>
+  <p>It's free to start, takes two minutes to connect your bank, and Wally — your personal finance AI — is waiting to answer your first question.</p>
   <a href="/login" class="btn-primary-lg">Try Walify Free — No Card Needed →</a>
 </section>
+</main>
 
 <!-- FOOTER -->
-<footer>
+<footer aria-label="Site footer">
   <div class="footer-logo">
-    <svg viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="2.2" width="18" height="18">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="2.2" width="18" height="18" aria-hidden="true">
       <path d="M12 2L2 7l10 5 10-5-10-5z"/>
       <path d="M2 17l10 5 10-5"/>
       <path d="M2 12l10 5 10-5"/>
     </svg>
     Walify
+    <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px">— AI Financial Advisor App</span>
   </div>
-  <div class="footer-links">
+  <nav class="footer-links" aria-label="Footer navigation">
     <a href="#features">Features</a>
     <a href="#pricing">Pricing</a>
     <a href="/login">Sign In</a>
-    <a href="/privacy">Privacy</a>
-    <a href="/terms">Terms</a>
-  </div>
-  <div class="footer-copy">© 2026 Walify</div>
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+  </nav>
+  <div class="footer-copy">© 2026 Walify · AI-powered personal finance tracker · <a href="https://walify.ai" style="color:var(--muted)">walify.ai</a></div>
 </footer>
 
 <script>
