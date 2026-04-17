@@ -271,7 +271,7 @@ function trackAffiliateConversion(ref, amountCents) {
   data.affiliates = data.affiliates || {};
   data.affiliates[ref] = data.affiliates[ref] || { clicks: 0, conversions: 0, revenue: 0 };
   data.affiliates[ref].conversions++;
-  data.affiliates[ref].revenue += Math.round(amountCents || 0);
+  data.affiliates[ref].revenue += parseFloat(((amountCents || 0) / 100).toFixed(2));
   save(data);
 }
 
