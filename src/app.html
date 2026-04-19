@@ -86,6 +86,7 @@
           exchangeToken:    function(p,m) { return apiFetch('/api/plaid/exchange-token', { method: 'POST', body: { public_token: p, metadata: m } }); },
           syncAccounts:     function(id) { return apiFetch('/api/plaid/accounts/' + id); },
           syncTransactions: function(id,r) { return apiFetch('/api/plaid/sync/' + id + (r ? '?reset=true' : ''), { method: 'POST', body: {} }); },
+          resetCursor:      function(id) { return apiFetch('/api/plaid/reset-cursor/' + id, { method: 'POST', body: {} }); },
           getLinkedItems:   function() { return apiFetch('/api/plaid/items'); },
           removeItem:       function(id) { return apiFetch('/api/plaid/items/' + id, { method: 'DELETE' }); },
           getCredentials:   function() { return Promise.resolve(null); },
@@ -9552,6 +9553,19 @@ async function forceResyncPlaidItem(itemId, btn) {
   if (btn) { btn.disabled = false; btn.textContent = 'Force Re-sync'; }
 }
 
+// Recover missing transactions — resets server cursor only, preserves local state and categories.
+async function recoverMissingTransactions(itemId, btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Recovering…'; }
+  try {
+    await window.electronAPI.plaid.resetCursor(itemId);
+    await syncPlaidItem(itemId, null, false); // normal sync with reset cursor — dedup preserves existing
+  } catch (ex) {
+    console.error('[PLAID] recoverMissingTransactions error:', ex);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Recover Missing'; }
+  }
+}
+
 // Auto AI-categorize newly synced transactions in the background.
 // Runs silently — doesn't block the UI or show errors to the user.
 async function _autoAiCategorize(plaidTxIds) {
@@ -9675,7 +9689,7 @@ async function renderPlaidLinkedAccounts() {
         '<div class="ac-inst">' + e(a.type) + '</div>' +
         '<div class="ac-balance ' + (a.balance >= 0 ? 'green' : 'red') + '">' + fmt(a.balance) + '</div>' +
         '<div class="ac-actions">' +
-          (hasServer ? '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button><button class="btn btn-sm btn-ghost" onclick="forceResyncPlaidItem(\'' + e(a.plaidItemId) + '\', this)" title="Reset cursor and re-fetch all transactions from Plaid">Force Re-sync</button>' : '<span style="font-size:10px;color:var(--yellow)" title="Server record missing — reconnect bank to restore sync">⚠ Needs reconnect</span>') +
+          (hasServer ? '<button class="btn btn-sm btn-ghost" onclick="syncPlaidItem(\'' + e(a.plaidItemId) + '\', this)">Sync</button><button class="btn btn-sm btn-ghost" onclick="recoverMissingTransactions(\'' + e(a.plaidItemId) + '\', this)" title="Reset server cursor and re-fetch without clearing your existing categories">Recover Missing</button><button class="btn btn-sm btn-ghost" onclick="forceResyncPlaidItem(\'' + e(a.plaidItemId) + '\', this)" title="Reset cursor and re-fetch all transactions from Plaid (clears local transactions)">Force Re-sync</button>' : '<span style="font-size:10px;color:var(--yellow)" title="Server record missing — reconnect bank to restore sync">⚠ Needs reconnect</span>') +
           (function(){ var excl=(state.excludedAccountIds||[]).includes(a.id); var pid=e(a.plaidAccountId||''); return '<button class="btn btn-sm '+(excl?'badge-green':'btn-ghost')+'" onclick="toggleAccountExclusion(\''+e(a.id)+'\',\''+pid+'\')" title="'+(excl?'Include in':'Exclude from')+' reports">'+(excl?'✓ Excluded':'Exclude from Reports')+'</button>'; })() +
           '<button class="btn btn-danger" onclick="hidePlaidAccount(\'' + e(a.id) + '\')">Hide</button>' +
         '</div>' +

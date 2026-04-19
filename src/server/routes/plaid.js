@@ -299,6 +299,28 @@ router.post('/sync/:itemId', async (req, res) => {
   }
 });
 
+// POST /api/plaid/reset-cursor/:itemId
+// Reset the sync cursor to null so the next sync re-fetches all transactions from Plaid.
+// Does NOT affect local client state — existing transactions with categories are preserved.
+router.post('/reset-cursor/:itemId', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    const { itemId } = req.params;
+    const itemResult = await db.query(
+      'SELECT item_id FROM plaid_items WHERE item_id = $1 AND user_id = $2',
+      [itemId, userId]
+    );
+    if (!itemResult.rows.length) return res.status(404).json({ error: 'Item not found' });
+    await db.query(
+      "UPDATE plaid_items SET cursor = $1, updated_at = datetime('now') WHERE item_id = $2",
+      [null, itemId]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/plaid/items/:itemId
 // Remove a linked item
 router.delete('/items/:itemId', async (req, res) => {
