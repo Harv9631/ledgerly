@@ -24,5 +24,7 @@
   "categories": ["finance", "productivity"],
   "screenshots": [],
   "related_applications": [],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "id": "/app.html",
+  "display_override": ["window-controls-overlay", "standalone"]
 }
