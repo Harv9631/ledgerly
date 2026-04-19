@@ -10531,7 +10531,9 @@ if (window._webToken) {
         // Local scalar overrides (mode, settings, flags the user just set)
         merged.mode = state.mode || data.state.mode;
         merged.tourComplete = state.tourComplete || data.state.tourComplete;
-        merged.hiddenPlaidAccountIds = state.hiddenPlaidAccountIds || data.state.hiddenPlaidAccountIds || [];
+        // Union hidden account IDs so hiding on one device sticks on all devices
+        merged.hiddenPlaidAccountIds = Array.from(new Set([...(state.hiddenPlaidAccountIds || []), ...(data.state.hiddenPlaidAccountIds || [])]));
+
         // Excluded accounts — local always wins (user explicitly excluded these)
         // Excluded accounts — union of local and server so exclusions from any device stick
         var localExclA = new Set(state.excludedAccountIds || []);
@@ -10557,10 +10559,6 @@ if (window._webToken) {
           });
           merged[key] = result;
         });
-        // Keep local Plaid accounts if server has fewer (server may not have latest sync yet)
-        if ((state.accounts || []).filter(a=>a.isPlaid).length > (data.state.accounts || []).filter(a=>a.isPlaid).length) {
-          merged.accounts = state.accounts;
-        }
         // Merge transactions: keep all unique transactions from both local and server
         var localTxs = state.transactions || [];
         var serverTxs = data.state.transactions || [];
