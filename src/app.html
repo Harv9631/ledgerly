@@ -10540,15 +10540,22 @@ if (window._webToken) {
         var localExclP = new Set(state.excludedPlaidIds || []);
         var serverExclP = new Set(data.state.excludedPlaidIds || []);
         merged.excludedPlaidIds = Array.from(new Set([...localExclP, ...serverExclP]));
-        // For all array fields: local is authoritative if it has been touched in this session
-        // (user deletions should stick — the server copy is stale from a prior push)
-        var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules','deletedPlaidTxIds'];
+        // Merge array fields by ID — union of local and server, local wins for conflicts.
+        // This allows additions from any device to propagate cross-device.
+        // deletedPlaidTxIds has no id field so keep union-of-set behavior.
+        var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules'];
         arrayFields.forEach(function(key) {
           var local = state[key] || [];
           var server = data.state[key] || [];
-          // If local has items, use local (user may have deleted from server copy)
-          // If local is empty but server has items, use server (data from another device)
-          merged[key] = local.length > 0 ? local : server;
+          // Build lookup by id from local (local wins for same id)
+          var localMap = {};
+          local.forEach(function(item) { if (item.id) localMap[item.id] = item; });
+          // Start with all local items, then add server items not present locally
+          var result = local.slice();
+          server.forEach(function(item) {
+            if (item.id && !localMap[item.id]) result.push(item);
+          });
+          merged[key] = result;
         });
         // Keep local Plaid accounts if server has fewer (server may not have latest sync yet)
         if ((state.accounts || []).filter(a=>a.isPlaid).length > (data.state.accounts || []).filter(a=>a.isPlaid).length) {
