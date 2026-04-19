@@ -10549,13 +10549,19 @@ if (window._webToken) {
         arrayFields.forEach(function(key) {
           var local = state[key] || [];
           var server = data.state[key] || [];
-          // Build lookup by id from local (local wins for same id)
-          var localMap = {};
-          local.forEach(function(item) { if (item.id) localMap[item.id] = item; });
+          // Build lookup by id AND plaidAccountId (Plaid accounts share plaidAccountId
+          // across sessions but have different generated id values — dedup by both)
+          var localIds = new Set();
+          local.forEach(function(item) {
+            if (item.id) localIds.add(item.id);
+            if (item.plaidAccountId) localIds.add(item.plaidAccountId);
+          });
           // Start with all local items, then add server items not present locally
           var result = local.slice();
           server.forEach(function(item) {
-            if (item.id && !localMap[item.id]) result.push(item);
+            var seenById = item.id && localIds.has(item.id);
+            var seenByPlaid = item.plaidAccountId && localIds.has(item.plaidAccountId);
+            if (!seenById && !seenByPlaid) result.push(item);
           });
           merged[key] = result;
         });
@@ -10599,6 +10605,14 @@ if (window._webToken) {
           });
           merged.transactions = mergedTxs;
         }
+        // Dedup accounts by plaidAccountId — remove duplicates introduced by prior merge bug
+        var seenPlaidAccIds = new Set();
+        merged.accounts = (merged.accounts || []).filter(function(a) {
+          if (!a.plaidAccountId) return true; // keep manual accounts always
+          if (seenPlaidAccIds.has(a.plaidAccountId)) return false;
+          seenPlaidAccIds.add(a.plaidAccountId);
+          return true;
+        });
         state = merged;
         saveState();
         renderAll();
