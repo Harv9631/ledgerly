@@ -149,8 +149,12 @@ app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (Electron, curl, server-to-server)
     if (!origin) return callback(null, true);
-    const allowed = (process.env.CORS_ORIGIN || 'http://localhost:3210')
-      .split(',').map(s => s.trim());
+    // Always allow walify.ai and localhost regardless of env var
+    if (origin.includes('walify.ai') || origin.includes('localhost') || origin.startsWith('android-app://')) {
+      return callback(null, true);
+    }
+    const allowed = (process.env.CORS_ORIGIN || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
     if (allowed.includes(origin)) return callback(null, true);
     callback(new Error('Not allowed by CORS'));
   },
