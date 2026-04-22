@@ -281,7 +281,9 @@ ${financialContext ? financialContext.slice(0, 12000) : 'No financial data avail
 
     res.json({ text, usage: response.usage, rateCount: rateInfo.count, rateInfo });
   } catch (err) {
-    res.status(500).json({ error: err.message || 'AI error' });
+    const detail = err.response?.data || err.status || err.code || '';
+    console.error('[WALLY] AI error:', err.message, detail);
+    res.status(500).json({ error: err.message || 'AI error', detail });
   }
 });
 
