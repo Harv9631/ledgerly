@@ -260,7 +260,7 @@ Great! I'll set up a $500 monthly budget for Groceries.
 Only include an action block when the user explicitly asks to create or modify something. For informational questions, just answer normally without an action block. Use reasonable defaults for optional fields. For budget categories, use standard categories like: Groceries, Dining & Restaurants, Gas & Fuel, Rent & Mortgage, etc.
 
 USER FINANCIAL SNAPSHOT:
-${financialContext || 'No financial data available yet.'}`;
+${financialContext ? financialContext.slice(0, 12000) : 'No financial data available yet.'}`;
 
   const messages = [
     ...history.slice(-40).map(h => ({ role: h.role, content: h.content })),
