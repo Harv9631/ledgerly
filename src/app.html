@@ -10792,7 +10792,7 @@ Last 90 Days — Total Income: $${txCreditsTotal.toFixed(2)} | Total Spending: $
   const _ctxDay = dayOfMonth(n);
   const _ctxDays = daysInMonth(n);
   ctx += `\n\nMonth Progress: Day ${_ctxDay} of ${_ctxDays} (${Math.round(_ctxProg * 100)}% through the month)`;
-  ctx += `\nIMPORTANT: When comparing this month's spending to previous months, note we are only ${Math.round(_ctxProg * 100)}% through the month. Projected amounts below use smart pacing: fixed bills (1-2 transactions like rent, car payment) show actual amount paid; variable spending (3+ transactions like groceries, dining) is projected to full month.`;
+  ctx += `\nIMPORTANT: We are only ${Math.round(_ctxProg * 100)}% through the month. Category projections below are mathematical estimates and may overstate actual expected spending (e.g. one-time expenses inflate the projection). When assessing the user's financial health, use the "Monthly Expenses" figure above (based on manual entries or 3-month average) as the authoritative expected monthly spending — NOT the category projection totals. Only use projections to highlight specific categories that seem high.`;
   const thisMonthSpend = {};
   const thisMonthSpendTxs = {};
   const thisMonthIncome = {};
