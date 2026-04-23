@@ -537,20 +537,19 @@
       <filter id="ray-blur"><feGaussianBlur stdDeviation="8"/></filter>
     </defs>
     <!-- All rays converge at single point: (720, -20) top center -->
-    <!-- Center strong ray -->
-    <polygon points="720,-20 680,900 760,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.9"/>
+    <!-- Center ray — toned down -->
+    <polygon points="720,-20 690,900 750,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.55"/>
     <!-- Inner rays -->
-    <polygon points="720,-20 620,900 650,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.7"/>
-    <polygon points="720,-20 790,900 820,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.7"/>
-    <polygon points="720,-20 520,900 555,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.55"/>
-    <polygon points="720,-20 885,900 920,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.55"/>
-    <!-- Outer rays -->
-    <polygon points="720,-20 390,900 430,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.35"/>
-    <polygon points="720,-20 1010,900 1050,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.35"/>
-    <polygon points="720,-20 240,900 285,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.20"/>
-    <polygon points="720,-20 1155,900 1200,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.20"/>
-    <polygon points="720,-20 80,900 130,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.12"/>
-    <polygon points="720,-20 1310,900 1360,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.12"/>
+    <polygon points="720,-20 635,900 660,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.45"/>
+    <polygon points="720,-20 780,900 805,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.45"/>
+    <polygon points="720,-20 555,900 582,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.35"/>
+    <polygon points="720,-20 858,900 885,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.35"/>
+    <!-- Mid rays -->
+    <polygon points="720,-20 468,900 498,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
+    <polygon points="720,-20 942,900 972,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
+    <!-- Outer rays — stop before edge -->
+    <polygon points="720,-20 375,900 408,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.12"/>
+    <polygon points="720,-20 1032,900 1065,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.12"/>
     <animateTransform attributeName="" type=""/>
   </svg>
 
