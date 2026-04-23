@@ -10758,15 +10758,18 @@ function buildFinancialContext() {
   const thisMonthTxAll = filteredTx().filter(t => t.date >= thisMonthStart);
   const actualMonthIncome = thisMonthTxAll.filter(t => t.type === 'credit').reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
   const actualMonthSpend = thisMonthTxAll.filter(t => t.type === 'debit').reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
-  const incSrc = monthlyIncome() > 0 ? 'manual baseline entry' : '3-month avg from transactions';
   const expSrc = monthlyExpenses() > 0 ? 'manual baseline entry' : '3-month avg from transactions';
+  // Use whichever income is higher: actual this month or guaranteed baseline salary
+  const effectiveIncome = Math.max(actualMonthIncome, mi);
+  const incomeNote = actualMonthIncome >= mi
+    ? `$${actualMonthIncome.toFixed(2)} actual (exceeds $${mi.toFixed(2)} baseline)`
+    : `$${mi.toFixed(2)} guaranteed baseline (only $${actualMonthIncome.toFixed(2)} received so far this month)`;
   let ctx = `Financial Mode: ${mode === 'personal' ? 'Personal' : 'Business'}
-THIS MONTH ACTUAL (from real bank transactions — use these for current month analysis):
-  Income received this month: $${actualMonthIncome.toFixed(2)}
-  Spent this month: $${actualMonthSpend.toFixed(2)}
-  Net this month: $${(actualMonthIncome - actualMonthSpend).toFixed(2)}
-Baseline/Budget (manual entries for recurring items — use for future projections):
-  Expected monthly income: $${mi.toFixed(2)} (${incSrc})
+THIS MONTH (use these for current-month analysis):
+  Income: ${incomeNote}
+  Spent: $${actualMonthSpend.toFixed(2)} actual transactions
+  Net: $${(effectiveIncome - actualMonthSpend).toFixed(2)}
+Baseline/Budget (for future projections):
   Expected monthly expenses: $${me.toFixed(2)} (${expSrc})
 Total Assets (tracked accounts): $${totalAssetAmt.toFixed(2)}
 Total Debt: $${totalDebtAmt.toFixed(2)}
