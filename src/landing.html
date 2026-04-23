@@ -517,7 +517,381 @@
 </header>
 
 <main id="main-content">
-<!-- HERO -->
+
+<!-- ══ NEW HERO — AI EDITION ══════════════════════════════════════════════ -->
+<section id="ai-hero">
+  <canvas id="hero-canvas"></canvas>
+  <div id="hero-glow"></div>
+
+  <div id="hero-content">
+    <div id="hero-badge">
+      <span class="badge-dot"></span>
+      <span>Wally is live — your AI reads your real bank data</span>
+    </div>
+
+    <h1 id="hero-h1">Your money,<br><span class="hero-gradient-text">finally understood.</span></h1>
+
+    <p id="hero-p">Meet <strong>Wally</strong> — the AI financial advisor that reads your actual income, spending, and debt before saying a word. Not generic tips. Your numbers. Your answers.</p>
+
+    <div id="hero-cta-row">
+      <a href="/login" id="hero-btn-primary">Get Started Free <span>→</span></a>
+      <a href="#wally" id="hero-btn-ghost">See Wally in action</a>
+    </div>
+
+    <p id="hero-trust-note">Free forever · No credit card · Bank sync by Plaid</p>
+  </div>
+
+  <!-- Floating animated dashboard mockup -->
+  <div id="hero-mockup-wrap">
+    <div id="hero-mockup">
+      <!-- Header bar -->
+      <div class="hm-topbar">
+        <div class="hm-dot red"></div><div class="hm-dot yellow"></div><div class="hm-dot green"></div>
+        <span class="hm-title">Walify AI — Dashboard</span>
+      </div>
+
+      <!-- KPI cards row -->
+      <div class="hm-cards">
+        <div class="hm-card">
+          <div class="hm-card-label">BALANCE</div>
+          <div class="hm-card-val green" id="hm-balance">$0.00</div>
+          <div class="hm-card-sub">1 account linked</div>
+        </div>
+        <div class="hm-card">
+          <div class="hm-card-label">MONTHLY INCOME</div>
+          <div class="hm-card-val" id="hm-income">$0</div>
+          <div class="hm-card-sub">verified ✓</div>
+        </div>
+        <div class="hm-card red-border">
+          <div class="hm-card-label">MONTHLY SPEND</div>
+          <div class="hm-card-val red" id="hm-spend">$0</div>
+          <div class="hm-card-sub">this month</div>
+        </div>
+        <div class="hm-card">
+          <div class="hm-card-label">NET WORTH</div>
+          <div class="hm-card-val blue" id="hm-net">$0</div>
+          <div class="hm-card-sub">↑ trending up</div>
+        </div>
+      </div>
+
+      <!-- Mini chart -->
+      <div class="hm-chart-section">
+        <div class="hm-chart-title">Spending by Category <span class="hm-chip">This Month</span></div>
+        <div class="hm-bars" id="hm-bars">
+          <div class="hm-bar-row"><span>Rent & Mortgage</span><div class="hm-bar-bg"><div class="hm-bar" style="--w:82%;background:#3fb950"></div></div><span>$2,100</span></div>
+          <div class="hm-bar-row"><span>Groceries</span><div class="hm-bar-bg"><div class="hm-bar" style="--w:34%;background:#58a6ff"></div></div><span>$420</span></div>
+          <div class="hm-bar-row"><span>Dining Out</span><div class="hm-bar-bg"><div class="hm-bar" style="--w:28%;background:#f78166"></div></div><span>$340</span></div>
+          <div class="hm-bar-row"><span>Gas & Fuel</span><div class="hm-bar-bg"><div class="hm-bar" style="--w:18%;background:#e3b341"></div></div><span>$215</span></div>
+        </div>
+      </div>
+
+      <!-- Wally chat bubble -->
+      <div class="hm-wally-wrap">
+        <div class="hm-wally-avatar">🤖</div>
+        <div class="hm-wally-bubble">
+          <span id="hm-wally-text"></span><span class="hm-cursor">|</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom trust strip -->
+  <div id="hero-trust-strip">
+    <span>🔒 256-bit encrypted</span>
+    <span>👁 Read-only bank access</span>
+    <span>🏦 12,000+ banks supported</span>
+    <span>🚫 Data never sold</span>
+  </div>
+</section>
+
+<style>
+/* ── AI HERO STYLES ─────────────────────────────────────────────────────── */
+#ai-hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 50% 40%, #0a1f0e 0%, #060d08 40%, #020405 100%);
+  padding: 80px 24px 40px;
+}
+#hero-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 0;
+}
+#hero-glow {
+  position: absolute;
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(35,134,54,.22) 0%, rgba(35,134,54,.06) 40%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -55%);
+  pointer-events: none; z-index: 0;
+  animation: glowPulse 4s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%,100% { opacity: .8; transform: translate(-50%,-55%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%,-55%) scale(1.08); }
+}
+#hero-content {
+  position: relative; z-index: 2;
+  text-align: center;
+  max-width: 720px;
+  margin-bottom: 56px;
+}
+#hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(35,134,54,.12); border: 1px solid rgba(63,185,80,.3);
+  border-radius: 100px; padding: 6px 16px; font-size: 13px;
+  color: #3fb950; font-weight: 500; margin-bottom: 28px;
+  animation: badgeFade 1s ease both;
+}
+.badge-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #3fb950;
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(63,185,80,.4)} 50%{opacity:.7;box-shadow:0 0 0 5px rgba(63,185,80,0)} }
+@keyframes badgeFade { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+#hero-h1 {
+  font-size: clamp(42px, 6vw, 72px);
+  font-weight: 800; line-height: 1.08; letter-spacing: -.03em;
+  color: #e6edf3;
+  margin-bottom: 20px;
+  animation: heroFadeUp .9s .1s ease both;
+}
+.hero-gradient-text {
+  background: linear-gradient(135deg, #3fb950, #58d68d, #85e89d);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+#hero-p {
+  font-size: 18px; color: #8b949e; line-height: 1.65;
+  max-width: 540px; margin: 0 auto 32px;
+  animation: heroFadeUp .9s .2s ease both;
+}
+#hero-p strong { color: #3fb950; -webkit-text-fill-color: #3fb950; }
+@keyframes heroFadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+#hero-cta-row {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  animation: heroFadeUp .9s .3s ease both;
+}
+#hero-btn-primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg,#238636,#3fb950);
+  color: #fff; font-size: 16px; font-weight: 700;
+  padding: 14px 32px; border-radius: 100px;
+  box-shadow: 0 0 32px rgba(35,134,54,.45), 0 4px 16px rgba(0,0,0,.3);
+  transition: transform .2s, box-shadow .2s;
+}
+#hero-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(35,134,54,.6), 0 8px 24px rgba(0,0,0,.4); }
+#hero-btn-primary span { transition: transform .2s; }
+#hero-btn-primary:hover span { transform: translateX(3px); }
+#hero-btn-ghost {
+  display: inline-flex; align-items: center;
+  font-size: 15px; color: #8b949e;
+  border: 1px solid rgba(255,255,255,.1); border-radius: 100px;
+  padding: 14px 28px;
+  transition: color .2s, border-color .2s, background .2s;
+}
+#hero-btn-ghost:hover { color: #e6edf3; border-color: rgba(255,255,255,.2); background: rgba(255,255,255,.04); }
+#hero-trust-note {
+  margin-top: 16px; font-size: 12px; color: #484f58;
+  animation: heroFadeUp .9s .4s ease both;
+}
+
+/* ── FLOATING MOCKUP ───────────────────────────────────────────────────── */
+#hero-mockup-wrap {
+  position: relative; z-index: 2;
+  animation: mockupFloat 6s ease-in-out infinite, heroFadeUp 1s .5s ease both;
+  filter: drop-shadow(0 32px 80px rgba(35,134,54,.2)) drop-shadow(0 0 1px rgba(63,185,80,.3));
+}
+@keyframes mockupFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+#hero-mockup {
+  width: min(780px, 92vw);
+  background: rgba(13,17,23,.9);
+  border: 1px solid rgba(63,185,80,.18);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+}
+.hm-topbar {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(22,27,34,.95); padding: 12px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.hm-dot { width: 12px; height: 12px; border-radius: 50%; }
+.hm-dot.red { background: #f47067; }
+.hm-dot.yellow { background: #e3b341; }
+.hm-dot.green { background: #3fb950; }
+.hm-title { font-size: 12px; color: #484f58; margin-left: 8px; }
+.hm-cards {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 1px; background: rgba(255,255,255,.05);
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.hm-card {
+  background: rgba(13,17,23,.95); padding: 14px 16px;
+  border-top: 2px solid rgba(63,185,80,.3);
+}
+.hm-card.red-border { border-top-color: rgba(244,112,103,.4); }
+.hm-card-label { font-size: 9px; letter-spacing: .08em; color: #484f58; font-weight: 600; margin-bottom: 4px; }
+.hm-card-val { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: #e6edf3; }
+.hm-card-val.green { color: #3fb950; }
+.hm-card-val.red { color: #f47067; }
+.hm-card-val.blue { color: #58a6ff; }
+.hm-card-sub { font-size: 10px; color: #484f58; margin-top: 2px; }
+.hm-chart-section { padding: 16px 20px 12px; }
+.hm-chart-title { font-size: 12px; font-weight: 600; color: #8b949e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.hm-chip { background: rgba(63,185,80,.12); color: #3fb950; border: 1px solid rgba(63,185,80,.2); border-radius: 100px; padding: 2px 8px; font-size: 10px; }
+.hm-bars { display: flex; flex-direction: column; gap: 8px; }
+.hm-bar-row { display: flex; align-items: center; gap: 10px; font-size: 11px; color: #8b949e; }
+.hm-bar-row > span:first-child { width: 110px; flex-shrink: 0; text-align: right; }
+.hm-bar-row > span:last-child { width: 44px; flex-shrink: 0; color: #e6edf3; font-weight: 600; }
+.hm-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,.06); border-radius: 100px; overflow: hidden; }
+.hm-bar { height: 100%; width: 0; border-radius: 100px; transition: width 1.8s cubic-bezier(.16,1,.3,1); }
+.hm-wally-wrap {
+  display: flex; align-items: flex-end; gap: 10px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid rgba(255,255,255,.04);
+}
+.hm-wally-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg,#238636,#3fb950);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.hm-wally-bubble {
+  background: rgba(35,134,54,.12); border: 1px solid rgba(63,185,80,.2);
+  border-radius: 12px 12px 12px 2px; padding: 8px 14px;
+  font-size: 12px; color: #c9d1d9; line-height: 1.5; flex: 1; min-height: 36px;
+}
+.hm-cursor { display: inline-block; width: 2px; background: #3fb950; margin-left: 1px; animation: blink .7s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── TRUST STRIP ────────────────────────────────────────────────────────── */
+#hero-trust-strip {
+  position: relative; z-index: 2;
+  display: flex; gap: 32px; justify-content: center; flex-wrap: wrap;
+  margin-top: 48px; padding-top: 24px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  font-size: 12px; color: #484f58;
+  animation: heroFadeUp 1s .7s ease both;
+}
+
+/* ── MOBILE RESPONSIVE ──────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  #ai-hero { padding: 70px 16px 32px; }
+  #hero-h1 { font-size: 38px; }
+  #hero-p { font-size: 15px; }
+  .hm-cards { grid-template-columns: repeat(2,1fr); }
+  .hm-bar-row > span:first-child { width: 70px; font-size: 9px; }
+  #hero-trust-strip { gap: 16px; }
+}
+@media (max-width: 480px) {
+  .hm-cards { grid-template-columns: repeat(2,1fr); }
+  #hero-btn-primary, #hero-btn-ghost { padding: 12px 22px; font-size: 14px; }
+}
+</style>
+
+<script>
+/* ── PARTICLE CANVAS ─────────────────────────────────────────────────────── */
+(function() {
+  const canvas = document.getElementById('hero-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+
+  function resize() {
+    W = canvas.width = canvas.offsetWidth;
+    H = canvas.height = canvas.offsetHeight;
+  }
+
+  function Particle() {
+    this.reset = function() {
+      this.x = Math.random() * W;
+      this.y = Math.random() * H;
+      this.r = Math.random() * 1.4 + .3;
+      this.vx = (Math.random() - .5) * .25;
+      this.vy = (Math.random() - .5) * .25;
+      this.alpha = Math.random() * .45 + .05;
+      this.green = Math.random() > .65;
+    };
+    this.reset();
+  }
+
+  function init() {
+    resize();
+    particles = Array.from({length: 120}, () => new Particle());
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = p.green
+        ? `rgba(63,185,80,${p.alpha})`
+        : `rgba(180,200,190,${p.alpha * .4})`;
+      ctx.fill();
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < -5 || p.x > W + 5 || p.y < -5 || p.y > H + 5) p.reset();
+    });
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  init(); draw();
+})();
+
+/* ── COUNTER ANIMATION ───────────────────────────────────────────────────── */
+function countUp(el, target, prefix, suffix, duration, decimals) {
+  let start = 0, step = target / (duration / 16);
+  function tick() {
+    start = Math.min(start + step, target);
+    el.textContent = prefix + start.toFixed(decimals || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (suffix || '');
+    if (start < target) requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+/* ── BAR ANIMATION ───────────────────────────────────────────────────────── */
+function animateBars() {
+  document.querySelectorAll('.hm-bar').forEach(b => {
+    setTimeout(() => { b.style.width = b.style.getPropertyValue('--w'); }, 400);
+  });
+}
+
+/* ── WALLY TYPEWRITER ────────────────────────────────────────────────────── */
+function typeWriter(el, text, speed) {
+  let i = 0;
+  function tick() {
+    if (i <= text.length) { el.textContent = text.slice(0, i++); setTimeout(tick, speed); }
+  }
+  tick();
+}
+
+/* ── INIT ON LOAD ────────────────────────────────────────────────────────── */
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    countUp(document.getElementById('hm-balance'), 5709.96, '$', '', 1800, 2);
+    countUp(document.getElementById('hm-income'), 7800, '$', '', 1600, 0);
+    countUp(document.getElementById('hm-spend'), 6559, '$', '', 1600, 0);
+    countUp(document.getElementById('hm-net'), 48210, '$', '', 2000, 0);
+    animateBars();
+    setTimeout(function() {
+      typeWriter(
+        document.getElementById('hm-wally-text'),
+        'You\'re on track this month. Your $7.8k income covers spending with $1.2k to save. Want a debt payoff plan?',
+        28
+      );
+    }, 1200);
+  }, 300);
+});
+</script>
+<!-- ══ END NEW HERO ════════════════════════════════════════════════════════ -->
+
+<!-- ORIGINAL HERO (preserved for revert) -->
+<!--
 <section class="hero" aria-labelledby="hero-heading">
   <div class="hero-badge">
     🤖 Introducing Wally — AI that reads your money first
@@ -541,7 +915,8 @@
   </div>
   <p style="font-size:12px;color:var(--muted);margin-top:12px">Join 2,400+ people who track their finances with Walify</p>
 </section>
-
+-->
+<!-- END ORIGINAL HERO -->
 
 <!-- WALLY SECTION — moved to top as primary selling point -->
 <article class="wally-section" id="wally" aria-label="Wally AI financial advisor">
