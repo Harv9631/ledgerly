@@ -522,6 +522,7 @@
 <section id="ai-hero">
   <canvas id="hero-canvas"></canvas>
   <div id="hero-glow"></div>
+  <div id="hero-rays"></div>
 
   <div id="hero-content">
     <div id="hero-badge">
@@ -621,6 +622,46 @@
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 0;
 }
+#hero-rays {
+  position: absolute;
+  top: -10%; left: 50%;
+  transform: translateX(-50%);
+  width: 1200px; height: 900px;
+  pointer-events: none; z-index: 0;
+  background: conic-gradient(
+    from 250deg at 50% 0%,
+    transparent 0deg,
+    rgba(63,185,80,.03) 2deg,
+    transparent 4deg,
+    transparent 8deg,
+    rgba(63,185,80,.04) 10deg,
+    transparent 12deg,
+    transparent 18deg,
+    rgba(100,210,120,.03) 20deg,
+    transparent 22deg,
+    transparent 26deg,
+    rgba(63,185,80,.05) 28deg,
+    transparent 30deg,
+    transparent 35deg,
+    rgba(63,185,80,.03) 37deg,
+    transparent 39deg,
+    transparent 44deg,
+    rgba(80,200,100,.04) 46deg,
+    transparent 48deg,
+    transparent 54deg,
+    rgba(63,185,80,.03) 56deg,
+    transparent 58deg,
+    transparent 60deg
+  );
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.4) 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,.9) 0%, rgba(0,0,0,.4) 50%, transparent 100%);
+  animation: raysSlowRotate 20s linear infinite;
+}
+@keyframes raysSlowRotate {
+  from { transform: translateX(-50%) rotate(0deg); }
+  to { transform: translateX(-50%) rotate(360deg); }
+}
+
 #hero-glow {
   position: absolute;
   width: 700px; height: 700px;
