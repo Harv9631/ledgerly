@@ -2968,7 +2968,7 @@ const DEFAULT_ALERTS_CONFIG = [
   { id:'goal_milestone', label:'Goal Milestone Notifications', desc:'Celebrate when goals hit 25%, 50%, 75%, or 100%.',              enabled:true,  threshold:0,    unit:'any'     },
   { id:'weekly_digest',  label:'Weekly Summary Digest',        desc:'Show an in-app weekly summary of spend, income, and net worth.',enabled:true,  threshold:0,    unit:'any'     },
 ];
-let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[], deletedPlaidTxIds:[], tourComplete: false };
+let state = { mode:'personal', strategy:'avalanche', income:[], expenses:[], debts:[], transactions:[], accounts:[], budgets:[], goals:[], invoices:[], subscriptions:[], mileageLogs:[], budgetZeroBased:false, alertsConfig: null, notifications:[], alertsLastRun: null, dismissedInsights:[], txRules:[], savingsBuckets:[], savingsContributions:[], customCategories:[], categorySubcategories:{}, hiddenPlaidAccountIds:[], excludedAccountIds:[], excludedPlaidIds:[], deletedPlaidTxIds:[], deletedManualIds:[], tourComplete: false };
 const STORAGE_KEY = 'walify_v3';
 let reportPeriods = { pl:'lastmonth', balance:'lastmonth', cashflow:'lastmonth' };
 let budgetViewYear = new Date().getFullYear();
@@ -3655,7 +3655,8 @@ function saveIncome() {
   document.getElementById('inc-freq').value = 'monthly'; toggleBonusHint('monthly');
   renderAll();
 }
-function deleteIncome(id) { state.income = state.income.filter(i => i.id !== id); saveState(); renderAll(); }
+function _trackDeleted(id) { state.deletedManualIds = state.deletedManualIds || []; if (!state.deletedManualIds.includes(id)) state.deletedManualIds.push(id); }
+function deleteIncome(id) { _trackDeleted(id); state.income = state.income.filter(i => i.id !== id); saveState(); renderAll(); }
 
 // ── EXPENSES ──────────────────────────────────────────────────────────────────
 function saveExpense() {
@@ -3675,7 +3676,7 @@ function saveExpense() {
   clearExpReceipt();
   renderAll();
 }
-function deleteExpense(id) { state.expenses = state.expenses.filter(x => x.id !== id); removeReceipt(id); saveState(); renderAll(); }
+function deleteExpense(id) { _trackDeleted(id); state.expenses = state.expenses.filter(x => x.id !== id); removeReceipt(id); saveState(); renderAll(); }
 
 // ── DEBT ──────────────────────────────────────────────────────────────────────
 function saveDebt() {
@@ -3690,7 +3691,7 @@ function saveDebt() {
   ['dbt-name','dbt-balance','dbt-original','dbt-rate','dbt-payment','dbt-due'].forEach(i => document.getElementById(i).value = '');
   renderAll();
 }
-function deleteDebt(id) { state.debts = state.debts.filter(d => d.id !== id); saveState(); renderAll(); }
+function deleteDebt(id) { _trackDeleted(id); state.debts = state.debts.filter(d => d.id !== id); saveState(); renderAll(); }
 
 function openEditIncome(id) {
   const inc = state.income.find(i => i.id === id);
@@ -10545,6 +10546,10 @@ if (window._webToken) {
         // Merge array fields by ID — union of local and server, local wins for conflicts.
         // This allows additions from any device to propagate cross-device.
         // deletedPlaidTxIds has no id field so keep union-of-set behavior.
+        // Union deletedManualIds from both devices so deletions stick everywhere
+        var localDeletedManual = new Set([...(state.deletedManualIds || []), ...(data.state.deletedManualIds || [])]);
+        merged.deletedManualIds = Array.from(localDeletedManual);
+
         var arrayFields = ['income','expenses','debts','accounts','budgets','goals','savingsBuckets','savingsContributions','subscriptions','invoices','mileageLogs','txRules'];
         arrayFields.forEach(function(key) {
           var local = state[key] || [];
@@ -10556,9 +10561,10 @@ if (window._webToken) {
             if (item.id) localIds.add(item.id);
             if (item.plaidAccountId) localIds.add(item.plaidAccountId);
           });
-          // Start with all local items, then add server items not present locally
-          var result = local.slice();
+          // Start with all local items (filter out deleted), then add server items not deleted/present locally
+          var result = local.filter(function(item) { return !item.id || !localDeletedManual.has(item.id); });
           server.forEach(function(item) {
+            if (item.id && localDeletedManual.has(item.id)) return; // skip deleted items
             var seenById = item.id && localIds.has(item.id);
             var seenByPlaid = item.plaidAccountId && localIds.has(item.plaidAccountId);
             if (!seenById && !seenByPlaid) result.push(item);
@@ -10747,12 +10753,21 @@ function buildFinancialContext() {
 
   const txCreditsTotal = txCredits(recentTxs);
   const txDebitsTotal  = txDebits(recentTxs);
-  const incSrc = monthlyIncome() > 0 ? 'manual entries' : '3-month avg from transactions';
-  const expSrc = monthlyExpenses() > 0 ? 'manual entries' : '3-month avg from transactions';
+  // Actual this-month transaction totals
+  const thisMonthStart = new Date(n.getFullYear(), n.getMonth(), 1).toISOString().slice(0, 10);
+  const thisMonthTxAll = filteredTx().filter(t => t.date >= thisMonthStart);
+  const actualMonthIncome = thisMonthTxAll.filter(t => t.type === 'credit').reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
+  const actualMonthSpend = thisMonthTxAll.filter(t => t.type === 'debit').reduce((s, t) => s + Math.abs(parseFloat(t.amount) || 0), 0);
+  const incSrc = monthlyIncome() > 0 ? 'manual baseline entry' : '3-month avg from transactions';
+  const expSrc = monthlyExpenses() > 0 ? 'manual baseline entry' : '3-month avg from transactions';
   let ctx = `Financial Mode: ${mode === 'personal' ? 'Personal' : 'Business'}
-Monthly Income: $${mi.toFixed(2)} (${incSrc})
-Monthly Expenses: $${me.toFixed(2)} (${expSrc})
-Monthly Cash Flow: $${(mi - me).toFixed(2)}
+THIS MONTH ACTUAL (from real bank transactions — use these for current month analysis):
+  Income received this month: $${actualMonthIncome.toFixed(2)}
+  Spent this month: $${actualMonthSpend.toFixed(2)}
+  Net this month: $${(actualMonthIncome - actualMonthSpend).toFixed(2)}
+Baseline/Budget (manual entries for recurring items — use for future projections):
+  Expected monthly income: $${mi.toFixed(2)} (${incSrc})
+  Expected monthly expenses: $${me.toFixed(2)} (${expSrc})
 Total Assets (tracked accounts): $${totalAssetAmt.toFixed(2)}
 Total Debt: $${totalDebtAmt.toFixed(2)}
 Net Worth: $${(totalAssetAmt - totalDebtAmt).toFixed(2)}
