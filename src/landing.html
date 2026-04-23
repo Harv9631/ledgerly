@@ -522,44 +522,100 @@
 <section id="ai-hero">
   <canvas id="hero-canvas"></canvas>
   <div id="hero-glow"></div>
-  <svg id="hero-rays" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMin slice">
-    <defs>
-      <linearGradient id="rg1" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="rgba(220,255,230,0.9)"/>
-        <stop offset="40%" stop-color="rgba(190,240,210,0.35)"/>
-        <stop offset="100%" stop-color="rgba(160,220,185,0)"/>
-      </linearGradient>
-      <linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="rgba(220,255,230,0.6)"/>
-        <stop offset="40%" stop-color="rgba(190,240,210,0.2)"/>
-        <stop offset="100%" stop-color="rgba(160,220,185,0)"/>
-      </linearGradient>
-      <filter id="ray-blur"><feGaussianBlur stdDeviation="8"/></filter>
-    </defs>
-    <!-- Source 1: left-center slit at top (x=600) -->
-    <polygon points="600,0 520,900 560,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.40"/>
-    <polygon points="600,0 580,900 615,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.50"/>
-    <polygon points="600,0 640,900 670,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.30"/>
+  <canvas id="hero-rays-canvas"></canvas>
+  <script>
+  (function(){
+    var c = document.getElementById('hero-rays-canvas');
+    if (!c) return;
+    var ctx = c.getContext('2d');
 
-    <!-- Source 2: center slit at top (x=720) — brightest -->
-    <polygon points="720,0 665,900 700,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.45"/>
-    <polygon points="720,0 705,900 740,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.60"/>
-    <polygon points="720,0 745,900 780,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.45"/>
+    // Ray definitions: [angleDeg, halfWidthDeg, peakOpacity]
+    // Angle 0 = straight down. Negative = left, positive = right
+    var RAYS = [
+      // Center cluster
+      [0,   2.5, 0.22],
+      [-5,  2,   0.16],
+      [5,   2,   0.16],
+      // Inner fan
+      [-13, 1.8, 0.13],
+      [13,  1.8, 0.13],
+      [-22, 1.5, 0.10],
+      [22,  1.5, 0.10],
+      // Mid fan
+      [-33, 1.2, 0.08],
+      [33,  1.2, 0.08],
+      [-46, 1.0, 0.05],
+      [46,  1.0, 0.05],
+      // Outer fan
+      [-60, 0.8, 0.03],
+      [60,  0.8, 0.03],
+    ];
 
-    <!-- Source 3: right-center slit at top (x=840) -->
-    <polygon points="840,0 770,900 800,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.30"/>
-    <polygon points="840,0 825,900 860,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.50"/>
-    <polygon points="840,0 875,900 915,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.40"/>
+    function resize(){
+      c.width  = c.offsetWidth  || window.innerWidth;
+      c.height = c.offsetHeight || window.innerHeight;
+    }
 
-    <!-- Source 4: far left slit (x=490) -->
-    <polygon points="490,0 400,900 440,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
-    <polygon points="490,0 460,900 495,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.28"/>
+    var time = 0;
+    function draw(){
+      resize();
+      var W = c.width, H = c.height;
+      var cx = W * 0.5, cy = -40;
 
-    <!-- Source 5: far right slit (x=950) -->
-    <polygon points="950,0 945,900 980,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.28"/>
-    <polygon points="950,0 1000,900 1040,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
-    <animateTransform attributeName="" type=""/>
-  </svg>
+      ctx.clearRect(0,0,W,H);
+
+      // Soft background glow at source point
+      var srcGlow = ctx.createRadialGradient(cx, 0, 0, cx, 0, W * 0.45);
+      srcGlow.addColorStop(0,   'rgba(180,255,200,0.10)');
+      srcGlow.addColorStop(0.4, 'rgba(140,220,170,0.04)');
+      srcGlow.addColorStop(1,   'rgba(100,200,140,0)');
+      ctx.fillStyle = srcGlow;
+      ctx.fillRect(0,0,W,H);
+
+      // Draw each ray with soft blur via shadow
+      RAYS.forEach(function(r){
+        var angleDeg = r[0], halfDeg = r[1], opPeak = r[2];
+        var pulse = opPeak * (0.75 + 0.25 * Math.sin(time + angleDeg * 0.05));
+
+        var a1 = (angleDeg - halfDeg) * Math.PI / 180;
+        var a2 = (angleDeg + halfDeg) * Math.PI / 180;
+        var len = Math.sqrt(W*W + H*H) * 1.1;
+
+        var x1 = cx + Math.sin(a1) * len;
+        var y1 = cy + Math.cos(a1) * len;
+        var x2 = cx + Math.sin(a2) * len;
+        var y2 = cy + Math.cos(a2) * len;
+
+        ctx.save();
+        ctx.shadowBlur = 28;
+        ctx.shadowColor = 'rgba(160,240,180,0.5)';
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.closePath();
+
+        var grad = ctx.createLinearGradient(cx, cy, cx, H * 0.85);
+        grad.addColorStop(0,   'rgba(220,255,235,' + (pulse * 1.8) + ')');
+        grad.addColorStop(0.12,'rgba(200,245,220,' + pulse + ')');
+        grad.addColorStop(0.5, 'rgba(180,235,205,' + (pulse * 0.35) + ')');
+        grad.addColorStop(1,   'rgba(160,220,190,0)');
+
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      time += 0.008;
+      requestAnimationFrame(draw);
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+    draw();
+  })();
+  </script>
 
   <div id="hero-content">
     <div id="hero-badge">
@@ -659,17 +715,10 @@
   position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 0;
 }
-#hero-rays {
+#hero-rays-canvas {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  width: 100%; height: 100%;
+  top: 0; left: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 0;
-  overflow: hidden;
-  animation: rayPulse 5s ease-in-out infinite;
-}
-@keyframes rayPulse {
-  0%,100% { opacity: .7; }
-  50% { opacity: 1; }
 }
 
 
