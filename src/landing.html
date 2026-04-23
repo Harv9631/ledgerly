@@ -536,20 +536,28 @@
       </linearGradient>
       <filter id="ray-blur"><feGaussianBlur stdDeviation="8"/></filter>
     </defs>
-    <!-- All rays converge at single point: (720, -20) top center -->
-    <!-- Center ray — toned down -->
-    <polygon points="720,-20 690,900 750,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.55"/>
-    <!-- Inner rays -->
-    <polygon points="720,-20 635,900 660,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.45"/>
-    <polygon points="720,-20 780,900 805,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.45"/>
-    <polygon points="720,-20 555,900 582,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.35"/>
-    <polygon points="720,-20 858,900 885,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.35"/>
-    <!-- Mid rays -->
-    <polygon points="720,-20 468,900 498,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
-    <polygon points="720,-20 942,900 972,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
-    <!-- Outer rays — stop before edge -->
-    <polygon points="720,-20 375,900 408,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.12"/>
-    <polygon points="720,-20 1032,900 1065,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.12"/>
+    <!-- Source 1: left-center slit at top (x=600) -->
+    <polygon points="600,0 520,900 560,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.40"/>
+    <polygon points="600,0 580,900 615,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.50"/>
+    <polygon points="600,0 640,900 670,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.30"/>
+
+    <!-- Source 2: center slit at top (x=720) — brightest -->
+    <polygon points="720,0 665,900 700,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.45"/>
+    <polygon points="720,0 705,900 740,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.60"/>
+    <polygon points="720,0 745,900 780,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.45"/>
+
+    <!-- Source 3: right-center slit at top (x=840) -->
+    <polygon points="840,0 770,900 800,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.30"/>
+    <polygon points="840,0 825,900 860,900" fill="url(#rg1)" filter="url(#ray-blur)" opacity="0.50"/>
+    <polygon points="840,0 875,900 915,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.40"/>
+
+    <!-- Source 4: far left slit (x=490) -->
+    <polygon points="490,0 400,900 440,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
+    <polygon points="490,0 460,900 495,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.28"/>
+
+    <!-- Source 5: far right slit (x=950) -->
+    <polygon points="950,0 945,900 980,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.28"/>
+    <polygon points="950,0 1000,900 1040,900" fill="url(#rg2)" filter="url(#ray-blur)" opacity="0.22"/>
     <animateTransform attributeName="" type=""/>
   </svg>
 
