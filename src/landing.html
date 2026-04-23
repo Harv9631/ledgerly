@@ -523,17 +523,19 @@
   <canvas id="hero-canvas"></canvas>
   <div id="hero-glow"></div>
   <div id="hero-rays">
-    <div class="hero-ray" style="transform:rotate(-40deg);opacity:.5;animation-delay:0s"></div>
-    <div class="hero-ray" style="transform:rotate(-28deg);opacity:.7;animation-delay:.3s;width:5px"></div>
-    <div class="hero-ray" style="transform:rotate(-18deg);opacity:.55;animation-delay:.6s"></div>
-    <div class="hero-ray" style="transform:rotate(-10deg);opacity:.8;animation-delay:.1s;width:6px;filter:blur(5px)"></div>
-    <div class="hero-ray" style="transform:rotate(-4deg);opacity:.6;animation-delay:.8s"></div>
-    <div class="hero-ray" style="transform:rotate(0deg);opacity:.9;animation-delay:0s;width:8px;filter:blur(4px)"></div>
-    <div class="hero-ray" style="transform:rotate(4deg);opacity:.6;animation-delay:.5s"></div>
-    <div class="hero-ray" style="transform:rotate(10deg);opacity:.8;animation-delay:.2s;width:6px;filter:blur(5px)"></div>
-    <div class="hero-ray" style="transform:rotate(18deg);opacity:.55;animation-delay:.7s"></div>
-    <div class="hero-ray" style="transform:rotate(28deg);opacity:.7;animation-delay:.4s;width:5px"></div>
-    <div class="hero-ray" style="transform:rotate(40deg);opacity:.5;animation-delay:.9s"></div>
+    <div class="hero-ray" style="transform:rotate(-65deg);--op:.18;animation-delay:0s"></div>
+    <div class="hero-ray" style="transform:rotate(-50deg);--op:.28;animation-delay:.4s;width:60px"></div>
+    <div class="hero-ray" style="transform:rotate(-38deg);--op:.22;animation-delay:.8s;width:40px"></div>
+    <div class="hero-ray" style="transform:rotate(-25deg);--op:.40;animation-delay:.2s;width:80px"></div>
+    <div class="hero-ray" style="transform:rotate(-14deg);--op:.35;animation-delay:.6s;width:50px"></div>
+    <div class="hero-ray" style="transform:rotate(-6deg);--op:.50;animation-delay:0s;width:100px"></div>
+    <div class="hero-ray" style="transform:rotate(0deg);--op:.65;animation-delay:.3s;width:120px"></div>
+    <div class="hero-ray" style="transform:rotate(6deg);--op:.50;animation-delay:.1s;width:100px"></div>
+    <div class="hero-ray" style="transform:rotate(14deg);--op:.35;animation-delay:.7s;width:50px"></div>
+    <div class="hero-ray" style="transform:rotate(25deg);--op:.40;animation-delay:.5s;width:80px"></div>
+    <div class="hero-ray" style="transform:rotate(38deg);--op:.22;animation-delay:.9s;width:40px"></div>
+    <div class="hero-ray" style="transform:rotate(50deg);--op:.28;animation-delay:.2s;width:60px"></div>
+    <div class="hero-ray" style="transform:rotate(65deg);--op:.18;animation-delay:.4s"></div>
   </div>
 
   <div id="hero-content">
@@ -642,19 +644,25 @@
 }
 .hero-ray {
   position: absolute;
-  top: -80px;
+  top: -20px;
   left: 50%;
-  width: 3px;
-  height: 110vh;
+  width: 30px;
+  height: 85vh;
   transform-origin: top center;
-  background: linear-gradient(to bottom, rgba(63,185,80,.55) 0%, rgba(63,185,80,.15) 30%, transparent 75%);
-  border-radius: 0 0 50% 50%;
-  filter: blur(6px);
-  animation: rayPulse 4s ease-in-out infinite;
+  background: linear-gradient(
+    to bottom,
+    rgba(200,255,220,.85) 0%,
+    rgba(180,240,200,.35) 20%,
+    rgba(150,220,180,.1) 50%,
+    transparent 80%
+  );
+  filter: blur(18px);
+  opacity: var(--op, .3);
+  animation: rayPulse 5s ease-in-out infinite;
 }
 @keyframes rayPulse {
-  0%,100% { opacity: .6; }
-  50% { opacity: 1; }
+  0%,100% { opacity: calc(var(--op, .3) * .7); }
+  50% { opacity: var(--op, .3); }
 }
 
 
