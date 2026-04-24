@@ -1080,6 +1080,33 @@ var _observer = new IntersectionObserver(function(entries) {
 document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach(function(el) {
   _observer.observe(el);
 });
+
+// Hero parallax — blobs drift on scroll
+(function() {
+  var hero = document.getElementById('aurora-hero');
+  var b1 = document.getElementById('ab1');
+  var b2 = document.getElementById('ab2');
+  var b3 = document.getElementById('ab3');
+  var b4 = document.getElementById('ab4');
+  if (!hero || !b1) return;
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var y = window.scrollY;
+        if (y < window.innerHeight * 1.2) {
+          var p = y * 0.25;
+          if (b1) b1.style.transform = 'translateY(' + (p * 0.6) + 'px)';
+          if (b2) b2.style.transform = 'translateY(-' + (p * 0.4) + 'px)';
+          if (b3) b3.style.transform = 'translateY(' + (p * 0.3) + 'px)';
+          if (b4) b4.style.transform = 'translateY(-' + (p * 0.5) + 'px)';
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
 </script>
 
 <script>
