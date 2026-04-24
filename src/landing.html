@@ -518,7 +518,55 @@
 
 <main id="main-content">
 
+<!-- ══ AURORA HERO ═══════════════════════════════════════════════════════ -->
+<div id="aurora-hero">
+  <div class="aurora-blob" id="ab1"></div>
+  <div class="aurora-blob" id="ab2"></div>
+  <div class="aurora-blob" id="ab3"></div>
+  <div class="aurora-blob" id="ab4"></div>
+  <div id="aurora-content">
+    <div id="aurora-badge"><span class="ab-dot"></span> AI-powered · Bank sync by Plaid</div>
+    <h1 id="aurora-h1">Your AI financial<br>advisor is here.</h1>
+    <p id="aurora-sub">Meet <strong>Wally</strong> — the AI that reads your real income, spending, and debt before answering. Not generic tips. Your money. Your answers.</p>
+    <a href="/login" id="aurora-btn">Meet Wally — It's Free →</a>
+    <p id="aurora-note">Free forever · No credit card · ⚡ 2 minutes to connect your bank</p>
+    <div id="aurora-chips">
+      <span class="aurora-chip">🔒 256-bit encrypted</span>
+      <span class="aurora-chip">👁 Read-only access</span>
+      <span class="aurora-chip">🏦 12,000+ banks</span>
+      <span class="aurora-chip">🚫 Data never sold</span>
+    </div>
+  </div>
+</div>
+<style>
+#aurora-hero { position:relative; min-height:100vh; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:80px 24px 60px; }
+.aurora-blob { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; will-change:transform; }
+#ab1 { width:600px; height:500px; background:radial-gradient(circle,rgba(35,134,54,.6) 0%,rgba(35,134,54,.2) 50%,transparent 70%); top:-10%; right:-5%; animation:bd1 14s ease-in-out infinite; }
+#ab2 { width:520px; height:600px; background:radial-gradient(circle,rgba(88,166,255,.4) 0%,rgba(56,120,200,.15) 50%,transparent 70%); bottom:-15%; left:-8%; animation:bd2 18s ease-in-out infinite; }
+#ab3 { width:400px; height:400px; background:radial-gradient(circle,rgba(163,230,53,.35) 0%,rgba(100,180,30,.1) 50%,transparent 70%); top:30%; left:8%; animation:bd3 22s ease-in-out infinite; }
+#ab4 { width:380px; height:460px; background:radial-gradient(circle,rgba(227,179,65,.3) 0%,rgba(200,140,30,.08) 50%,transparent 70%); bottom:5%; right:12%; animation:bd4 16s ease-in-out infinite; }
+@keyframes bd1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-60px,40px) scale(1.08)} 66%{transform:translate(30px,-50px) scale(.94)} }
+@keyframes bd2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(80px,-60px) scale(1.12)} 70%{transform:translate(-40px,30px) scale(.9)} }
+@keyframes bd3 { 0%,100%{transform:translate(0,0) scale(1)} 30%{transform:translate(50px,70px) scale(1.05)} 60%{transform:translate(-60px,-40px) scale(.95)} }
+@keyframes bd4 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-70px,-50px) scale(1.1)} }
+#aurora-content { position:relative; z-index:2; text-align:center; max-width:680px; }
+#aurora-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(35,134,54,.1); border:1px solid rgba(63,185,80,.25); border-radius:100px; padding:6px 16px; font-size:12px; color:#3fb950; font-weight:500; margin-bottom:28px; }
+.ab-dot { width:6px; height:6px; border-radius:50%; background:#3fb950; animation:abp 2s ease-in-out infinite; }
+@keyframes abp { 0%,100%{opacity:1} 50%{opacity:.3} }
+#aurora-h1 { font-size:clamp(44px,6vw,72px); font-weight:800; line-height:1.08; letter-spacing:-.03em; color:#fff; margin-bottom:20px; }
+#aurora-sub { font-size:18px; color:rgba(255,255,255,.55); line-height:1.65; max-width:520px; margin:0 auto 32px; }
+#aurora-sub strong { color:#3fb950; }
+#aurora-btn { display:inline-block; background:#fff; color:#000; font-size:16px; font-weight:700; padding:16px 36px; border-radius:100px; transition:background .2s,transform .2s,box-shadow .2s; box-shadow:0 0 40px rgba(255,255,255,.12); margin-bottom:16px; }
+#aurora-btn:hover { background:#eee; transform:translateY(-2px); box-shadow:0 0 60px rgba(255,255,255,.22); }
+#aurora-note { font-size:12px; color:rgba(255,255,255,.25); margin-bottom:28px; }
+#aurora-chips { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.aurora-chip { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:100px; padding:5px 14px; font-size:11px; color:rgba(255,255,255,.4); }
+@media(max-width:600px){ #aurora-h1{font-size:38px} #aurora-sub{font-size:15px} #ab1,#ab2{width:280px;height:280px} #ab3,#ab4{display:none} }
+</style>
+<!-- ══ END AURORA HERO ════════════════════════════════════════════════════ -->
 
+<!-- ORIGINAL HERO (preserved) -->
+<!--
 <section class="hero" aria-labelledby="hero-heading">
   <div class="hero-badge">
     🤖 Introducing Wally — AI that reads your money first
@@ -542,7 +590,8 @@
   </div>
   <p style="font-size:12px;color:var(--muted);margin-top:12px">Join 2,400+ people who track their finances with Walify</p>
 </section>
-
+-->
+<!-- END ORIGINAL HERO -->
 
 <!-- WALLY SECTION — moved to top as primary selling point -->
 <article class="wally-section" id="wally" aria-label="Wally AI financial advisor">
