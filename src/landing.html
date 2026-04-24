@@ -519,23 +519,53 @@
   <div class="aurora-blob" id="ab2"></div>
   <div class="aurora-blob" id="ab3"></div>
   <div class="aurora-blob" id="ab4"></div>
-  <div id="aurora-content">
-    <div id="aurora-badge"><span class="ab-dot"></span> AI-powered · Bank sync by Plaid</div>
-    <h1 id="aurora-h1">Your AI financial<br>advisor is here.</h1>
-    <p id="aurora-sub">Meet <strong>Wally</strong> — the AI that reads your real income, spending, and debt before answering. Not generic tips. Your money. Your answers.</p>
-    <a href="/login" id="aurora-btn">Meet Wally — It's Free →</a>
-    <p id="aurora-note">Free forever · No credit card · ⚡ 2 minutes to connect your bank</p>
-    <div id="aurora-chips">
-      <span class="aurora-chip">🔒 256-bit encrypted</span>
-      <span class="aurora-chip">👁 Read-only access</span>
-      <span class="aurora-chip">🏦 12,000+ banks</span>
-      <span class="aurora-chip">🚫 Data never sold</span>
+
+  <div id="aurora-inner">
+    <!-- LEFT: Text -->
+    <div id="aurora-content">
+      <div id="aurora-badge"><span class="ab-dot"></span> AI-powered · Bank sync by Plaid</div>
+      <h1 id="aurora-h1">Your AI financial<br>advisor is here.</h1>
+      <p id="aurora-sub">Meet <strong>Wally</strong> — the AI that reads your real income, spending, and debt before answering. Not generic tips. Your money. Your answers.</p>
+      <a href="/login" id="aurora-btn">Meet Wally — It's Free →</a>
+      <p id="aurora-note">Free forever · No credit card · ⚡ 2 minutes to connect your bank</p>
+      <div id="aurora-chips">
+        <span class="aurora-chip">🔒 256-bit encrypted</span>
+        <span class="aurora-chip">👁 Read-only access</span>
+        <span class="aurora-chip">🏦 12,000+ banks</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Stacked screenshots -->
+    <div id="aurora-visuals">
+      <div id="aurora-screens">
+        <img src="/images/walify_dashboard.png" class="ascreen ascreen-top" alt="Walify AI dashboard">
+        <img src="/images/walify_transactions.png" class="ascreen ascreen-bot" alt="Walify transactions">
+      </div>
+      <div id="aurora-screen-glow"></div>
     </div>
   </div>
 </div>
 <style>
 #aurora-hero { position:relative; min-height:100vh; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:80px 24px 120px; }
 #aurora-hero::after { content:''; position:absolute; bottom:0; left:0; right:0; height:200px; background:linear-gradient(to bottom, transparent, #050505); pointer-events:none; z-index:1; }
+#aurora-inner { position:relative; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; max-width:1200px; width:100%; margin:0 auto; }
+#aurora-content { text-align:left; }
+#aurora-badge { justify-content:flex-start; }
+#aurora-chips { justify-content:flex-start; }
+/* Screenshots */
+#aurora-visuals { position:relative; }
+#aurora-screens { position:relative; height:480px; }
+.ascreen { position:absolute; width:88%; border-radius:14px; border:1px solid rgba(255,255,255,.1); box-shadow:0 32px 80px rgba(0,0,0,.7); }
+.ascreen-top { top:0; left:0; transform:rotate(-2deg); z-index:2; }
+.ascreen-bot { bottom:0; right:0; transform:rotate(2deg); z-index:1; filter:brightness(.8); }
+#aurora-screen-glow { position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:120px; background:radial-gradient(ellipse, rgba(35,134,54,.35) 0%, transparent 70%); filter:blur(30px); pointer-events:none; }
+@media(max-width:900px) {
+  #aurora-inner { grid-template-columns:1fr; gap:48px; }
+  #aurora-content { text-align:center; }
+  #aurora-badge,#aurora-chips { justify-content:center; }
+  #aurora-screens { height:320px; }
+  .ascreen { width:80%; }
+}
 .aurora-blob { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; will-change:transform; }
 #ab1 { width:600px; height:500px; background:radial-gradient(circle,rgba(35,134,54,.6) 0%,rgba(35,134,54,.2) 50%,transparent 70%); top:-10%; right:-5%; animation:bd1 14s ease-in-out infinite; }
 #ab2 { width:520px; height:600px; background:radial-gradient(circle,rgba(88,166,255,.4) 0%,rgba(56,120,200,.15) 50%,transparent 70%); bottom:-15%; left:-8%; animation:bd2 18s ease-in-out infinite; }
