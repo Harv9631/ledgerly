@@ -539,7 +539,8 @@
   </div>
 </div>
 <style>
-#aurora-hero { position:relative; min-height:100vh; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:80px 24px 60px; }
+#aurora-hero { position:relative; min-height:100vh; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:80px 24px 120px; }
+#aurora-hero::after { content:''; position:absolute; bottom:0; left:0; right:0; height:200px; background:linear-gradient(to bottom, transparent, #050505); pointer-events:none; z-index:1; }
 .aurora-blob { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; will-change:transform; }
 #ab1 { width:600px; height:500px; background:radial-gradient(circle,rgba(35,134,54,.6) 0%,rgba(35,134,54,.2) 50%,transparent 70%); top:-10%; right:-5%; animation:bd1 14s ease-in-out infinite; }
 #ab2 { width:520px; height:600px; background:radial-gradient(circle,rgba(88,166,255,.4) 0%,rgba(56,120,200,.15) 50%,transparent 70%); bottom:-15%; left:-8%; animation:bd2 18s ease-in-out infinite; }
