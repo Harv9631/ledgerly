@@ -400,12 +400,16 @@ app.get('/delete-account', (_req, res) => res.send(`<!DOCTYPE html><html><head><
 app.get('/.well-known/assetlinks.json', (_req, res) => {
   const fingerprint = process.env.ANDROID_SHA256_FINGERPRINT;
   if (!fingerprint) return res.status(404).json({ error: 'Not configured' });
+  const fingerprints = [fingerprint];
+  // Also include upload key fingerprint if set separately
+  const uploadKey = process.env.ANDROID_UPLOAD_SHA256;
+  if (uploadKey && uploadKey !== fingerprint) fingerprints.push(uploadKey);
   res.json([{
     relation: ['delegate_permission/common.handle_all_urls'],
     target: {
       namespace: 'android_app',
       package_name: process.env.ANDROID_PACKAGE_NAME || 'ai.walify.twa',
-      sha256_cert_fingerprints: [fingerprint]
+      sha256_cert_fingerprints: fingerprints
     }
   }]);
 });
