@@ -535,11 +535,19 @@
       </div>
     </div>
 
-    <!-- RIGHT: Stacked screenshots -->
+    <!-- RIGHT: App screen carousel -->
     <div id="aurora-visuals">
-      <div id="aurora-screens">
-        <img src="/images/walify_dashboard.png" class="ascreen ascreen-top" alt="Walify AI dashboard">
-        <img src="/images/walify_transactions.png" class="ascreen ascreen-bot" alt="Walify transactions">
+      <div id="app-carousel">
+        <img src="/images/walify_dashboard.png" class="app-slide active" alt="Walify dashboard">
+        <img src="/images/walify_transactions.png" class="app-slide" alt="Walify transactions">
+        <img src="/images/walify_budget.png" class="app-slide" alt="Walify budget">
+        <img src="/images/walify_insights.png" class="app-slide" alt="Walify insights">
+      </div>
+      <div id="carousel-dots">
+        <span class="cdot active"></span>
+        <span class="cdot"></span>
+        <span class="cdot"></span>
+        <span class="cdot"></span>
       </div>
       <div id="aurora-screen-glow"></div>
     </div>
@@ -554,10 +562,12 @@
 #aurora-chips { justify-content:flex-start; }
 /* Screenshots */
 #aurora-visuals { position:relative; }
-#aurora-screens { position:relative; height:480px; }
-.ascreen { position:absolute; width:88%; border-radius:14px; border:1px solid rgba(255,255,255,.1); box-shadow:0 32px 80px rgba(0,0,0,.7); }
-.ascreen-top { top:0; left:0; transform:rotate(-2deg); z-index:2; }
-.ascreen-bot { bottom:0; right:0; transform:rotate(2deg); z-index:1; filter:brightness(.8); }
+#app-carousel { position:relative; border-radius:16px; overflow:hidden; box-shadow:0 40px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.08); aspect-ratio:16/10; }
+.app-slide { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .7s ease; }
+.app-slide.active { opacity:1; position:relative; }
+#carousel-dots { display:flex; gap:8px; justify-content:center; margin-top:16px; }
+.cdot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.2); cursor:pointer; transition:background .3s; }
+.cdot.active { background:#3fb950; }
 #aurora-screen-glow { position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:120px; background:radial-gradient(ellipse, rgba(35,134,54,.35) 0%, transparent 70%); filter:blur(30px); pointer-events:none; }
 @media(max-width:900px) {
   #aurora-inner { grid-template-columns:1fr; gap:48px; }
@@ -1111,6 +1121,23 @@ var _observer = new IntersectionObserver(function(entries) {
 document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach(function(el) {
   _observer.observe(el);
 });
+
+// App screenshot carousel
+(function(){
+  var slides = document.querySelectorAll('.app-slide');
+  var dots = document.querySelectorAll('.cdot');
+  if (!slides.length) return;
+  var cur = 0;
+  function goTo(i) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = i % slides.length;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+  }
+  dots.forEach(function(d, i) { d.addEventListener('click', function(){ goTo(i); clearInterval(timer); timer = setInterval(function(){ goTo(cur+1); }, 3500); }); });
+  var timer = setInterval(function(){ goTo(cur+1); }, 3500);
+})();
 
 // Hero parallax — blobs drift on scroll
 (function() {
