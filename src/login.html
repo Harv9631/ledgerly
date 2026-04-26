@@ -146,7 +146,7 @@
     const refreshToken = params.get('refresh_token');
     const expiresIn = params.get('expires_in');
     if (accessToken) {
-      localStorage.setItem('sb_token', accessToken);
+      localStorage.setItem('sb_token', accessToken); localStorage.setItem('sb_login_ts', Date.now().toString());
       if (refreshToken) localStorage.setItem('sb_refresh', refreshToken);
       if (expiresIn) localStorage.setItem('sb_expires_at', (Date.now() + parseInt(expiresIn) * 1000).toString());
       window.location.href = 'app.html';
@@ -168,7 +168,7 @@
     setStatus('status', 'Signing in…', '');
     const data = await sbFetch('token?grant_type=password', { email, password });
     if (data.error || data.error_code) return setStatus('status', data.msg || data.error_description || data.error, 'error');
-    localStorage.setItem('sb_token', data.access_token);
+    localStorage.setItem('sb_token', data.access_token); localStorage.setItem('sb_login_ts', Date.now().toString());
     if (data.refresh_token) localStorage.setItem('sb_refresh', data.refresh_token);
     if (data.expires_in) localStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
     window.location.href = 'app.html';
@@ -183,7 +183,7 @@
     const data = await sbFetch('signup', { email, password });
     if (data.error || data.error_code) return setStatus('status2', data.msg || data.error_description || data.error, 'error');
     if (data.access_token) {
-      localStorage.setItem('sb_token', data.access_token);
+      localStorage.setItem('sb_token', data.access_token); localStorage.setItem('sb_login_ts', Date.now().toString());
       if (data.refresh_token) localStorage.setItem('sb_refresh', data.refresh_token);
       if (data.expires_in) localStorage.setItem('sb_expires_at', (Date.now() + data.expires_in * 1000).toString());
       window.location.href = 'app.html';

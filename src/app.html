@@ -50,6 +50,17 @@
       if (window.electronAPI) return; // Electron already defined it
       var token = localStorage.getItem('sb_token');
       if (!token) { window.location.replace('/login'); return; }
+      // Session expiry — force re-login after 30 days
+      var loginTs = parseInt(localStorage.getItem('sb_login_ts') || '0', 10);
+      if (!loginTs) {
+        localStorage.setItem('sb_login_ts', Date.now().toString());
+      } else if (Date.now() - loginTs > 30 * 86400000) {
+        localStorage.removeItem('sb_token');
+        localStorage.removeItem('sb_refresh');
+        localStorage.removeItem('sb_login_ts');
+        window.location.replace('/login');
+        return;
+      }
       window._webToken = token; // exposed for server sync below
       var origin = window.location.origin;
       function apiFetch(path, opts) {
