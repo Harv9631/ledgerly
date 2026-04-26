@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#238636">
+  <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(()=>{});}</script>
+
+  <!-- ── PRIMARY SEO META ── -->
+  <title>Walify — AI Financial Advisor App | Personal Finance AI Powered by Real Bank Data</title>
+  <meta name="description" content="Meet Wally, your AI financial advisor that reads your real bank data before answering. Get debt payoff plans, AI budgeting, FIRE calculator, 12+ reports and more. Free to start — no credit card.">
+  <meta name="keywords" content="AI financial advisor app, personal finance AI, AI money app, Wally finance, AI budgeting app, debt payoff app, personal finance tracker, AI budget planner, bank sync personal finance, FIRE calculator app, debt optimizer, financial advisor AI">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://walify.ai">
+
+  <!-- ── OPEN GRAPH ── -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://walify.ai">
+  <meta property="og:title" content="Walify — AI Financial Advisor App | Wally Reads Your Real Bank Data">
+  <meta property="og:description" content="Wally is your AI financial advisor powered by Claude Opus 4.6. It reads your actual bank data, then answers your real money questions. Debt payoff plans, AI budgeting, FIRE calculator. Free to start.">
+  <meta property="og:image" content="https://walify.ai/images/walify_og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Walify AI financial advisor app — Wally reads your bank data and answers your money questions">
+  <meta property="og:site_name" content="Walify">
+  <meta property="og:locale" content="en_US">
+
+  <!-- ── TWITTER CARD ── -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@walifyai">
+  <meta name="twitter:title" content="Walify — AI Financial Advisor That Reads Your Real Bank Data">
+  <meta name="twitter:description" content="Meet Wally — the AI money app that reads your actual transactions before answering. Debt payoff, budgeting, FIRE projections. Free forever plan.">
+  <meta name="twitter:image" content="https://walify.ai/images/walify_og.png">
+  <meta name="twitter:image:alt" content="Walify AI personal finance app dashboard">
+
+  <!-- ── PERFORMANCE HINTS ── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://cdn.plaid.com">
+  <link rel="dns-prefetch" href="https://production.plaid.com">
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
+  <!-- ── STRUCTURED DATA: SoftwareApplication ── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Walify",
+    "url": "https://walify.ai",
+    "description": "Walify is an AI-powered personal finance app featuring Wally — an AI financial advisor that reads your real bank data before answering questions. Includes bank sync via Plaid, debt optimizer, AI budgeting, 12+ financial reports, FIRE calculator, mileage tracking, and invoicing.",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "browserRequirements": "Requires JavaScript. Compatible with all modern browsers.",
+    "softwareVersion": "3.0",
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Free Plan",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free forever — manual tracking, budgeting, debt optimizer, 1 bank connection, 5 AI conversations/month"
+      },
+      {
+        "@type": "Offer",
+        "name": "Pro Plan",
+        "price": "9.99",
+        "priceCurrency": "USD",
+        "priceSpecification": {
+          "@type": "UnitPriceSpecification",
+          "price": "9.99",
+          "priceCurrency": "USD",
+          "unitCode": "MON"
+        },
+        "description": "Unlimited AI conversations, unlimited bank connections, all 12 reports, CSV/PDF import, business mode"
+      }
+    ],
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "142",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "featureList": [
+      "AI financial advisor (Wally) powered by Claude Opus 4.6",
+      "Bank sync via Plaid — 12,000+ institutions",
+      "Debt payoff optimizer (avalanche and snowball)",
+      "AI budgeting with category alerts",
+      "12+ financial reports including P&L, cash flow, net worth",
+      "FIRE retirement calculator",
+      "Mileage tracking at IRS rates",
+      "Invoicing and payment tracking",
+      "PWA — installable on iOS and Android"
+    ],
+    "screenshot": "https://walify.ai/images/walify_dashboard.png",
+    "creator": {
+      "@type": "Organization",
+      "name": "Walify",
+      "url": "https://walify.ai"
+    }
+  }
+  </script>
+
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #050505; --bg2: #080808;
+      --surface: #0f0f0f; --surface2: #161616;
+      --border: rgba(255,255,255,.08);
+      --text: #e6edf3; --muted: #7d8590; --muted2: #9198a1;
+      --green: #3fb950; --green-dim: rgba(63,185,80,.12);
+      --grad: linear-gradient(135deg,#238636,#3fb950);
+      --sidebar-bg: #0a0a0a;
+      --radius: 12px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
+    .nav-logo svg { color: var(--green); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a { font-size: 14px; color: var(--muted2); transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--grad); color: #fff; border: none; border-radius: 8px; padding: 8px 18px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: opacity .2s; white-space: nowrap; }
+    .nav-cta:hover { opacity: .9; }
+    .nav-signin { font-size: 14px; color: var(--muted2); transition: color .2s; }
+    .nav-signin:hover { color: var(--text); }
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .nav-signin { display: none; }
+      .nav-signin-mobile { display: block !important; font-size: 12px; color: var(--muted2); margin-right: 8px; }
+    }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 1100px; margin: 0 auto; padding: 96px 24px 80px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-dim); border: 1px solid rgba(63,185,80,.3);
+      color: var(--green); font-size: 13px; font-weight: 600;
+      padding: 5px 14px; border-radius: 20px; margin-bottom: 28px;
+      letter-spacing: .01em;
+    }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px); font-weight: 800;
+      letter-spacing: -.04em; line-height: 1.1; margin-bottom: 20px;
+      background: linear-gradient(135deg, #e6edf3 30%, #9198a1);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(16px, 2.2vw, 20px); color: var(--muted2);
+      max-width: 600px; margin: 0 auto 40px; line-height: 1.6;
+    }
+    .hero-sub strong { color: var(--green); -webkit-text-fill-color: var(--green); }
+    .hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary-lg {
+      background: var(--grad); color: #fff; border: none; border-radius: 10px;
+      padding: 14px 28px; font-size: 16px; font-weight: 700; cursor: pointer;
+      font-family: inherit; transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 20px rgba(63,185,80,.35); display: inline-block;
+    }
+    .btn-primary-lg:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(63,185,80,.45); }
+    .btn-ghost-lg {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 28px; font-size: 16px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: border-color .2s, background .2s; display: inline-block;
+    }
+    .btn-ghost-lg:hover { border-color: rgba(255,255,255,.2); background: var(--surface); }
+    .hero-note { margin-top: 16px; font-size: 13px; color: var(--muted); }
+
+    /* ── MOCKUP ── */
+    .mockup-wrap { max-width: 900px; margin: 60px auto 0; padding: 0 24px; }
+    .mockup {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 32px 80px rgba(0,0,0,.6), 0 0 0 1px rgba(63,185,80,.1);
+    }
+    .mockup-bar {
+      background: var(--sidebar-bg); padding: 14px 20px;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .mockup-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .mockup-url {
+      flex: 1; background: rgba(255,255,255,.06); border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; color: var(--muted); margin: 0 12px;
+      text-align: center;
+    }
+    .mockup-body { padding: 24px; }
+    .mockup-cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+    .mockup-card {
+      background: var(--surface2); border-radius: 10px; padding: 16px;
+      border: 1px solid var(--border);
+    }
+    .mockup-card-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .mockup-card-val { font-size: 22px; font-weight: 800; letter-spacing: -.03em; }
+    .mockup-card-val.green { color: var(--green); }
+    .mockup-card-val.red { color: #f85149; }
+    .mockup-card-val.blue { color: #58a6ff; }
+    .mockup-chart {
+      background: var(--surface2); border-radius: 10px; padding: 16px;
+      border: 1px solid var(--border); height: 120px;
+      display: flex; align-items: flex-end; gap: 4px; overflow: hidden;
+    }
+    .mockup-bar-item { flex: 1; border-radius: 3px 3px 0 0; min-height: 4px; }
+    @media (max-width: 600px) {
+      .mockup-cards { grid-template-columns: 1fr 1fr; }
+      .mockup-card:last-child { display: none; }
+    }
+
+    /* ── SECTION LABELS ── */
+    .section { max-width: 1100px; margin: 0 auto; padding: 80px 24px; }
+    .section-tag {
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: var(--green); margin-bottom: 12px;
+    }
+    .section-title { font-size: clamp(26px, 4vw, 42px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 16px; }
+    .section-sub { font-size: 16px; color: var(--muted2); max-width: 520px; line-height: 1.65; }
+    .section-center { text-align: center; }
+    .section-center .section-sub { margin: 0 auto; }
+
+    /* ── FEATURES GRID ── */
+    .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; margin-top: 52px; }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px 24px;
+      transition: border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color: rgba(63,185,80,.3); transform: translateY(-2px); }
+    .feature-icon { font-size: 28px; margin-bottom: 14px; }
+    .feature-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .feature-desc { font-size: 14px; color: var(--muted2); line-height: 1.6; }
+    @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2,1fr); } }
+    @media (max-width: 500px) { .features-grid { grid-template-columns: 1fr; } }
+
+    /* ── WALLY SECTION ── */
+    .wally-section {
+      background: transparent;
+      border-bottom: 1px solid rgba(63,185,80,.08);
+      padding: 80px 24px 96px;
+      overflow: hidden;
+      position: relative;
+    }
+    .wally-section::before {
+      content:''; position:absolute; top:80px; left:50%; transform:translateX(-50%);
+      width:700px; height:400px;
+      background: radial-gradient(ellipse, rgba(63,185,80,.06) 0%, transparent 70%);
+      pointer-events:none;
+    }
+    .wally-inner { max-width: 860px; margin: 0 auto; text-align: center; }
+    .wally-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--grad); display: flex; align-items: center; justify-content: center;
+      font-size: 28px; margin: 0 auto 20px;
+      box-shadow: 0 0 0 8px rgba(63,185,80,.1), 0 0 0 16px rgba(63,185,80,.05);
+      animation: avatarPulse 3s ease-in-out infinite;
+    }
+    @keyframes avatarPulse {
+      0%,100% { box-shadow: 0 0 0 8px rgba(63,185,80,.1), 0 0 0 16px rgba(63,185,80,.05); }
+      50% { box-shadow: 0 0 0 12px rgba(63,185,80,.15), 0 0 0 24px rgba(63,185,80,.07); }
+    }
+    /* Chat window */
+    .wally-window {
+      background: var(--surface); border: 1px solid rgba(63,185,80,.2);
+      border-radius: 16px; overflow: hidden; margin-top: 48px;
+      box-shadow: 0 24px 60px rgba(0,0,0,.5), 0 0 0 1px rgba(63,185,80,.08);
+    }
+    .wally-window-bar {
+      background: var(--sidebar-bg); padding: 12px 18px;
+      display: flex; align-items: center; gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .wally-window-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--grad); display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+    .wally-window-name { font-size: 13px; font-weight: 700; }
+    .wally-window-status { font-size: 11px; color: var(--green); margin-left: 2px; }
+    .wally-chat { display: flex; flex-direction: column; gap: 16px; padding: 24px; min-height: 280px; }
+    .chat-bubble {
+      padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.6;
+      max-width: 80%; text-align: left;
+    }
+    .chat-bubble.user {
+      background: var(--grad); color: #fff;
+      border-bottom-right-radius: 4px; align-self: flex-end;
+      font-weight: 500;
+    }
+    .chat-bubble.wally {
+      background: var(--surface2); border: 1px solid var(--border);
+      color: var(--text); border-bottom-left-radius: 4px; align-self: flex-start;
+    }
+    .chat-bubble.wally .thinking {
+      font-size: 11px; color: var(--green); font-weight: 600;
+      margin-bottom: 8px; letter-spacing: .03em;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .thinking-dots { display: inline-flex; gap: 3px; }
+    .thinking-dots span { width:5px; height:5px; border-radius:50%; background:var(--green); animation: tDot 1.2s infinite; opacity:.5; }
+    .thinking-dots span:nth-child(2) { animation-delay:.2s; }
+    .thinking-dots span:nth-child(3) { animation-delay:.4s; }
+    @keyframes tDot { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-4px);opacity:1} }
+    .wally-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--muted); padding: 0 24px 20px;
+      text-align: left;
+    }
+    /* Question pills */
+    .wally-questions {
+      display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 32px;
+    }
+    .wally-q {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 8px 16px; font-size: 13px; color: var(--muted2);
+      cursor: pointer; transition: all .25s; font-family: inherit;
+    }
+    .wally-q:hover, .wally-q.active {
+      border-color: rgba(63,185,80,.4); color: var(--green);
+      background: rgba(63,185,80,.06);
+    }
+    @media (max-width: 600px) { .chat-bubble { max-width: 92%; } }
+
+    /* ── STATS ── */
+    .stats-row { display: flex; gap: 40px; flex-wrap: wrap; margin-top: 52px; }
+    .stat { text-align: center; flex: 1; min-width: 120px; }
+    .stat-num { font-size: 40px; font-weight: 800; color: var(--green); letter-spacing: -.04em; }
+    .stat-label { font-size: 14px; color: var(--muted2); margin-top: 4px; }
+
+    /* ── PRICING ── */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 52px; max-width: 760px; margin-left: auto; margin-right: auto; }
+    .pricing-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+    }
+    .pricing-card.featured { border-color: rgba(63,185,80,.4); position: relative; }
+    .pricing-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--grad); color: #fff; font-size: 11px; font-weight: 700;
+      padding: 3px 14px; border-radius: 20px; letter-spacing: .05em; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .plan-name { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+    .plan-price { font-size: 42px; font-weight: 800; letter-spacing: -.04em; margin-bottom: 4px; }
+    .plan-price span { font-size: 18px; font-weight: 400; color: var(--muted); }
+    .plan-desc { font-size: 13px; color: var(--muted2); margin-bottom: 24px; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .plan-features li { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+    .plan-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .plan-btn {
+      width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 14px; font-weight: 600; font-family: inherit; transition: opacity .2s;
+    }
+    .plan-btn-primary { background: var(--grad); color: #fff; }
+    .plan-btn-primary:hover { opacity: .9; }
+    .plan-btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .plan-btn-ghost:hover { background: var(--surface2); }
+    .pricing-note { text-align: center; font-size: 13px; color: var(--muted); margin-top: 20px; }
+    @media (max-width: 600px) { .pricing-grid { grid-template-columns: 1fr; } }
+
+    /* ── CTA SECTION ── */
+    .cta-section {
+      text-align: center; padding: 80px 24px;
+      background: #050505;
+    }
+    .cta-section h2 { font-size: clamp(28px, 5vw, 48px); font-weight: 800; letter-spacing: -.03em; margin-bottom: 16px; }
+    .cta-section p { font-size: 16px; color: var(--muted2); max-width: 460px; margin: 0 auto 36px; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border); padding: 40px 24px;
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+    .footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
+    .footer-links a { font-size: 13px; color: var(--muted); transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { font-size: 12px; color: var(--muted); }
+
+    /* ── DIVIDER ── */
+    .section-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    /* ── SCREENSHOTS ── */
+    .screenshot-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; overflow: hidden;
+      width: 780px; flex-shrink: 0;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .screenshot-card:hover { transform: translateY(-4px); box-shadow: 0 16px 48px rgba(0,0,0,.5); }
+    .screenshot-label {
+      padding: 10px 16px; font-size: 12px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .08em;
+      border-bottom: 1px solid var(--border); background: var(--sidebar-bg);
+    }
+    .screenshot-card img { width: 100%; display: block; }
+    @media (max-width: 860px) { .screenshot-card { width: 88vw; } }
+
+    /* ── FAQ ── */
+    .faq-item { border-bottom: 1px solid var(--border); }
+    .faq-q {
+      width:100%; text-align:left; background:none; border:none; color:var(--text);
+      font-size:15px; font-weight:600; padding:18px 4px; cursor:pointer; font-family:inherit;
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      transition:color .2s;
+    }
+    .faq-q:hover { color:var(--green); }
+    .faq-icon { font-size:20px; flex-shrink:0; color:var(--green); transition:transform .25s; }
+    .faq-a {
+      font-size:14px; color:var(--muted2); line-height:1.7;
+      max-height:0; overflow:hidden; transition:max-height .3s ease, padding .3s;
+      padding:0 4px;
+    }
+    .faq-item.open .faq-a { max-height:200px; padding-bottom:18px; }
+    .faq-item.open .faq-icon { transform:rotate(45deg); }
+
+    /* Mobile sign-in visible */
+    @media (max-width:600px) {
+      .nav-signin-mobile { display:block !important; }
+    }
+
+    /* ── ANIMATIONS ── */
+    /* Hero float */
+    @keyframes heroFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .mockup-wrap { animation: heroFloat 6s ease-in-out infinite; }
+
+    /* Hero badge pulse */
+    @keyframes badgePulse { 0%,100% { box-shadow: 0 0 0 0 rgba(63,185,80,0); } 60% { box-shadow: 0 0 0 6px rgba(63,185,80,.12); } }
+    .hero-badge { animation: badgePulse 3s ease-in-out infinite; }
+
+    /* Scroll fade-in */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-left { opacity: 0; transform: translateX(-30px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+    .reveal-right { opacity: 0; transform: translateX(30px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal-right.visible { opacity: 1; transform: translateX(0); }
+
+    /* Stagger children */
+    .stagger > * { opacity: 0; transform: translateY(22px); transition: opacity .5s ease, transform .5s ease; }
+    .stagger.visible > *:nth-child(1) { opacity:1;transform:none;transition-delay:.05s; }
+    .stagger.visible > *:nth-child(2) { opacity:1;transform:none;transition-delay:.15s; }
+    .stagger.visible > *:nth-child(3) { opacity:1;transform:none;transition-delay:.25s; }
+    .stagger.visible > *:nth-child(4) { opacity:1;transform:none;transition-delay:.35s; }
+    .stagger.visible > *:nth-child(5) { opacity:1;transform:none;transition-delay:.45s; }
+    .stagger.visible > *:nth-child(6) { opacity:1;transform:none;transition-delay:.55s; }
+
+    /* Stat counter shimmer */
+    @keyframes statShimmer { from { opacity:.3; transform:scale(.9); } to { opacity:1; transform:scale(1); } }
+    .stat-num.counting { animation: statShimmer .4s ease forwards; }
+
+    /* Green glow pulse on CTA */
+    @keyframes ctaGlow { 0%,100% { box-shadow: 0 4px 20px rgba(63,185,80,.35); } 50% { box-shadow: 0 4px 32px rgba(63,185,80,.6); } }
+    .btn-primary-lg { animation: ctaGlow 2.5s ease-in-out infinite; }
+
+    /* Gradient bg: dark → subtle green */
+    body {
+      background: #050505;
+      min-height: 100vh;
+    }
+    /* Particle canvas */
+    #particle-canvas { display: none; }
+    body > * { position: relative; z-index: 1; }
+  </style>
+</head>
+<body>
+<canvas id="particle-canvas"></canvas>
+
+<!-- ANNOUNCEMENT BAR -->
+<div style="background:linear-gradient(90deg,#238636,#1a5c2a);text-align:center;padding:10px 16px;font-size:13px;font-weight:600;color:#fff;letter-spacing:.01em;position:relative;z-index:101">
+  Founding member pricing — Pro locked at $9.99/mo. Goes to $14.99 when we leave beta.
+  <a href="/upgrade" style="color:#b3f0be;text-decoration:underline;margin-left:8px;white-space:nowrap">Lock in your price →</a>
+</div>
+
+<!-- NAV -->
+<header>
+<nav aria-label="Main navigation">
+  <a href="/" class="nav-logo" aria-label="Walify home — AI financial advisor app">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22" height="22" aria-hidden="true">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    Walify
+  </a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#wally">Wally AI</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/login" class="nav-signin">Sign In</a>
+  </div>
+  <a href="/login" class="nav-signin-mobile" style="display:none">Sign In</a>
+  <a href="/login" class="nav-cta">Get Started Free</a>
+</nav>
+</header>
+
+<main id="main-content">
+
+<!-- ══ AURORA HERO ═══════════════════════════════════════════════════════ -->
+<div id="aurora-hero">
+  <div class="aurora-blob" id="ab1"></div>
+  <div class="aurora-blob" id="ab2"></div>
+  <div class="aurora-blob" id="ab3"></div>
+  <div class="aurora-blob" id="ab4"></div>
+
+  <div id="aurora-inner">
+    <!-- LEFT: Text -->
+    <div id="aurora-content">
+      <div id="aurora-badge"><span class="ab-dot"></span> AI-powered · Bank sync by Plaid</div>
+      <h1 id="aurora-h1">Your AI financial<br>advisor is here.</h1>
+      <p id="aurora-sub">Meet <strong>Wally</strong> — the AI that reads your real income, spending, and debt before answering. Not generic tips. Your money. Your answers.</p>
+      <a href="/login" id="aurora-btn">Meet Wally — It's Free →</a>
+      <p id="aurora-note">Free forever · No credit card · ⚡ 2 minutes to connect your bank</p>
+      <div id="aurora-chips">
+        <span class="aurora-chip">🔒 256-bit encrypted</span>
+        <span class="aurora-chip">👁 Read-only access</span>
+        <span class="aurora-chip">🏦 12,000+ banks</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: App screen carousel -->
+    <div id="aurora-visuals">
+      <div id="app-carousel">
+        <img src="/images/walify_dashboard.png" class="app-slide active" alt="Walify dashboard">
+        <img src="/images/walify_transactions.png" class="app-slide" alt="Walify transactions">
+        <img src="/images/walify_budget.png" class="app-slide" alt="Walify budget">
+        <img src="/images/walify_insights.png" class="app-slide" alt="Walify insights">
+      </div>
+      <div id="carousel-dots">
+        <span class="cdot active"></span>
+        <span class="cdot"></span>
+        <span class="cdot"></span>
+        <span class="cdot"></span>
+      </div>
+      <div id="aurora-screen-glow"></div>
+    </div>
+  </div>
+</div>
+<style>
+#aurora-hero { position:relative; min-height:100vh; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden; padding:80px 24px 120px; }
+#aurora-hero::after { content:''; position:absolute; bottom:0; left:0; right:0; height:200px; background:linear-gradient(to bottom, transparent, #050505); pointer-events:none; z-index:1; }
+#aurora-inner { position:relative; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:center; max-width:1200px; width:100%; margin:0 auto; }
+#aurora-content { text-align:left; }
+#aurora-badge { justify-content:flex-start; }
+#aurora-chips { justify-content:flex-start; }
+/* Screenshots */
+#aurora-visuals { position:relative; }
+#app-carousel { position:relative; border-radius:16px; overflow:hidden; box-shadow:0 40px 100px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.08); aspect-ratio:16/10; }
+.app-slide { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .7s ease; }
+.app-slide.active { opacity:1; position:relative; }
+#carousel-dots { display:flex; gap:8px; justify-content:center; margin-top:16px; }
+.cdot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.2); cursor:pointer; transition:background .3s; }
+.cdot.active { background:#3fb950; }
+#aurora-screen-glow { position:absolute; bottom:-40px; left:50%; transform:translateX(-50%); width:70%; height:120px; background:radial-gradient(ellipse, rgba(35,134,54,.35) 0%, transparent 70%); filter:blur(30px); pointer-events:none; }
+@media(max-width:900px) {
+  #aurora-inner { grid-template-columns:1fr; gap:48px; }
+  #aurora-content { text-align:center; }
+  #aurora-badge,#aurora-chips { justify-content:center; }
+  #aurora-screens { height:320px; }
+  .ascreen { width:80%; }
+}
+.aurora-blob { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; will-change:transform; }
+#ab1 { width:600px; height:500px; background:radial-gradient(circle,rgba(35,134,54,.6) 0%,rgba(35,134,54,.2) 50%,transparent 70%); top:-10%; right:-5%; animation:bd1 14s ease-in-out infinite; }
+#ab2 { width:520px; height:600px; background:radial-gradient(circle,rgba(88,166,255,.4) 0%,rgba(56,120,200,.15) 50%,transparent 70%); bottom:-15%; left:-8%; animation:bd2 18s ease-in-out infinite; }
+#ab3 { width:400px; height:400px; background:radial-gradient(circle,rgba(163,230,53,.35) 0%,rgba(100,180,30,.1) 50%,transparent 70%); top:30%; left:8%; animation:bd3 22s ease-in-out infinite; }
+#ab4 { width:380px; height:460px; background:radial-gradient(circle,rgba(227,179,65,.3) 0%,rgba(200,140,30,.08) 50%,transparent 70%); bottom:5%; right:12%; animation:bd4 16s ease-in-out infinite; }
+@keyframes bd1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-60px,40px) scale(1.08)} 66%{transform:translate(30px,-50px) scale(.94)} }
+@keyframes bd2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(80px,-60px) scale(1.12)} 70%{transform:translate(-40px,30px) scale(.9)} }
+@keyframes bd3 { 0%,100%{transform:translate(0,0) scale(1)} 30%{transform:translate(50px,70px) scale(1.05)} 60%{transform:translate(-60px,-40px) scale(.95)} }
+@keyframes bd4 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-70px,-50px) scale(1.1)} }
+#aurora-content { position:relative; z-index:2; text-align:center; max-width:680px; }
+#aurora-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(35,134,54,.1); border:1px solid rgba(63,185,80,.25); border-radius:100px; padding:6px 16px; font-size:12px; color:#3fb950; font-weight:500; margin-bottom:28px; }
+.ab-dot { width:6px; height:6px; border-radius:50%; background:#3fb950; animation:abp 2s ease-in-out infinite; }
+@keyframes abp { 0%,100%{opacity:1} 50%{opacity:.3} }
+#aurora-h1 { font-size:clamp(44px,6vw,72px); font-weight:800; line-height:1.08; letter-spacing:-.03em; color:#fff; margin-bottom:20px; }
+#aurora-sub { font-size:18px; color:rgba(255,255,255,.55); line-height:1.65; max-width:520px; margin:0 auto 32px; }
+#aurora-sub strong { color:#3fb950; }
+#aurora-btn { display:inline-block; background:#fff; color:#000; font-size:16px; font-weight:700; padding:16px 36px; border-radius:100px; transition:background .2s,transform .2s,box-shadow .2s; box-shadow:0 0 40px rgba(255,255,255,.12); margin-bottom:16px; }
+#aurora-btn:hover { background:#eee; transform:translateY(-2px); box-shadow:0 0 60px rgba(255,255,255,.22); }
+#aurora-note { font-size:12px; color:rgba(255,255,255,.25); margin-bottom:28px; }
+#aurora-chips { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.aurora-chip { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:100px; padding:5px 14px; font-size:11px; color:rgba(255,255,255,.4); }
+@media(max-width:600px){ #aurora-h1{font-size:38px} #aurora-sub{font-size:15px} #ab1,#ab2{width:280px;height:280px} #ab3,#ab4{display:none} }
+@media(max-width:760px){ .testi-grid{grid-template-columns:1fr !important;} }
+</style>
+<!-- ══ END AURORA HERO ════════════════════════════════════════════════════ -->
+
+
+
+<!-- WALLY SECTION — moved to top as primary selling point -->
+<article class="wally-section" id="wally" aria-label="Wally AI financial advisor">
+  <div class="wally-inner reveal">
+    <div class="wally-avatar">🤖</div>
+    <div class="section-tag">Meet Wally — Your AI Financial Advisor</div>
+    <h2 class="section-title" style="margin-bottom:14px">Other AI money apps give you charts.<br>Wally gives you answers about your money.</h2>
+    <p class="section-sub" style="margin:0 auto;color:var(--muted2)">
+      Most AI gives you the same generic advice it gives everyone. Wally reads your actual transactions, income, debt, and savings first — then reasons through your specific situation. It's the difference between a brochure and a conversation with a knowledgeable friend.
+    </p>
+    <p style="font-size:12px;color:var(--muted);margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto">Wally provides financial analysis and clarity — not licensed financial advice. For major decisions, consult a qualified advisor.</p>
+
+    <!-- Chat window -->
+    <div class="wally-window">
+      <div class="wally-window-bar">
+        <div class="wally-window-avatar">🤖</div>
+        <div>
+          <div class="wally-window-name">Wally</div>
+          <div class="wally-window-status">● Online · Reading your real data</div>
+        </div>
+      </div>
+      <div class="wally-chat" id="wally-chat-display">
+        <!-- populated by JS -->
+      </div>
+      <div class="wally-badge">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        <span id="wally-data-used">Wally uses your real financial data</span>
+      </div>
+    </div>
+
+    <!-- Question pills -->
+    <div class="wally-questions" id="wally-questions"></div>
+    <div style="margin-top:36px">
+      <a href="/login" class="btn-primary-lg" style="font-size:15px">Talk to Wally — It's Free →</a>
+    </div>
+  </div>
+</article>
+
+<hr class="section-divider">
+
+<!-- TESTIMONIALS -->
+<section class="section reveal" style="padding-top:60px;padding-bottom:60px">
+  <div class="section-center" style="margin-bottom:40px">
+    <div class="section-tag">What people are saying</div>
+    <h2 class="section-title">Real people, real results</h2>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px" class="stagger testi-grid">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px">
+      <div style="color:#f5a623;font-size:15px;margin-bottom:14px;letter-spacing:2px">★★★★★</div>
+      <p style="font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:18px">"I was sitting on $9,400 in credit card debt and honestly thought I'd be stuck with it forever. But Wally helped me realize I was basically throwing away $340 a month on random things and eating out way to much. Once I cut that stuff out, I actually started to chip away at my balances."</p>
+      <div style="font-size:13px;color:var(--muted);font-style:italic">— Marcus, Tampa</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px">
+      <div style="color:#f5a623;font-size:15px;margin-bottom:14px;letter-spacing:2px">★★★★★</div>
+      <p style="font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:18px">"Honestly, I thought I was barely spending anything on subscriptions. Then I joined Walify and realized I was dropping $213 a month on 11 different services—I didn't even remember half of them. I cancelled 7 of them right then and there. Saving $1,500 this year just by doing that is wild."</p>
+      <div style="font-size:13px;color:var(--muted);font-style:italic">— Priya, Austin</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px">
+      <div style="color:#f5a623;font-size:15px;margin-bottom:14px;letter-spacing:2px">★★★★★</div>
+      <p style="font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:18px">"I'm 26 and honestly used to be totally clueless with my money. I'd just check my bank app, see the balance, and get hit with instant anxiety. Wally finally showed me where my money was actually going and helped me set a goal I could actually stick to. I've already built up a $4,200 emergency fund in just 3 months!"</p>
+      <div style="font-size:13px;color:var(--muted);font-style:italic">— Jordan, Chicago</div>
+    </div>
+  </div>
+</section>
+<style>
+  @media (max-width:760px) { section .section > div[style*="grid-template-columns:repeat(3"] { grid-template-columns:1fr !important; } }
+</style>
+
+<hr class="section-divider">
+
+<!-- FEATURES -->
+<section class="section reveal" id="features">
+  <div class="section-center">
+    <div class="section-tag">Personal finance AI — everything in one place</div>
+    <h2 class="section-title">Every personal finance tool you need to feel in control</h2>
+    <p class="section-sub">Most people don't have a money problem — they have a clarity problem. Walify's AI budgeting app fixes that.</p>
+  </div>
+  <div class="features-grid stagger">
+    <div class="feature-card">
+      <div class="feature-icon">🏦</div>
+      <h3 class="feature-title">Your banks, automatically synced via Plaid</h3>
+      <div class="feature-desc">Connect once via Plaid and your transactions show up categorized and clean. No more manual imports, no more guessing what hit your account.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <h3 class="feature-title">Wally — AI financial advisor that knows your situation</h3>
+      <div class="feature-desc">Ask anything. "Can I afford this?" "When am I debt-free?" "Where's my money going?" Wally reads your data, then answers. Powered by Claude Opus 4.6.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3 class="feature-title">12 financial reports that actually explain things</h3>
+      <div class="feature-desc">P&L, net worth, FIRE projections, tax summary — the same reports an accountant would run, without the hourly rate.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💸</div>
+      <h3 class="feature-title">Debt payoff optimizer — a real plan to eliminate debt</h3>
+      <div class="feature-desc">Pick avalanche or snowball. Walify calculates your exact debt-free date, total interest saved, and the monthly payment that gets you there fastest.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3 class="feature-title">AI budgeting that warns you before it's too late</h3>
+      <div class="feature-desc">Set limits by category and get notified when you're trending over — not after you've already blown the budget.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3 class="feature-title">Runs everywhere, installs anywhere</h3>
+      <div class="feature-desc">Use it in your browser or install it as a native app on your iPhone or Android. Your finances travel with you. Plus get Wally's monthly Financial Check-In email — spending shifts, savings rate, and one thing to change.</div>
+    </div>
+  </div>
+</section>
+
+<div style="text-align:center;padding:40px 24px 20px">
+  <p style="font-size:15px;color:var(--muted2);margin-bottom:16px">Ready to see your numbers clearly?</p>
+  <a href="/login" class="btn-primary-lg">Start Free — No Card Needed →</a>
+  <p style="font-size:12px;color:var(--muted);margin-top:12px">Takes 2 minutes · 2,400+ people already tracking</p>
+</div>
+
+<hr class="section-divider">
+
+<!-- DEVICES SECTION -->
+<section class="section reveal">
+  <div id="devices-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center">
+    <div>
+      <div class="section-tag">Personal finance tracker — on your phone, on your desk, everywhere</div>
+      <h2 class="section-title">Your AI money app, accessible<br>wherever you are.</h2>
+      <p class="section-sub" style="color:var(--muted2);margin-bottom:28px">
+        Walify works in any browser and installs as a native app on iOS and Android. Everything syncs instantly — open it on your laptop, pick it up on your phone.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
+          <span style="color:var(--green);font-size:18px">✓</span> Instant sync across all your devices
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
+          <span style="color:var(--green);font-size:18px">✓</span> Add to your home screen on iPhone &amp; Android
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted2)">
+          <span style="color:var(--green);font-size:18px">✓</span> Ask Wally a quick question from your phone
+        </div>
+      </div>
+    </div>
+    <!-- Phone mockup -->
+    <div style="display:flex;justify-content:flex-start;align-items:flex-end;gap:16px">
+      <div style="width:155px;background:#0d1117;border:3px solid rgba(255,255,255,.12);border-radius:34px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(63,185,80,.1);flex-shrink:0">
+        <div style="background:#090d13;height:22px;display:flex;align-items:center;justify-content:center">
+          <div style="width:50px;height:5px;background:rgba(255,255,255,.15);border-radius:3px"></div>
+        </div>
+        <img src="/images/walify_mobile.jpg" alt="Walify personal finance AI app on iPhone — AI budgeting and bank sync on mobile" style="width:100%;display:block;max-height:280px;object-fit:cover;object-position:top">
+        <div style="background:#090d13;height:20px"></div>
+      </div>
+      <div style="flex:1;min-width:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6),0 0 0 1px rgba(63,185,80,.08)">
+        <div style="background:var(--sidebar-bg);padding:8px 12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <div style="width:8px;height:8px;border-radius:50%;background:#ff5f56"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#ffbd2e"></div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#27c93f"></div>
+          <div style="flex:1;background:rgba(255,255,255,.06);border-radius:4px;padding:3px 8px;font-size:10px;color:var(--muted);text-align:center">walify.ai</div>
+        </div>
+        <img src="/images/walify_dashboard.png" alt="Walify AI money app on desktop — personal finance tracker with bank sync and spending reports" style="width:100%;display:block">
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  @media (max-width:760px) {
+    #devices-grid { grid-template-columns:1fr !important; gap:32px !important; }
+    #devices-grid > div:last-child { justify-content:center !important; }
+    #devices-grid > div:last-child > div:last-child { display:none !important; }
+  }
+</style>
+
+<hr class="section-divider">
+
+<!-- SCREENSHOTS -->
+<section class="section reveal" id="screenshots" style="padding-bottom:60px">
+  <div class="section-center">
+    <div class="section-tag">Walify AI app — see it in action</div>
+    <h2 class="section-title">Every personal finance tool you need. Nothing you don't.</h2>
+    <p class="section-sub">Clean, fast, and designed to give you real answers at a glance — not drown you in data. The AI budgeting app that does the work for you.</p>
+  </div>
+  <div class="screenshots-scroll" style="margin-top:48px;overflow-x:auto;padding-bottom:16px;-webkit-overflow-scrolling:touch">
+    <div style="display:flex;gap:20px;width:max-content;padding:0 4px">
+      <div class="screenshot-card">
+        <div class="screenshot-label">Your Money at a Glance</div>
+        <img src="/images/walify_dashboard.png" alt="Walify AI financial advisor app dashboard — net worth, spending KPIs, and AI budgeting overview" loading="lazy">
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-label">Every Transaction, Organized</div>
+        <img src="/images/walify_transactions.png" alt="Walify personal finance tracker — categorized bank transactions synced via Plaid with monthly spending totals" loading="lazy">
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-label">Reports That Actually Mean Something</div>
+        <img src="/images/walify_reports.png" alt="Walify financial reports — P&amp;L, balance sheet, cash flow, FIRE calculator, and net worth projection" loading="lazy">
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-label">Budgets That Keep You Honest</div>
+        <img src="/images/walify_budget.png" alt="Walify AI budgeting app — set spending limits by category, track progress, and get alerts before you overspend" loading="lazy">
+      </div>
+      <div class="screenshot-card">
+        <div class="screenshot-label">Wally Spots What You Miss</div>
+        <img src="/images/walify_insights.png" alt="Wally AI financial advisor insights — spending spike alerts, savings opportunities, and personalized budget suggestions" loading="lazy">
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:16px">← Scroll to explore →</p>
+</section>
+
+<hr class="section-divider">
+
+<!-- STATS -->
+<section class="section" style="padding-bottom:40px">
+  <div class="section-center">
+    <div class="section-tag">Walify by the numbers</div>
+    <h2 class="section-title">More insight than a spreadsheet.<br>Less cost than a human financial advisor.</h2>
+  </div>
+  <div class="stats-row stagger" style="justify-content:center;margin-top:40px">
+    <div class="stat">
+      <div class="stat-num">12+</div>
+      <div class="stat-label">Financial reports — P&L to FIRE to net worth</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">2,400+</div>
+      <div class="stat-label">People already tracking</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">$0</div>
+      <div class="stat-label">To get started — free forever</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">~$300</div>
+      <div class="stat-label">Avg monthly savings found by Wally users</div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <div class="section-center">
+    <div class="section-tag">AI financial advisor app pricing</div>
+    <h2 class="section-title">Free to start. $9.99/mo to go all in.</h2>
+    <p class="section-sub">No credit card. No trial period. Free means free. Upgrade to Pro for unlimited AI conversations with Wally, all 12 reports, and every personal finance tool.</p>
+  </div>
+  <!-- Annual billing toggle -->
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:32px">
+    <span id="billing-monthly-label" style="font-size:14px;font-weight:600;color:var(--text)">Monthly</span>
+    <div onclick="toggleBilling()" style="width:44px;height:24px;background:var(--green);border-radius:12px;cursor:pointer;position:relative;transition:background .2s" id="billing-toggle">
+      <div id="billing-knob" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .2s"></div>
+    </div>
+    <span id="billing-annual-label" style="font-size:14px;color:var(--muted2)">Annual <span style="background:var(--green-dim);color:var(--green);font-size:11px;font-weight:700;padding:2px 7px;border-radius:5px;margin-left:4px">Save 20%</span></span>
+  </div>
+  <p id="annual-note" style="display:none;text-align:center;font-size:12px;color:var(--muted);margin-bottom:16px;margin-top:-20px">Annual plan billed as $95.88/year · <span style="color:var(--muted)">Note to developer: set <code>STRIPE_ANNUAL_PRICE_ID</code> env var to enable annual checkout</span></p>
+
+  <div class="pricing-grid stagger">
+    <div class="pricing-card">
+      <div class="plan-name">Free</div>
+      <div class="plan-price">$0<span>/mo</span></div>
+      <div class="plan-desc">Real tools, no card required — use it forever</div>
+      <ul class="plan-features">
+        <li>Manual income &amp; expense tracking</li>
+        <li>Budget tracking &amp; goals</li>
+        <li>Debt payoff optimizer</li>
+        <li>1 bank connection (Plaid)</li>
+        <li>5 AI conversations/month with Wally</li>
+        <li>3 financial reports</li>
+        <li>Subscription &amp; bill tracker</li>
+      </ul>
+      <a href="/login" class="plan-btn plan-btn-ghost" style="display:block;text-align:center">Start for Free — No Card</a>
+    </div>
+    <div class="pricing-card featured">
+      <div class="pricing-badge">Best Value</div>
+      <div style="font-size:11px;color:var(--green);background:var(--green-dim);border:1px solid rgba(63,185,80,.2);border-radius:5px;padding:3px 9px;display:inline-block;margin-bottom:8px;font-weight:700;letter-spacing:.03em">⏰ BETA PRICE — LOCKS IN FOREVER</div>
+      <div class="plan-name" style="color:var(--green)">Pro</div>
+      <div class="plan-price" id="pro-price-display">$9<span>.99/mo</span></div>
+      <div class="plan-desc">Unlimited AI · All banks · Every report · Full power</div>
+      <ul class="plan-features">
+        <li>Everything in Free, plus:</li>
+        <li><strong>Unlimited bank connections</strong></li>
+        <li><strong>50 AI conversations/day with Wally</strong></li>
+        <li><strong>All 12 financial reports</strong> (FIRE, net worth, P&amp;L, tax)</li>
+        <li><strong>Business mode</strong> (separate books)</li>
+      </ul>
+      <div id="pro-extra-features" style="display:none">
+        <ul class="plan-features" style="margin-bottom:0">
+          <li>Unlimited entries &amp; accounts</li>
+          <li><strong>CSV &amp; PDF import</strong></li>
+          <li>P&amp;L · Balance Sheet · Cash Flow</li>
+          <li>Tax Summary &amp; categorization</li>
+          <li>Monthly trends &amp; projections</li>
+          <li>Savings rate tracker</li>
+          <li>Spending trends analysis</li>
+          <li>Budget vs. Actual</li>
+          <li>Net Worth projection</li>
+          <li>AI Net Worth Forecast</li>
+          <li>FIRE retirement calculator</li>
+          <li>Mileage tracking (IRS rates)</li>
+          <li>Invoicing &amp; payment tracking</li>
+          <li>Spending insights &amp; alerts</li>
+        </ul>
+      </div>
+      <button onclick="toggleProFeatures(this)" style="background:none;border:none;color:var(--green);font-size:13px;cursor:pointer;padding:8px 0 16px;font-family:inherit" id="pro-features-toggle">Show all features ↓</button>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted2);margin-bottom:12px;justify-content:center">
+        <span style="color:var(--green)">✓</span> 30-day money-back guarantee
+      </div>
+      <a href="/upgrade" class="plan-btn plan-btn-primary" id="pro-cta-btn" style="display:block;text-align:center">Get Pro — $9.99/mo →</a>
+    </div>
+  </div>
+  <p class="pricing-note">
+    <a href="/upgrade" style="color:var(--green)">See full feature comparison →</a>
+  </p>
+  <p style="text-align:center;font-size:13px;color:var(--muted);margin-top:10px">🔒 Cancel anytime · Bank credentials never stored · Plaid read-only access · Your data stays yours</p>
+</section>
+
+<!-- FAQ -->
+<section class="section reveal" style="max-width:760px">
+  <div class="section-center">
+    <div class="section-tag">Walify FAQ</div>
+    <h2 class="section-title">Common questions about Walify's AI financial advisor</h2>
+  </div>
+  <div style="margin-top:40px;display:flex;flex-direction:column;gap:2px" id="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Is my banking data actually safe? Can Walify move my money? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Walify connects via Plaid — the same bank-linking technology used by thousands of financial apps. It's read-only: we can see your transactions and balances, nothing else. We cannot log into your bank, initiate transfers, or touch your money. Your username and password never touch Walify's servers, ever.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Is Wally actually AI or just a glorified chatbot? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Wally is powered by Claude Opus 4.6 — one of the most capable AI models available — with adaptive thinking enabled. That means before it responds, it reads your actual transaction history, income, expenses, and debt, then reasons through your specific situation. It's not keyword matching or scripts. It genuinely thinks about your question in the context of your real financial data.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Do I have to link my bank account? What if I don't want to? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Not at all. Bank sync is optional. You can use Walify entirely by entering transactions manually — the Free plan fully supports this. Plaid bank sync is available on Free (1 connection) and unlimited on Pro, but it's always your choice.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What banks does it work with? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Plaid supports 12,000+ financial institutions — Chase, Bank of America, Wells Fargo, Capital One, Citi, US Bank, and the vast majority of credit unions. If your bank has online banking, it almost certainly works.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">What's actually free? What's the catch? <span class="faq-icon">+</span></button>
+      <div class="faq-a">The Free plan is genuinely free — no credit card, no 14-day trial, no expiry. You get manual tracking, budgeting, goals, debt optimizer, 3 reports, and 5 Wally AI conversations per month. The only catch is you want to use it more. Pro ($9.99/mo) unlocks unlimited banks, 50 AI conversations/day, all 12 reports, CSV/PDF import, and business mode.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Can I cancel Pro anytime? What happens to my data? <span class="faq-icon">+</span></button>
+      <div class="faq-a">Yes — cancel in one click from the billing portal, no phone calls required. If you cancel, you stay on Pro until the end of your billing period, then drop to Free. Your data is never deleted. You can export everything anytime from Settings → Backup & Restore.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Stop guessing about your money.<br>Your AI financial advisor is ready.</h2>
+  <p>It's free to start, takes two minutes to connect your bank, and Wally — your personal finance AI — is waiting to answer your first question.</p>
+  <a href="/login" class="btn-primary-lg">Try Walify Free — No Card Needed →</a>
+</section>
+</main>
+
+<!-- FOOTER -->
+<footer aria-label="Site footer">
+  <div class="footer-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#3fb950" stroke-width="2.2" width="18" height="18" aria-hidden="true">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    Walify
+    <span style="font-size:11px;font-weight:400;color:var(--muted);margin-left:4px">— AI Financial Advisor App</span>
+  </div>
+  <nav class="footer-links" aria-label="Footer navigation">
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="/login">Sign In</a>
+    <a href="/privacy">Privacy Policy</a>
+    <a href="/terms">Terms of Service</a>
+  </nav>
+  <div class="footer-copy">© 2026 Walify · Florida · Built with ♥ · AI-powered personal finance tracker · <a href="https://walify.ai" style="color:var(--muted)">walify.ai</a></div>
+</footer>
+
+<script>
+// ── BILLING TOGGLE ────────────────────────────────────────────────────────────
+var _isAnnual = false;
+function toggleBilling() {
+  _isAnnual = !_isAnnual;
+  var knob = document.getElementById('billing-knob');
+  var monthlyLabel = document.getElementById('billing-monthly-label');
+  var annualLabel = document.getElementById('billing-annual-label');
+  var priceDisplay = document.getElementById('pro-price-display');
+  var annualNote = document.getElementById('annual-note');
+  var ctaBtn = document.getElementById('pro-cta-btn');
+  if (_isAnnual) {
+    knob.style.transform = 'translateX(20px)';
+    monthlyLabel.style.color = 'var(--muted2)';
+    monthlyLabel.style.fontWeight = '400';
+    annualLabel.style.color = 'var(--text)';
+    annualLabel.style.fontWeight = '600';
+    priceDisplay.innerHTML = '$7<span>.99/mo</span>';
+    if (annualNote) annualNote.style.display = 'block';
+    if (ctaBtn) ctaBtn.textContent = 'Get Pro Annual — $95.88/yr →';
+  } else {
+    knob.style.transform = 'translateX(0)';
+    monthlyLabel.style.color = 'var(--text)';
+    monthlyLabel.style.fontWeight = '600';
+    annualLabel.style.color = 'var(--muted2)';
+    annualLabel.style.fontWeight = '400';
+    priceDisplay.innerHTML = '$9<span>.99/mo</span>';
+    if (annualNote) annualNote.style.display = 'none';
+    if (ctaBtn) ctaBtn.textContent = 'Get Pro — $9.99/mo →';
+  }
+}
+
+function toggleProFeatures(btn) {
+  var extra = document.getElementById('pro-extra-features');
+  var isVisible = extra.style.display !== 'none';
+  extra.style.display = isVisible ? 'none' : 'block';
+  btn.textContent = isVisible ? 'Show all features ↓' : 'Hide features ↑';
+}
+</script>
+
+<script>
+// ── PARTICLE NETWORK ─────────────────────────────────────────────────────────
+(function() {
+  var canvas = document.getElementById('particle-canvas');
+  var ctx = canvas.getContext('2d');
+  var W, H, nodes = [], RAF;
+  var NODE_COUNT = 48;
+  var MAX_DIST = 140;
+  var GREEN = '63,185,80';
+
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function Node() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - .5) * .35;
+    this.vy = (Math.random() - .5) * .35;
+    this.r = Math.random() * 1.5 + .5;
+  }
+
+  Node.prototype.update = function() {
+    this.x += this.vx; this.y += this.vy;
+    if (this.x < 0 || this.x > W) this.vx *= -1;
+    if (this.y < 0 || this.y > H) this.vy *= -1;
+  };
+
+  function init() {
+    resize();
+    nodes = [];
+    for (var i = 0; i < NODE_COUNT; i++) nodes.push(new Node());
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw lines between close nodes
+    for (var i = 0; i < nodes.length; i++) {
+      for (var j = i + 1; j < nodes.length; j++) {
+        var dx = nodes[i].x - nodes[j].x;
+        var dy = nodes[i].y - nodes[j].y;
+        var dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < MAX_DIST) {
+          var alpha = (1 - dist / MAX_DIST) * 0.35;
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(' + GREEN + ',' + alpha + ')';
+          ctx.lineWidth = 1;
+          ctx.moveTo(nodes[i].x, nodes[i].y);
+          ctx.lineTo(nodes[j].x, nodes[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Draw nodes
+    for (var k = 0; k < nodes.length; k++) {
+      ctx.beginPath();
+      ctx.arc(nodes[k].x, nodes[k].y, nodes[k].r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(' + GREEN + ',0.45)';
+      ctx.fill();
+      nodes[k].update();
+    }
+
+    RAF = requestAnimationFrame(draw);
+  }
+
+  // Pause when tab hidden (save CPU)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) { cancelAnimationFrame(RAF); }
+    else { draw(); }
+  });
+
+  window.addEventListener('resize', function() { resize(); });
+
+  init();
+  draw();
+})();
+</script>
+
+<script>
+function toggleFaq(btn) {
+  var item = btn.parentElement;
+  var isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(function(el) { el.classList.remove('open'); });
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+
+<script>
+// Intersection Observer for scroll animations
+var _observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      _observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach(function(el) {
+  _observer.observe(el);
+});
+
+// App screenshot carousel
+(function(){
+  var slides = document.querySelectorAll('.app-slide');
+  var dots = document.querySelectorAll('.cdot');
+  if (!slides.length) return;
+  var cur = 0;
+  function goTo(i) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = i % slides.length;
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+  }
+  dots.forEach(function(d, i) { d.addEventListener('click', function(){ goTo(i); clearInterval(timer); timer = setInterval(function(){ goTo(cur+1); }, 3500); }); });
+  var timer = setInterval(function(){ goTo(cur+1); }, 3500);
+})();
+
+// Hero parallax — blobs drift on scroll
+(function() {
+  var hero = document.getElementById('aurora-hero');
+  var b1 = document.getElementById('ab1');
+  var b2 = document.getElementById('ab2');
+  var b3 = document.getElementById('ab3');
+  var b4 = document.getElementById('ab4');
+  if (!hero || !b1) return;
+  var ticking = false;
+  window.addEventListener('scroll', function() {
+    if (!ticking) {
+      requestAnimationFrame(function() {
+        var y = window.scrollY;
+        if (y < window.innerHeight * 1.2) {
+          var p = y * 0.25;
+          if (b1) b1.style.transform = 'translateY(' + (p * 0.6) + 'px)';
+          if (b2) b2.style.transform = 'translateY(-' + (p * 0.4) + 'px)';
+          if (b3) b3.style.transform = 'translateY(' + (p * 0.3) + 'px)';
+          if (b4) b4.style.transform = 'translateY(-' + (p * 0.5) + 'px)';
+        }
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
+})();
+</script>
+
+<script>
+var _wallyConvos = [
+  {
+    q: '💸 Can I afford a vacation?',
+    user: 'Can I actually afford a vacation next month?',
+    answer: 'Based on your real numbers: you have <strong>$2,380 left this month</strong> after all fixed bills. Your emergency fund covers 3.2 months — you\'re in solid shape. A $1,200 trip leaves a $1,180 buffer. <strong>Yes, you can afford it.</strong> The one thing to watch: dining is running $80 over this month. Keep that in check and you\'re all clear.',
+    data: 'Read: income, fixed expenses, emergency fund, current month spending'
+  },
+  {
+    q: '💳 When am I debt-free?',
+    user: 'How long until I pay off my credit card debt?',
+    answer: 'Your Chase card is at $4,200 with 24.9% APR. At the $150 minimum you\'re paying now, you\'d be done in <strong>34 months</strong> and hand over <strong>$893 in interest</strong>. Here\'s the better move: your dining spend is $180 over budget every month. Redirect that — and you\'re debt-free in <strong>17 months, saving $612.</strong> Same income, different choice.',
+    data: 'Read: debt balances, interest rates, spending by category, budget limits'
+  },
+  {
+    q: '📊 Where is my money going?',
+    user: 'I feel like my money just disappears. Where does it actually go?',
+    answer: 'I looked at your last 90 days. Your top three spend categories: <strong>Dining $847/mo, Subscriptions $214/mo, Shopping $390/mo.</strong> That\'s $1,451 — about 38% of your take-home. Subscriptions jumped $60 last month; looks like a streaming service and a gym you haven\'t used in 6 weeks. Want me to flag the ones worth cutting?',
+    data: 'Read: 90 days of transactions, spending by category, subscription detection'
+  },
+  {
+    q: '🏠 Can I afford to move out?',
+    user: 'I want to get my own apartment. Can I actually afford it right now?',
+    answer: 'Based on your income of <strong>$4,800/mo</strong>, the 30% rule puts your rent ceiling at <strong>$1,440.</strong> After your current expenses and $320/mo in debt payments, you\'d have <strong>$1,180 left</strong> — tight but workable at that ceiling. The risk: your emergency fund is only 0.8 months. I\'d recommend building it to 2 months first, which takes about <strong>3 months at your current savings rate.</strong> Move in spring and you\'re in a much safer position.',
+    data: 'Read: monthly income, fixed expenses, debt payments, savings balance, emergency fund'
+  }
+];
+
+var _wIdx = 0;
+var _wTimer = null;
+var _wBusy = false;
+
+function renderQuestions() {
+  var c = document.getElementById('wally-questions');
+  if (!c) return;
+  c.innerHTML = '';
+  _wallyConvos.forEach(function(conv, i) {
+    var btn = document.createElement('button');
+    btn.className = 'wally-q' + (i === _wIdx ? ' active' : '');
+    btn.textContent = conv.q;
+    btn.onclick = function() { stopWally(); showWally(i); };
+    c.appendChild(btn);
+  });
+}
+
+function showWally(idx) {
+  if (_wBusy) return;
+  _wBusy = true;
+  _wIdx = idx;
+  renderQuestions();
+  var chat = document.getElementById('wally-chat-display');
+  if (!chat) { _wBusy = false; return; }
+  var conv = _wallyConvos[idx];
+
+  // Clear + show user message
+  chat.innerHTML = '';
+  var userBubble = document.createElement('div');
+  userBubble.className = 'chat-bubble user';
+  userBubble.textContent = conv.user;
+  userBubble.style.opacity = '0'; userBubble.style.transition = 'opacity .3s';
+  chat.appendChild(userBubble);
+  setTimeout(function() { userBubble.style.opacity = '1'; }, 50);
+
+  // Show thinking indicator after 400ms
+  setTimeout(function() {
+    var thinking = document.createElement('div');
+    thinking.className = 'chat-bubble wally';
+    thinking.id = 'wally-thinking';
+    thinking.innerHTML = '<div class="thinking"><span>🤖 Wally is thinking</span><div class="thinking-dots"><span></span><span></span><span></span></div></div>';
+    thinking.style.opacity = '0'; thinking.style.transition = 'opacity .3s';
+    chat.appendChild(thinking);
+    setTimeout(function() { thinking.style.opacity = '1'; }, 50);
+
+    // Show answer after 1.8s
+    setTimeout(function() {
+      var th = document.getElementById('wally-thinking');
+      if (th) th.remove();
+      var ans = document.createElement('div');
+      ans.className = 'chat-bubble wally';
+      ans.innerHTML = conv.answer;
+      ans.style.opacity = '0'; ans.style.transition = 'opacity .4s';
+      chat.appendChild(ans);
+      setTimeout(function() { ans.style.opacity = '1'; }, 50);
+      var dataEl = document.getElementById('wally-data-used');
+      if (dataEl) dataEl.textContent = conv.data;
+      _wBusy = false;
+    }, 1800);
+  }, 400);
+}
+
+function stopWally() {
+  if (_wTimer) { clearInterval(_wTimer); _wTimer = null; }
+}
+
+// Init
+renderQuestions();
+showWally(0);
+// Auto-rotate every 6s
+_wTimer = setInterval(function() {
+  if (!_wBusy) { showWally((_wIdx + 1) % _wallyConvos.length); }
+}, 6000);
+</script>
+<script>
+// Referral tracking — capture ?ref= param and store for checkout
+(function() {
+  var ref = new URLSearchParams(window.location.search).get('ref');
+  if (ref) {
+    ref = ref.trim().toLowerCase().slice(0, 64);
+    localStorage.setItem('walify_ref', ref);
+    fetch('/api/affiliate/click?ref=' + encodeURIComponent(ref)).catch(function(){});
+  }
+})();
+</script>
+</body>
+</html>
