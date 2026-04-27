@@ -521,7 +521,6 @@
   <div class="aurora-blob" id="ab4"></div>
 
   <div id="aurora-inner">
-    <!-- LEFT: Text -->
     <div id="aurora-content">
       <div id="aurora-badge"><span class="ab-dot"></span> AI-powered · Bank sync by Plaid</div>
       <h1 id="aurora-h1">Your AI financial<br>advisor is here.</h1>
@@ -534,51 +533,33 @@
         <span class="aurora-chip">🏦 12,000+ banks</span>
       </div>
     </div>
+  </div>
 
-    <!-- RIGHT: iPhone frame with cycling app screenshots -->
-    <div id="aurora-visuals">
-      <div id="phone-wrap">
-        <div id="app-carousel">
-          <img src="/images/walify_dashboard.png" class="app-slide active" alt="Walify dashboard">
-          <img src="/images/walify_transactions.png" class="app-slide" alt="Walify transactions">
-          <img src="/images/walify_budget.png" class="app-slide" alt="Walify budget">
-          <img src="/images/walify_insights.png" class="app-slide" alt="Walify insights">
-        </div>
-        <img id="iphone-frame" src="https://framerusercontent.com/images/w5bZss8bUiba4JnU0MGTtV98nJM.png?width=787&height=1601" alt="">
+  <!-- iPhone frame — absolutely positioned in hero, right side -->
+  <div id="aurora-visuals">
+    <div id="phone-wrap">
+      <div id="app-carousel">
+        <img src="/images/walify_dashboard.png" class="app-slide active" alt="Walify dashboard">
+        <img src="/images/walify_transactions.png" class="app-slide" alt="Walify transactions">
+        <img src="/images/walify_budget.png" class="app-slide" alt="Walify budget">
+        <img src="/images/walify_insights.png" class="app-slide" alt="Walify insights">
       </div>
-      <div id="carousel-dots">
-        <span class="cdot active"></span>
-        <span class="cdot"></span>
-        <span class="cdot"></span>
-        <span class="cdot"></span>
-      </div>
+      <img id="iphone-frame" src="https://framerusercontent.com/images/w5bZss8bUiba4JnU0MGTtV98nJM.png?width=787&height=1601" alt="">
     </div>
   </div>
 </div>
 <style>
-#aurora-hero { position:relative; min-height:100vh; background:#000; display:flex; align-items:flex-start; justify-content:center; overflow:visible; padding:100px 24px 0; }
-#aurora-hero::after { content:''; position:absolute; bottom:0; left:0; right:0; height:200px; background:linear-gradient(to bottom, transparent, #050505); pointer-events:none; z-index:1; }
-#aurora-inner { position:relative; z-index:2; display:grid; grid-template-columns:1fr 1fr; gap:60px; align-items:flex-start; max-width:1200px; width:100%; margin:0 auto; padding-top:40px; }
-#aurora-content { text-align:left; }
-#aurora-badge { justify-content:flex-start; }
-#aurora-chips { justify-content:flex-start; }
-/* iPhone frame mockup */
-#aurora-visuals { position:relative; display:flex; flex-direction:column; align-items:center; }
-#phone-wrap { position:relative; width:400px; }
-#iphone-frame { position:relative; width:100%; height:auto; z-index:2; pointer-events:none; display:block; filter:drop-shadow(0 40px 80px rgba(0,0,0,.7)) drop-shadow(0 -10px 60px rgba(35,134,54,.15)); }
-#app-carousel { position:absolute; top:2%; left:5.4%; right:5.6%; bottom:2%; border-radius:28px; overflow:hidden; background:#000; z-index:1; }
+#aurora-hero { position:relative; min-height:100vh; background:#000; overflow:hidden; }
+#aurora-hero::after { content:''; position:absolute; bottom:0; left:0; right:0; height:200px; background:linear-gradient(to bottom, transparent, #050505); pointer-events:none; z-index:3; }
+#aurora-inner { position:relative; z-index:2; width:100%; padding:130px 60px 80px; }
+#aurora-content { position:relative; z-index:2; width:50%; max-width:560px; text-align:left; }
+/* iPhone frame — absolutely positioned in hero, right side */
+#aurora-visuals { position:absolute; left:58%; top:80px; z-index:2; }
+#phone-wrap { position:relative; width:480px; }
+#iphone-frame { position:relative; width:100%; height:auto; z-index:2; pointer-events:none; display:block; filter:drop-shadow(0 -10px 60px rgba(35,134,54,.2)); }
+#app-carousel { position:absolute; top:2%; left:5.4%; right:5.6%; bottom:2%; border-radius:34px; overflow:hidden; background:#000; z-index:1; }
 .app-slide { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top; opacity:0; transition:opacity .8s ease; }
 .app-slide.active { opacity:1; }
-#carousel-dots { display:flex; gap:8px; justify-content:center; margin-top:16px; }
-.cdot { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.2); cursor:pointer; transition:background .3s; }
-.cdot.active { background:#3fb950; }
-@media(max-width:900px) {
-  #aurora-inner { grid-template-columns:1fr; gap:48px; }
-  #aurora-content { text-align:center; }
-  #aurora-badge,#aurora-chips { justify-content:center; }
-  #aurora-screens { height:320px; }
-  .ascreen { width:80%; }
-}
 .aurora-blob { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; will-change:transform; }
 #ab1 { width:600px; height:500px; background:radial-gradient(circle,rgba(35,134,54,.6) 0%,rgba(35,134,54,.2) 50%,transparent 70%); top:-10%; right:-5%; animation:bd1 14s ease-in-out infinite; }
 #ab2 { width:520px; height:600px; background:radial-gradient(circle,rgba(88,166,255,.4) 0%,rgba(56,120,200,.15) 50%,transparent 70%); bottom:-15%; left:-8%; animation:bd2 18s ease-in-out infinite; }
@@ -588,18 +569,19 @@
 @keyframes bd2 { 0%,100%{transform:translate(0,0) scale(1)} 40%{transform:translate(80px,-60px) scale(1.12)} 70%{transform:translate(-40px,30px) scale(.9)} }
 @keyframes bd3 { 0%,100%{transform:translate(0,0) scale(1)} 30%{transform:translate(50px,70px) scale(1.05)} 60%{transform:translate(-60px,-40px) scale(.95)} }
 @keyframes bd4 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-70px,-50px) scale(1.1)} }
-#aurora-content { position:relative; z-index:2; text-align:center; max-width:680px; }
 #aurora-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(35,134,54,.1); border:1px solid rgba(63,185,80,.25); border-radius:100px; padding:6px 16px; font-size:12px; color:#3fb950; font-weight:500; margin-bottom:28px; }
 .ab-dot { width:6px; height:6px; border-radius:50%; background:#3fb950; animation:abp 2s ease-in-out infinite; }
 @keyframes abp { 0%,100%{opacity:1} 50%{opacity:.3} }
 #aurora-h1 { font-size:clamp(44px,6vw,72px); font-weight:800; line-height:1.08; letter-spacing:-.03em; color:#fff; margin-bottom:20px; }
-#aurora-sub { font-size:18px; color:rgba(255,255,255,.55); line-height:1.65; max-width:520px; margin:0 auto 32px; }
+#aurora-sub { font-size:18px; color:rgba(255,255,255,.55); line-height:1.65; max-width:520px; margin:0 0 32px; }
 #aurora-sub strong { color:#3fb950; }
 #aurora-btn { display:inline-block; background:#fff; color:#000; font-size:16px; font-weight:700; padding:16px 36px; border-radius:100px; transition:background .2s,transform .2s,box-shadow .2s; box-shadow:0 0 40px rgba(255,255,255,.12); margin-bottom:16px; }
 #aurora-btn:hover { background:#eee; transform:translateY(-2px); box-shadow:0 0 60px rgba(255,255,255,.22); }
 #aurora-note { font-size:12px; color:rgba(255,255,255,.25); margin-bottom:28px; }
-#aurora-chips { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+#aurora-chips { display:flex; gap:10px; justify-content:flex-start; flex-wrap:wrap; }
 .aurora-chip { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:100px; padding:5px 14px; font-size:11px; color:rgba(255,255,255,.4); }
+@media(max-width:1100px) { #phone-wrap{width:400px;} #aurora-visuals{left:52%;} }
+@media(max-width:900px) { #aurora-visuals{display:none;} #aurora-content{width:100%;max-width:100%;text-align:center;} #aurora-inner{padding:120px 24px 60px;} #aurora-chips{justify-content:center;} }
 @media(max-width:600px){ #aurora-h1{font-size:38px} #aurora-sub{font-size:15px} #ab1,#ab2{width:280px;height:280px} #ab3,#ab4{display:none} }
 @media(max-width:760px){ .testi-grid{grid-template-columns:1fr !important;} }
 </style>
