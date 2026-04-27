@@ -558,7 +558,7 @@
 #phone-wrap { position:relative; width:480px; }
 #iphone-frame { position:relative; width:100%; height:auto; z-index:2; pointer-events:none; display:block; filter:drop-shadow(0 -10px 60px rgba(35,134,54,.2)); }
 #app-carousel { position:absolute; top:2%; left:5.4%; right:5.6%; bottom:2%; border-radius:34px; overflow:hidden; background:#000; z-index:1; }
-.app-slide { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top; opacity:0; transition:opacity .8s ease; }
+.app-slide { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:left top; opacity:0; transition:opacity .8s ease; }
 .app-slide.active { opacity:1; }
 .aurora-blob { position:absolute; border-radius:50%; filter:blur(80px); pointer-events:none; will-change:transform; }
 #ab1 { width:600px; height:500px; background:radial-gradient(circle,rgba(35,134,54,.6) 0%,rgba(35,134,54,.2) 50%,transparent 70%); top:-10%; right:-5%; animation:bd1 14s ease-in-out infinite; }
@@ -1115,10 +1115,10 @@ document.querySelectorAll('.reveal,.reveal-left,.reveal-right,.stagger').forEach
   var cur = 0;
   function goTo(i) {
     slides[cur].classList.remove('active');
-    dots[cur].classList.remove('active');
+    if (dots[cur]) dots[cur].classList.remove('active');
     cur = i % slides.length;
     slides[cur].classList.add('active');
-    dots[cur].classList.add('active');
+    if (dots[cur]) dots[cur].classList.add('active');
   }
   dots.forEach(function(d, i) { d.addEventListener('click', function(){ goTo(i); clearInterval(timer); timer = setInterval(function(){ goTo(cur+1); }, 3500); }); });
   var timer = setInterval(function(){ goTo(cur+1); }, 3500);
