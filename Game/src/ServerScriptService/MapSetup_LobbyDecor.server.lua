@@ -36,13 +36,13 @@ end
 local ROSE_GOLD = Color3.fromRGB(200, 150, 120)
 
 -- ============================================================
--- CHANDELIERS (4) — hung from ceiling at Y=20.8
+-- CHANDELIERS (4) — hung from glass atrium ceiling at Y=38
 -- ============================================================
 local chandelierPositions = {
-	Vector3.new(-28, 20.8, 60),
-	Vector3.new( 28, 20.8, 60),
-	Vector3.new(-28, 20.8, 100),
-	Vector3.new( 28, 20.8, 100),
+	Vector3.new(-28, 38, 60),
+	Vector3.new( 28, 38, 60),
+	Vector3.new(-28, 38, 100),
+	Vector3.new( 28, 38, 100),
 }
 for i, cp in ipairs(chandelierPositions) do
 	-- Mounting disk (ceiling attachment)
@@ -71,7 +71,7 @@ end
 -- RACK_BASE: X=-55, Z=120 (LOBBY_CENTER offset: -55, 0, +40)
 -- LobbyClothesRack.server.lua auto-connects items via AssetId attribute
 -- ============================================================
-local RACK_BASE = Vector3.new(-55, 0, 120)
+local RACK_BASE = Vector3.new(-55, 0, 100)
 
 -- Back wall panel
 part("StyleBarWall", Vector3.new(0.5, 22, 76), RACK_BASE + Vector3.new(0, 11, 0),
@@ -376,6 +376,133 @@ for ci, ba in ipairs(balloonAnchors) do
 			balloonColors[((ci + b - 2) % 4) + 1], Enum.Material.SmoothPlastic,
 			nil, {Shape=Enum.PartType.Ball, CanCollide=false})
 	end
+end
+
+-- ============================================================
+-- FOUNTAIN — south center, between chandeliers and back wall
+-- ============================================================
+local FC = Vector3.new(0, 0, 113)
+part("FountainBase",   Vector3.new(10,0.5,10),  FC+Vector3.new(0,0.25,0),   Color3.fromRGB(225,205,220), Enum.Material.Marble)
+part("FountainWallN",  Vector3.new(10,1.5,0.8), FC+Vector3.new(0,1.25,4.6), Color3.fromRGB(225,205,220), Enum.Material.Marble)
+part("FountainWallS",  Vector3.new(10,1.5,0.8), FC+Vector3.new(0,1.25,-4.6),Color3.fromRGB(225,205,220), Enum.Material.Marble)
+part("FountainWallE",  Vector3.new(0.8,1.5,10), FC+Vector3.new(4.6,1.25,0), Color3.fromRGB(225,205,220), Enum.Material.Marble)
+part("FountainWallW",  Vector3.new(0.8,1.5,10), FC+Vector3.new(-4.6,1.25,0),Color3.fromRGB(225,205,220), Enum.Material.Marble)
+part("FountainWater",  Vector3.new(8.4,0.3,8.4),FC+Vector3.new(0,0.65,0),   Color3.fromRGB(160,215,255), Enum.Material.Neon,   nil, {Transparency=0.4})
+part("FountainPillar", Vector3.new(1,3,1),       FC+Vector3.new(0,2,0),      ROSE_GOLD,                   Enum.Material.Metal,  nil, {Reflectance=0.4})
+local fGlow = part("FountainGlow", Vector3.new(0.6,0.1,0.6), FC+Vector3.new(0,3.6,0), Color3.fromRGB(190,225,255), Enum.Material.Neon)
+addLight(fGlow, "PointLight", {Color=Color3.fromRGB(190,220,255), Brightness=2, Range=22})
+local fParticle = Instance.new("ParticleEmitter")
+fParticle.Texture       = "rbxassetid://133619974"
+fParticle.EmissionDirection = Enum.NormalId.Top
+fParticle.Speed         = NumberRange.new(10, 16)
+fParticle.Lifetime      = NumberRange.new(0.8, 1.4)
+fParticle.Rate          = 50
+fParticle.SpreadAngle   = Vector2.new(18, 18)
+fParticle.Color         = ColorSequence.new(Color3.fromRGB(180, 220, 255))
+fParticle.Size          = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.35), NumberSequenceKeypoint.new(1, 0)})
+fParticle.Transparency  = NumberSequence.new({NumberSequenceKeypoint.new(0, 0.1), NumberSequenceKeypoint.new(1, 1)})
+fParticle.LockedToPart  = false
+fParticle.Parent        = fGlow
+
+-- ============================================================
+-- GRAND PIANO — center-right, south area (left of photo booth)
+-- ============================================================
+local PC = Vector3.new(18, 0, 130)
+part("PianoBody",      Vector3.new(7,3.5,4),    PC+Vector3.new(0,1.75,0),    Color3.fromRGB(15,15,15),    Enum.Material.SmoothPlastic, nil, {Reflectance=0.2})
+part("PianoLid",       Vector3.new(7,0.2,4),    PC+Vector3.new(0,3.6,0),     ROSE_GOLD,                   Enum.Material.Metal,         nil, {Reflectance=0.3})
+part("PianoKeys",      Vector3.new(5.5,0.3,1.5),PC+Vector3.new(0,3.5,2.2),   Color3.fromRGB(245,245,245), Enum.Material.SmoothPlastic)
+part("PianoBlackKeys", Vector3.new(4,0.4,0.8),  PC+Vector3.new(0,3.65,2),    Color3.fromRGB(10,10,10),    Enum.Material.SmoothPlastic)
+part("PianoLeg1",      Vector3.new(0.3,1.5,0.3),PC+Vector3.new(-3,0.75,-1.5),Color3.fromRGB(15,15,15),    Enum.Material.SmoothPlastic)
+part("PianoLeg2",      Vector3.new(0.3,1.5,0.3),PC+Vector3.new(3,0.75,-1.5), Color3.fromRGB(15,15,15),    Enum.Material.SmoothPlastic)
+part("PianoLeg3",      Vector3.new(0.3,1.5,0.3),PC+Vector3.new(0,0.75,1.5),  Color3.fromRGB(15,15,15),    Enum.Material.SmoothPlastic)
+part("PianoBench",     Vector3.new(2.5,1,2),    PC+Vector3.new(0,0.5,4),     Color3.fromRGB(180,60,100),  Enum.Material.Fabric)
+
+-- ============================================================
+-- LOUNGE OTTOMAN — center-right open area
+-- ============================================================
+part("Ottoman",     Vector3.new(5,1.5,5),   Vector3.new(25,0.75,80), Color3.fromRGB(255,80,150), Enum.Material.Fabric)
+part("OttomanTop",  Vector3.new(4.5,0.3,4.5),Vector3.new(25,1.65,80),Color3.fromRGB(220,50,120), Enum.Material.Fabric)
+part("OttomanTrim", Vector3.new(5.3,0.3,5.3),Vector3.new(25,0.15,80),ROSE_GOLD,                  Enum.Material.Metal, nil, {Reflectance=0.3})
+
+-- ============================================================
+-- TOPIARIES — flanking entrance (north) and south interior
+-- ============================================================
+local treeSpots = {Vector3.new(-15,0,23),Vector3.new(15,0,23),Vector3.new(-15,0,135),Vector3.new(15,0,135)}
+for ti, ts in ipairs(treeSpots) do
+	part("TreePot_"..ti,     Vector3.new(2,2,2),     ts+Vector3.new(0,1,0),   Color3.fromRGB(150,90,50),   Enum.Material.SmoothPlastic)
+	part("TreeTrunk_"..ti,   Vector3.new(0.8,5,0.8), ts+Vector3.new(0,4.5,0), Color3.fromRGB(90,60,35),    Enum.Material.Wood)
+	part("TreeLeaves_"..ti,  Vector3.new(4,4.5,4),   ts+Vector3.new(0,9,0),   Color3.fromRGB(60,140,50),   Enum.Material.Grass,        nil, {Shape=Enum.PartType.Ball})
+	part("TreeFlowers_"..ti, Vector3.new(4.5,3,4.5), ts+Vector3.new(0,8,0),   Color3.fromRGB(255,160,200), Enum.Material.SmoothPlastic, nil, {Transparency=0.35, Shape=Enum.PartType.Ball})
+end
+
+-- ============================================================
+-- CAFE CORNER — northwest, near entrance
+-- ============================================================
+local cafeSpots = {Vector3.new(-36,0,27), Vector3.new(-46,0,33)}
+for ci, ct in ipairs(cafeSpots) do
+	part("CafeTable_"..ci, Vector3.new(3,2.5,3),    ct+Vector3.new(0,1.25,0), Color3.fromRGB(220,185,165), Enum.Material.SmoothPlastic, nil, {Reflectance=0.1})
+	part("CafeTop_"..ci,   Vector3.new(3.5,0.2,3.5),ct+Vector3.new(0,2.6,0),  Color3.fromRGB(245,210,195), Enum.Material.SmoothPlastic, nil, {Reflectance=0.2})
+	for _, ox in ipairs({-2.2, 2.2}) do
+		for _, oz in ipairs({-2.2, 2.2}) do
+			part("Chair_"..ci.."_"..ox.."_"..oz, Vector3.new(1.5,2,1.5), ct+Vector3.new(ox,1,oz), Color3.fromRGB(255,110,155), Enum.Material.Fabric)
+		end
+	end
+end
+
+-- ============================================================
+-- EXTRA NEON SIGNS — east and west walls
+-- ============================================================
+local function neonWallSign(name, pos, face, text, signClr, txtClr)
+	local s = part(name, Vector3.new(0.3,3,20), pos, signClr, Enum.Material.Neon)
+	local g = Instance.new("SurfaceGui"); g.Face=face; g.CanvasSize=Vector2.new(500,80); g.Parent=s
+	local l = Instance.new("TextLabel"); l.Size=UDim2.new(1,0,1,0); l.BackgroundTransparency=1
+	l.Text=text; l.TextColor3=txtClr; l.TextScaled=true; l.Font=Enum.Font.GothamBold; l.Parent=g
+end
+neonWallSign("StarSign", Vector3.new(60,-10,55),  Enum.NormalId.Left,  "YOU'RE A STAR",  Color3.fromRGB(255,220,50),  Color3.fromRGB(255,255,200))
+neonWallSign("MCSign",   Vector3.new(-60,-10,55), Enum.NormalId.Right, "MAIN CHARACTER", Color3.fromRGB(200,100,255), Color3.fromRGB(240,200,255))
+neonWallSign("GlamSign", Vector3.new(60,-10,105), Enum.NormalId.Left,  "GET GLAM",       Color3.fromRGB(255,80,200),  Color3.fromRGB(255,200,240))
+
+-- ============================================================
+-- MAKEUP VANITY STATIONS — east wall, north section
+-- ============================================================
+for vi, vz in ipairs({42, 52, 62}) do
+	part("VanityDesk_"..vi,   Vector3.new(4,2.5,2),    Vector3.new(55,1.25,vz),  Color3.fromRGB(245,225,235), Enum.Material.SmoothPlastic)
+	part("VanityFrame_"..vi,  Vector3.new(0.3,5.5,3.4),Vector3.new(57.9,4.5,vz), ROSE_GOLD,                   Enum.Material.Metal, nil, {Reflectance=0.3})
+	part("VanityMirror_"..vi, Vector3.new(0.2,5,3),    Vector3.new(58,4.5,vz),   Color3.fromRGB(200,230,255), Enum.Material.Glass, nil, {Reflectance=0.5, Transparency=0.1})
+	part("VanityStool_"..vi,  Vector3.new(1.5,1.5,1.5),Vector3.new(52.5,0.75,vz),Color3.fromRGB(255,140,180), Enum.Material.Fabric)
+	local vl = part("VanityBulbs_"..vi, Vector3.new(4,0.4,0.3), Vector3.new(58,7.2,vz), Color3.fromRGB(255,245,210), Enum.Material.Neon)
+	addLight(vl, "PointLight", {Color=Color3.fromRGB(255,240,200), Brightness=1.2, Range=10})
+end
+
+-- ============================================================
+-- FLOWER ARCH — entrance to Photo Booth
+-- ============================================================
+part("FlArchL",   Vector3.new(1.5,12,1.5), Vector3.new(34,6,100),    Color3.fromRGB(160,50,110), Enum.Material.Wood)
+part("FlArchR",   Vector3.new(1.5,12,1.5), Vector3.new(56,6,100),    Color3.fromRGB(160,50,110), Enum.Material.Wood)
+part("FlArchTop", Vector3.new(24,1.5,1.5), Vector3.new(45,12.5,100), Color3.fromRGB(160,50,110), Enum.Material.Wood)
+local bloomClrs = {Color3.fromRGB(255,120,180),Color3.fromRGB(255,180,210),Color3.fromRGB(220,80,160),Color3.fromRGB(255,140,200),Color3.fromRGB(255,100,170),Color3.fromRGB(240,160,215),Color3.fromRGB(255,80,155),Color3.fromRGB(255,160,225)}
+for bi, bx in ipairs({35,38,41,44,47,50,53,56}) do
+	part("Bloom_"..bi, Vector3.new(2.5,2.5,2.5), Vector3.new(bx,13,100), bloomClrs[bi], Enum.Material.SmoothPlastic, nil, {Shape=Enum.PartType.Ball, CanCollide=false})
+end
+
+-- ============================================================
+-- WALL SCONCES — style bar wall (X=-55), evenly spaced
+-- ============================================================
+for _, sz in ipairs({65, 80, 95, 110, 125}) do
+	part("SconceArmSB_"..sz, Vector3.new(1.5,0.3,0.3), Vector3.new(-54,9,sz),
+		ROSE_GOLD, Enum.Material.Metal, nil, {Reflectance=0.3})
+	local lamp = part("SconceLampSB_"..sz, Vector3.new(1,1.5,1), Vector3.new(-52.5,9,sz),
+		Color3.fromRGB(255,240,210), Enum.Material.Neon, nil, {Transparency=0.2})
+	addLight(lamp, "PointLight", {Color=Color3.fromRGB(255,230,185), Brightness=2.5, Range=18})
+end
+
+-- ============================================================
+-- BALLOONS — dense cluster above Ready Zone countdown area
+-- ============================================================
+local rzColors = {Color3.fromRGB(255,100,180),Color3.fromRGB(220,130,255),Color3.fromRGB(255,220,60),Color3.fromRGB(150,220,255),Color3.fromRGB(255,60,160),Color3.fromRGB(200,150,255),Color3.fromRGB(160,240,200),Color3.fromRGB(255,180,100),Color3.fromRGB(255,150,200),Color3.fromRGB(180,100,255)}
+local rzB = {{-12,38,8,1},{-6,36,10,2},{0,35,9,3},{6,36,11,4},{12,38,8,5},{-10,42,12,6},{-4,40,14,7},{2,41,11,8},{8,42,13,9},{14,43,10,10},{-13,47,9,1},{-7,45,13,2},{-1,47,15,3},{5,46,12,4},{11,48,10,5},{-11,52,11,6},{-5,50,14,7},{1,51,16,8},{7,52,13,9},{13,53,9,10},{-12,57,8,1},{-6,56,12,2},{0,58,14,3},{6,57,11,4},{12,59,9,5},{-9,62,10,6},{-3,63,13,7},{3,62,15,8},{9,64,11,9}}
+for bi, b in ipairs(rzB) do
+	part("RZBalloon_"..bi, Vector3.new(1.4,1.8,1.4), Vector3.new(b[1],b[3],b[2]), rzColors[b[4]], Enum.Material.SmoothPlastic, nil, {Shape=Enum.PartType.Ball, CanCollide=false})
 end
 
 print("[MapSetup_LobbyDecor] Decorations built")
