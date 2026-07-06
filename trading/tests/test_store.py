@@ -29,6 +29,34 @@ def test_duplicate_accepted_insert_raises(tmp_path):
         st.record_signal("sig-1", "buy", accepted=True, reason="ok")
 
 
+def test_mark_rejected_releases_reservation(tmp_path):
+    st = make_store(tmp_path)
+    st.record_signal("sig-1", "buy", accepted=True, reason="ok")
+    assert st.seen("sig-1") is True
+    st.mark_rejected("sig-1", "broker error")
+    assert st.seen("sig-1") is False
+    # reservation released: same signal_id can be accepted again
+    st.record_signal("sig-1", "buy", accepted=True, reason="ok")
+    assert st.seen("sig-1") is True
+
+
+def test_mark_rejected_updates_reason(tmp_path):
+    st = make_store(tmp_path)
+    st.record_signal("sig-1", "buy", accepted=True, reason="ok")
+    st.mark_rejected("sig-1", "broker error")
+    row = st.conn.execute(
+        "SELECT accepted, reason FROM signals WHERE signal_id = ?", ("sig-1",)
+    ).fetchone()
+    assert row["accepted"] == 0
+    assert row["reason"] == "broker error"
+
+
+def test_mark_rejected_missing_signal_is_noop(tmp_path):
+    st = make_store(tmp_path)
+    st.mark_rejected("nope", "broker error")  # must not raise
+    assert st.seen("nope") is False
+
+
 def test_record_fill_and_daily_pnl(tmp_path):
     st = make_store(tmp_path)
     st.record_fill("sig-1", side="buy", qty=1, price=21450.0, pnl=0.0, day="2026-07-06")

@@ -60,6 +60,15 @@ class Store:
         )
         self.conn.commit()
 
+    def mark_rejected(self, signal_id: str, reason: str):
+        """Flip an accepted signal to rejected, releasing the dedup reservation."""
+        self.conn.execute(
+            "UPDATE signals SET accepted = 0, reason = ? "
+            "WHERE signal_id = ? AND accepted = 1",
+            (reason, signal_id),
+        )
+        self.conn.commit()
+
     def record_order(self, signal_id: str, broker_order_id: str | None, payload: str):
         self.conn.execute(
             "INSERT INTO orders (signal_id, broker_order_id, payload, placed_at) "

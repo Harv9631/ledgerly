@@ -1,7 +1,9 @@
+import asyncio
+import hmac
 import json
 import logging
+import sqlite3
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import ValidationError
@@ -12,14 +14,21 @@ from bot.risk import RiskManager
 from bot.store import Store
 
 log = logging.getLogger("bot")
-ET = ZoneInfo("America/New_York")
 
 
 def create_app(settings: Settings, broker) -> FastAPI:
     app = FastAPI()
     store = Store(settings.db_path)
+    # NOTE: daily_loss_limit only triggers if PnL is recorded via
+    # risk.record_pnl(). V1 has no fill feed (Tradovate WebSocket fill
+    # tracking was descoped), so the daily loss limit is a manual/future
+    # protection -- the /halt kill switch is the operative control.
     risk = RiskManager(settings)
     state = {"last_entry_order_id": None}
+    entry_lock = asyncio.Lock()
+
+    def _secret_ok(candidate) -> bool:
+        return hmac.compare_digest(str(candidate or ""), settings.webhook_secret)
 
     def _reject(sig: Signal, reason: str) -> dict:
         store.record_signal(sig.signal_id, sig.action, accepted=False, reason=reason)
@@ -28,14 +37,18 @@ def create_app(settings: Settings, broker) -> FastAPI:
 
     @app.post("/webhook")
     async def webhook(request: Request):
-        body = await request.json()
+        # Parse defensively: all unauthenticated garbage becomes a flat 403.
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=403, detail="forbidden")
+        if not isinstance(body, dict) or not _secret_ok(body.get("secret")):
+            raise HTTPException(status_code=403, detail="forbidden")
+
         try:
             sig = Signal(**body)
         except ValidationError as e:
             raise HTTPException(status_code=422, detail=e.errors(include_url=False))
-
-        if sig.secret != settings.webhook_secret:
-            raise HTTPException(status_code=403, detail="bad secret")
 
         now = datetime.now(timezone.utc)
 
@@ -48,6 +61,7 @@ def create_app(settings: Settings, broker) -> FastAPI:
         if sig.action == "exit":
             if not settings.dry_run:
                 await broker.flatten_all()
+            state["last_entry_order_id"] = None
             store.record_signal(sig.signal_id, sig.action, accepted=True, reason="exit")
             return {"status": "accepted", "action": "exit"}
 
@@ -56,42 +70,68 @@ def create_app(settings: Settings, broker) -> FastAPI:
             if order_id is None:
                 return _reject(sig, "no active bracket order to modify")
             if not settings.dry_run:
-                await broker.modify_stop(order_id, sig.stop, sig.qty)
+                try:
+                    await broker.modify_stop(order_id, sig.stop, sig.qty)
+                except Exception as e:
+                    log.error("MODIFY FAILED for %s: %s", sig.signal_id, e)
+                    return _reject(sig, "broker error")
             store.record_signal(sig.signal_id, sig.action, accepted=True,
                                 reason="stop moved")
             return {"status": "accepted", "action": "modify_stop"}
 
-        # buy / sell entry
-        allowed, reason = risk.check_entry(sig.qty, now)
-        if not allowed:
-            return _reject(sig, reason)
+        # buy / sell entry -- serialized so concurrent duplicates can't both
+        # pass the dedup/risk checks before either places an order.
+        async with entry_lock:
+            allowed, reason = risk.check_entry(sig.qty, now)
+            if not allowed:
+                return _reject(sig, reason)
 
-        if settings.dry_run:
-            order_id = None
-            log.info("DRY RUN: would place %s bracket for %s", sig.action, sig.signal_id)
-        else:
+            # Reserve the signal_id BEFORE placing the order; the partial
+            # unique index makes a concurrent duplicate fail here instead of
+            # after a duplicate order exists.
             try:
-                order_id = await broker.place_bracket(
-                    action=sig.action, qty=sig.qty,
-                    stop=sig.stop, target=sig.target2,
-                )
-            except Exception as e:  # missed trade is safer than a retry-duplicate
-                log.error("ORDER FAILED for %s: %s -- NOT retrying", sig.signal_id, e)
-                return _reject(sig, f"broker error: {e}")
+                store.record_signal(sig.signal_id, sig.action, accepted=True,
+                                    reason="ok")
+            except sqlite3.IntegrityError:
+                return _reject(sig, "duplicate signal_id")
 
-        state["last_entry_order_id"] = order_id
-        risk.record_entry(now)
-        store.record_signal(sig.signal_id, sig.action, accepted=True, reason="ok")
-        store.record_order(sig.signal_id, str(order_id), json.dumps(body))
-        return {"status": "accepted", "order_id": order_id}
+            if settings.dry_run:
+                order_id = None
+                log.info("DRY RUN: would place %s bracket for %s",
+                         sig.action, sig.signal_id)
+            else:
+                try:
+                    order_id = await broker.place_bracket(
+                        action=sig.action, qty=sig.qty,
+                        stop=sig.stop, target=sig.target2,
+                    )
+                except Exception as e:  # missed trade beats a retry-duplicate
+                    log.error("ORDER FAILED for %s: %s -- NOT retrying",
+                              sig.signal_id, e)
+                    # Release the reservation so a legit retry isn't blocked.
+                    store.mark_rejected(sig.signal_id, "broker error")
+                    return {"status": "rejected", "reason": "broker error"}
+
+            state["last_entry_order_id"] = order_id
+            risk.record_entry(now)
+            body_to_store = {k: v for k, v in body.items() if k != "secret"}
+            store.record_order(sig.signal_id, str(order_id),
+                               json.dumps(body_to_store))
+            return {"status": "accepted", "order_id": order_id}
 
     @app.post("/halt")
     async def halt(request: Request):
-        body = await request.json()
-        if body.get("secret") != settings.webhook_secret:
-            raise HTTPException(status_code=403, detail="bad secret")
+        try:
+            body = await request.json()
+        except Exception:
+            raise HTTPException(status_code=403, detail="forbidden")
+        if not isinstance(body, dict) or not _secret_ok(body.get("secret")):
+            raise HTTPException(status_code=403, detail="forbidden")
         risk.halt()
-        flattened = await broker.flatten_all()
+        state["last_entry_order_id"] = None
+        flattened = 0
+        if not settings.dry_run:
+            flattened = await broker.flatten_all()
         log.warning("KILL SWITCH: halted, %d position(s) flattened", flattened)
         return {"status": "halted", "flattened": flattened}
 

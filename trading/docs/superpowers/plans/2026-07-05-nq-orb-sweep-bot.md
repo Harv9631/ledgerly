@@ -1523,3 +1523,16 @@ git commit -m "test: dry-run smoke test fixes"
 3. Validation Gate 1: backtest 6+ months in TradingView — positive expectancy required before wiring alerts.
 4. Validation Gate 2: 1-week dry run (`DRY_RUN=1`).
 5. Validation Gate 3: sim trading (`DRY_RUN=0`, demo account), 20+ trades / 4 weeks.
+
+---
+
+## Known limitations (V1)
+
+- **No fill tracking → daily loss limit inactive.** Tradovate WebSocket fill
+  tracking was descoped from V1, so `RiskManager.record_pnl()` is never called
+  and `daily_loss_limit` never trips on its own. The `/halt` kill switch is the
+  operative loss control; fill tracking is a V2 item.
+- **`last_entry_order_id` is in-memory only.** A bot restart loses the active
+  bracket order id, so `modify_stop` signals after a restart are rejected with
+  "no active bracket order to modify" (safe failure mode). It is also cleared
+  on `exit` and `/halt`.
