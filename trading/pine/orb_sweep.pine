@@ -1,0 +1,153 @@
+//@version=5
+strategy("ORB + Liquidity Sweep [NQ]", overlay=true,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     initial_capital=25000, commission_type=strategy.commission.cash_per_contract,
+     commission_value=2.10, calc_on_every_tick=false)
+
+// ── Inputs ──────────────────────────────────────────────────────────
+orMinutes     = input.int(15, "Opening range minutes")
+atrLen        = input.int(14, "ATR length")
+volLen        = input.int(20, "Volume MA length")
+maxTrades     = input.int(2, "Max trades per day")
+rrTarget      = input.float(3.0, "Target R multiple")
+beTriggerR    = input.float(1.5, "Breakeven trigger R")
+webhookSecret = input.string("change-me", "Webhook secret")
+
+// ── Session times (ET) ──────────────────────────────────────────────
+inORWindow    = not na(time(timeframe.period, "0930-0945", "America/New_York"))
+inEntryWindow = not na(time(timeframe.period, "0945-1130", "America/New_York"))
+inSession     = not na(time(timeframe.period, "0945-1555", "America/New_York"))
+atFlatTime    = not na(time(timeframe.period, "1555-1600", "America/New_York"))
+newDay        = ta.change(time("D")) != 0
+
+// ── Opening range ───────────────────────────────────────────────────
+var float orHigh = na
+var float orLow  = na
+if newDay
+    orHigh := na
+    orLow := na
+if inORWindow
+    orHigh := na(orHigh) ? high : math.max(orHigh, high)
+    orLow  := na(orLow)  ? low  : math.min(orLow, low)
+
+// ── Liquidity levels ────────────────────────────────────────────────
+var float priorDayHigh = na
+var float priorDayLow  = na
+var float overnightHigh = na
+var float overnightLow  = na
+var float trackHigh = na
+var float trackLow  = na
+inRTH = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+
+if newDay
+    overnightHigh := trackHigh
+    overnightLow  := trackLow
+    trackHigh := na
+    trackLow  := na
+if inRTH
+    // build prior-day RTH high/low
+    trackHigh := na(trackHigh) ? high : math.max(trackHigh, high)
+    trackLow  := na(trackLow)  ? low  : math.min(trackLow, low)
+if not inRTH and inRTH[1]   // RTH just ended: freeze prior day levels
+    priorDayHigh := trackHigh
+    priorDayLow  := trackLow
+    trackHigh := na          // reuse tracker for overnight
+    trackLow  := na
+if not inRTH
+    trackHigh := na(trackHigh) ? high : math.max(trackHigh, high)
+    trackLow  := na(trackLow)  ? low  : math.min(trackLow, low)
+
+// ── Sweep detection ─────────────────────────────────────────────────
+// A "sweep below" = price traded below a liquidity level today, then closed back above it.
+var bool sweptBelow = false
+var bool sweptAbove = false
+if newDay
+    sweptBelow := false
+    sweptAbove := false
+
+lowLiquidity  = math.min(nz(overnightLow, 1e10),  nz(priorDayLow, 1e10),  nz(orLow, 1e10))
+highLiquidity = math.max(nz(overnightHigh, 0.0), nz(priorDayHigh, 0.0), nz(orHigh, 0.0))
+
+if inSession and low < lowLiquidity and close > lowLiquidity
+    sweptBelow := true
+if inSession and high > highLiquidity and close < highLiquidity
+    sweptAbove := true
+
+// ── Entry conditions ────────────────────────────────────────────────
+atr    = ta.atr(atrLen)
+volOk  = volume > ta.sma(volume, volLen)
+var int tradesToday = 0
+if newDay
+    tradesToday := 0
+
+longBreak  = inEntryWindow and not na(orHigh) and close > orHigh and close[1] <= orHigh
+shortBreak = inEntryWindow and not na(orLow)  and close < orLow  and close[1] >= orLow
+
+canTrade  = tradesToday < maxTrades and strategy.position_size == 0
+longEntry  = longBreak  and sweptBelow and volOk and canTrade
+shortEntry = shortBreak and sweptAbove and volOk and canTrade
+
+// ── Orders + alerts ─────────────────────────────────────────────────
+orMid = (nz(orHigh) + nz(orLow)) / 2
+
+f_payload(action, entryP, stopP, t1, t2) =>
+    '{"secret":"' + webhookSecret + '","action":"' + action +
+     '","symbol":"NQ","qty":1,"entry":' + str.tostring(entryP) +
+     ',"stop":' + str.tostring(stopP) + ',"target1":' + str.tostring(t1) +
+     ',"target2":' + str.tostring(t2) + ',"signal_id":"orb-' + action + '-' +
+     str.tostring(time) + '","sent_at":"' + str.format_time(timenow,
+     "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC") + '"}'
+
+var float entryPrice = na
+var float stopPrice  = na
+var float t1Price    = na
+var float t2Price    = na
+var bool  beMoved    = false
+
+if longEntry
+    stopRaw    = close - atr
+    stopPrice := math.max(stopRaw, orMid)   // cap at OR midpoint
+    riskPts    = close - stopPrice
+    t1Price   := close + beTriggerR * riskPts
+    t2Price   := close + rrTarget * riskPts
+    entryPrice := close
+    beMoved   := false
+    tradesToday += 1
+    strategy.entry("L", strategy.long)
+    strategy.exit("L-exit", "L", stop=stopPrice, limit=t2Price)
+    alert(f_payload("buy", close, stopPrice, t1Price, t2Price), alert.freq_once_per_bar_close)
+
+if shortEntry
+    stopRaw    = close + atr
+    stopPrice := math.min(stopRaw, orMid)
+    riskPts    = stopPrice - close
+    t1Price   := close - beTriggerR * riskPts
+    t2Price   := close - rrTarget * riskPts
+    entryPrice := close
+    beMoved   := false
+    tradesToday += 1
+    strategy.entry("S", strategy.short)
+    strategy.exit("S-exit", "S", stop=stopPrice, limit=t2Price)
+    alert(f_payload("sell", close, stopPrice, t1Price, t2Price), alert.freq_once_per_bar_close)
+
+// Breakeven move at 1.5R
+longBE  = strategy.position_size > 0 and not beMoved and high >= t1Price
+shortBE = strategy.position_size < 0 and not beMoved and low <= t1Price
+if longBE or shortBE
+    beMoved := true
+    strategy.exit(strategy.position_size > 0 ? "L-exit" : "S-exit",
+                 strategy.position_size > 0 ? "L" : "S",
+                 stop=entryPrice, limit=t2Price)
+    alert(f_payload("modify_stop", entryPrice, entryPrice, t1Price, t2Price),
+         alert.freq_once_per_bar_close)
+
+// Hard flat at 15:55
+if atFlatTime and strategy.position_size != 0
+    strategy.close_all("EOD flat")
+    alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
+
+// ── Plots ───────────────────────────────────────────────────────────
+plot(orHigh, "OR High", color=color.green, style=plot.style_linebr)
+plot(orLow, "OR Low", color=color.red, style=plot.style_linebr)
+plot(priorDayHigh, "PDH", color=color.gray, style=plot.style_linebr)
+plot(priorDayLow, "PDL", color=color.gray, style=plot.style_linebr)
