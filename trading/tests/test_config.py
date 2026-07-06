@@ -36,3 +36,30 @@ def test_rejects_live_api_url(monkeypatch):
     set_env(monkeypatch, {"TRADOVATE_API_URL": "https://live.tradovateapi.com/v1"})
     with pytest.raises(RuntimeError, match="DEMO"):
         load_settings()
+
+
+def test_rejects_demo_lookalike_url(monkeypatch):
+    set_env(monkeypatch, {"TRADOVATE_API_URL": "https://demo.tradovateapi.com.attacker.io/v1"})
+    with pytest.raises(RuntimeError, match="DEMO"):
+        load_settings()
+
+
+def test_rejects_live_url_with_demo_in_query(monkeypatch):
+    set_env(
+        monkeypatch,
+        {"TRADOVATE_API_URL": "https://live.tradovateapi.com/v1?ref=demo.tradovateapi.com"},
+    )
+    with pytest.raises(RuntimeError, match="DEMO"):
+        load_settings()
+
+
+def test_dry_run_accepts_true(monkeypatch):
+    set_env(monkeypatch, {"DRY_RUN": "true"})
+    s = load_settings()
+    assert s.dry_run is True
+
+
+def test_rejects_garbage_dry_run(monkeypatch):
+    set_env(monkeypatch, {"DRY_RUN": "banana"})
+    with pytest.raises(RuntimeError):
+        load_settings()

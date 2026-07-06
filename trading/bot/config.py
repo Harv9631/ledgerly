@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import yaml
 from dotenv import load_dotenv
@@ -36,11 +37,19 @@ def load_settings(yaml_path: Path = SETTINGS_YAML) -> Settings:
         y = yaml.safe_load(f)
 
     api_url = os.environ["TRADOVATE_API_URL"]
-    if "demo.tradovateapi.com" not in api_url:
+    if urlparse(api_url).hostname != "demo.tradovateapi.com":
         raise RuntimeError(
             "V1 supports DEMO accounts only. TRADOVATE_API_URL must point at "
             "demo.tradovateapi.com. Refusing to start."
         )
+
+    raw_dry_run = os.environ.get("DRY_RUN", "1").strip().lower()
+    if raw_dry_run in ("1", "true", "yes"):
+        dry_run = True
+    elif raw_dry_run in ("0", "false", "no"):
+        dry_run = False
+    else:
+        raise RuntimeError(f"DRY_RUN must be a boolean-like value, got: {raw_dry_run!r}")
 
     return Settings(
         symbol=y["symbol"],
@@ -59,5 +68,5 @@ def load_settings(yaml_path: Path = SETTINGS_YAML) -> Settings:
         tradovate_sec=os.environ["TRADOVATE_SEC"],
         tradovate_api_url=api_url,
         contract_symbol=os.environ["CONTRACT_SYMBOL"],
-        dry_run=os.environ.get("DRY_RUN", "1") == "1",
+        dry_run=dry_run,
     )
