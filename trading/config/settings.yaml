@@ -1,0 +1,8 @@
+symbol: NQ
+qty: 1
+max_trades_per_day: 2
+daily_loss_limit: -1000.0
+session_start: "09:45"
+session_end: "15:55"
+stale_seconds: 10
+db_path: trades.db
