@@ -1,17 +1,27 @@
 import httpx
 
+from bot.config import Settings
+
 
 class TradovateClient:
-    """Minimal async client for Tradovate demo REST API."""
+    """Minimal async client for Tradovate demo REST API.
 
-    def __init__(self, settings, http: httpx.AsyncClient | None = None):
+    Access tokens expire (~80 minutes). Re-authentication is the caller's
+    responsibility; calls made after expiry raise httpx.HTTPStatusError (401).
+    """
+
+    def __init__(self, settings: Settings, http: httpx.AsyncClient | None = None):
         self.settings = settings
         self.http = http or httpx.AsyncClient(base_url=settings.tradovate_api_url)
         self.access_token: str | None = None
         self.account_id: int | None = None
+        self.token_expiration: str | None = None
 
-    def _auth_headers(self) -> dict:
+    def _auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.access_token}"}
+
+    async def aclose(self) -> None:
+        await self.http.aclose()
 
     async def authenticate(self) -> None:
         r = await self.http.post("/auth/accesstokenrequest", json={
@@ -23,7 +33,9 @@ class TradovateClient:
             "sec": self.settings.tradovate_sec,
         })
         r.raise_for_status()
-        self.access_token = r.json()["accessToken"]
+        payload = r.json()
+        self.access_token = payload["accessToken"]
+        self.token_expiration = payload.get("expirationTime")
 
         r = await self.http.get("/account/list", headers=self._auth_headers())
         r.raise_for_status()
@@ -35,6 +47,8 @@ class TradovateClient:
     async def place_bracket(self, action: str, qty: int,
                             stop: float, target: float) -> int:
         """Market entry with OSO bracket: protective stop + limit target."""
+        if action not in ("buy", "sell"):
+            raise ValueError(f"invalid action: {action!r}")
         exit_action = "Sell" if action == "buy" else "Buy"
         r = await self.http.post("/order/placeoso", headers=self._auth_headers(), json={
             "accountId": self.account_id,
@@ -55,13 +69,19 @@ class TradovateClient:
             },
         })
         r.raise_for_status()
-        return r.json()["orderId"]
+        payload = r.json()
+        if "orderId" not in payload:
+            raise RuntimeError(
+                "placeoso rejected: "
+                f"{payload.get('failureReason')} - {payload.get('failureText')}"
+            )
+        return payload["orderId"]
 
-    async def modify_stop(self, order_id: int, new_stop: float) -> None:
+    async def modify_stop(self, order_id: int, new_stop: float, qty: int) -> None:
         r = await self.http.post("/order/modifyorder", headers=self._auth_headers(),
                                  json={
                                      "orderId": order_id,
-                                     "orderQty": self.settings.qty,
+                                     "orderQty": qty,
                                      "orderType": "Stop",
                                      "stopPrice": new_stop,
                                      "isAutomated": True,
@@ -75,14 +95,24 @@ class TradovateClient:
                 if p.get("accountId") == self.account_id and p.get("netPos", 0) != 0]
 
     async def flatten_all(self) -> int:
-        """Liquidate every open position. Returns count liquidated."""
+        """Liquidate every open position, best-effort. Returns count liquidated.
+
+        Attempts every liquidation even if some fail; raises a single
+        RuntimeError listing all failures after the loop.
+        """
         positions = await self.open_positions()
+        failures: list[str] = []
         for p in positions:
-            r = await self.http.post("/order/liquidateposition",
-                                     headers=self._auth_headers(), json={
-                                         "accountId": self.account_id,
-                                         "contractId": p["contractId"],
-                                         "admin": False,
-                                     })
-            r.raise_for_status()
+            try:
+                r = await self.http.post("/order/liquidateposition",
+                                         headers=self._auth_headers(), json={
+                                             "accountId": self.account_id,
+                                             "contractId": p["contractId"],
+                                             "admin": False,
+                                         })
+                r.raise_for_status()
+            except Exception as e:
+                failures.append(f"contractId={p['contractId']}: {e}")
+        if failures:
+            raise RuntimeError("flatten_all failures: " + "; ".join(failures))
         return len(positions)
