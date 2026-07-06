@@ -1,6 +1,8 @@
 from datetime import datetime, time
 from zoneinfo import ZoneInfo
 
+from bot.config import Settings
+
 ET = ZoneInfo("America/New_York")
 
 
@@ -12,7 +14,7 @@ def _parse_hhmm(s: str) -> time:
 class RiskManager:
     """Bot-side guardrails, enforced independently of Pine Script."""
 
-    def __init__(self, settings):
+    def __init__(self, settings: Settings):
         self.settings = settings
         self._day: str | None = None
         self._trades_today = 0
@@ -22,6 +24,8 @@ class RiskManager:
         self._session_end = _parse_hhmm(settings.session_end)
 
     def _roll_day(self, now: datetime):
+        if now.tzinfo is None:
+            raise ValueError("now must be timezone-aware, got a naive datetime")
         day = now.astimezone(ET).date().isoformat()
         if day != self._day:
             is_rollover = self._day is not None
@@ -35,13 +39,16 @@ class RiskManager:
         self._roll_day(now)
         if self._halted:
             return False, "halted (kill switch or daily loss limit)"
-        if qty > self.settings.qty:
-            return False, f"max position is {self.settings.qty} contract(s)"
+        if qty > self.settings.max_contracts:
+            return False, f"max position is {self.settings.max_contracts} contract(s)"
         if self._trades_today >= self.settings.max_trades_per_day:
             return False, f"max {self.settings.max_trades_per_day} trades/day reached"
         t = now.astimezone(ET).time()
         if not (self._session_start <= t <= self._session_end):
-            return False, "outside trading hours 09:45-15:55 ET"
+            return False, (
+                f"outside trading hours {self.settings.session_start}-"
+                f"{self.settings.session_end} ET"
+            )
         if self._realized_pnl <= self.settings.daily_loss_limit:
             return False, "daily loss limit reached"
         return True, "ok"

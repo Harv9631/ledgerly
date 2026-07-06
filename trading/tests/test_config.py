@@ -26,6 +26,7 @@ def test_loads_settings(monkeypatch):
     s = load_settings()
     assert s.symbol == "NQ"
     assert s.qty == 1
+    assert s.max_contracts == 1
     assert s.max_trades_per_day == 2
     assert s.daily_loss_limit == -1000.0
     assert s.webhook_secret == "s3cret"

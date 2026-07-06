@@ -14,6 +14,7 @@ SETTINGS_YAML = PROJECT_ROOT / "config" / "settings.yaml"
 class Settings:
     symbol: str
     qty: int
+    max_contracts: int
     max_trades_per_day: int
     daily_loss_limit: float
     session_start: str
@@ -54,6 +55,7 @@ def load_settings(yaml_path: Path = SETTINGS_YAML) -> Settings:
     return Settings(
         symbol=y["symbol"],
         qty=int(y["qty"]),
+        max_contracts=int(y["max_contracts"]),
         max_trades_per_day=int(y["max_trades_per_day"]),
         daily_loss_limit=float(y["daily_loss_limit"]),
         session_start=y["session_start"],
