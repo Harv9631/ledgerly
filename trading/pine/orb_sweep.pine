@@ -1,29 +1,32 @@
 //@version=5
+// NOTE: Requires an ETH (24h) chart of NQ on 5-minute timeframe. RTH-only charts break overnight/prior-day level tracking.
 strategy("ORB + Liquidity Sweep [NQ]", overlay=true,
      default_qty_type=strategy.fixed, default_qty_value=1,
      initial_capital=25000, commission_type=strategy.commission.cash_per_contract,
-     commission_value=2.10, calc_on_every_tick=false)
+     commission_value=2.10, calc_on_every_tick=false, process_orders_on_close=true)
 
 // ── Inputs ──────────────────────────────────────────────────────────
-orMinutes     = input.int(15, "Opening range minutes")
 atrLen        = input.int(14, "ATR length")
 volLen        = input.int(20, "Volume MA length")
 maxTrades     = input.int(2, "Max trades per day")
 rrTarget      = input.float(3.0, "Target R multiple")
 beTriggerR    = input.float(1.5, "Breakeven trigger R")
+// Secret must not contain quotes or backslashes (payload is built by raw JSON string concatenation).
 webhookSecret = input.string("change-me", "Webhook secret")
 
 // ── Session times (ET) ──────────────────────────────────────────────
 inORWindow    = not na(time(timeframe.period, "0930-0945", "America/New_York"))
 inEntryWindow = not na(time(timeframe.period, "0945-1130", "America/New_York"))
-inSession     = not na(time(timeframe.period, "0945-1555", "America/New_York"))
-atFlatTime    = not na(time(timeframe.period, "1555-1600", "America/New_York"))
-newDay        = ta.change(time("D")) != 0
+inRTHDay      = not na(time(timeframe.period, "0930-1555", "America/New_York"))
+atFlatTime    = not na(time(timeframe.period, "1550-1555", "America/New_York"))
+inRTH         = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+rthStart      = inRTH and not inRTH[1]   // 9:30 ET — daily resets anchored here, not the 18:00 ETH open
+rthEnd        = not inRTH and inRTH[1]   // 16:00 ET
 
 // ── Opening range ───────────────────────────────────────────────────
 var float orHigh = na
 var float orLow  = na
-if newDay
+if rthStart
     orHigh := na
     orLow := na
 if inORWindow
@@ -37,55 +40,65 @@ var float overnightHigh = na
 var float overnightLow  = na
 var float trackHigh = na
 var float trackLow  = na
-inRTH = not na(time(timeframe.period, "0930-1600", "America/New_York"))
 
-if newDay
+if rthStart
+    // Overnight session just ended: freeze overnight levels, start RTH accumulation clean
     overnightHigh := trackHigh
     overnightLow  := trackLow
+    trackHigh := na
+    trackLow  := na
+if rthEnd
+    // RTH just ended: freeze prior-day levels, start overnight accumulation clean
+    priorDayHigh := trackHigh
+    priorDayLow  := trackLow
     trackHigh := na
     trackLow  := na
 if inRTH
     // build prior-day RTH high/low
     trackHigh := na(trackHigh) ? high : math.max(trackHigh, high)
     trackLow  := na(trackLow)  ? low  : math.min(trackLow, low)
-if not inRTH and inRTH[1]   // RTH just ended: freeze prior day levels
-    priorDayHigh := trackHigh
-    priorDayLow  := trackLow
-    trackHigh := na          // reuse tracker for overnight
-    trackLow  := na
 if not inRTH
+    // build overnight high/low
     trackHigh := na(trackHigh) ? high : math.max(trackHigh, high)
     trackLow  := na(trackLow)  ? low  : math.min(trackLow, low)
 
 // ── Sweep detection ─────────────────────────────────────────────────
-// A "sweep below" = price traded below a liquidity level today, then closed back above it.
+// A "sweep below" = price traded below a liquidity level, then closed back above it.
 var bool sweptBelow = false
 var bool sweptAbove = false
-if newDay
+if rthStart
     sweptBelow := false
     sweptAbove := false
 
-lowLiquidity  = math.min(nz(overnightLow, 1e10),  nz(priorDayLow, 1e10),  nz(orLow, 1e10))
-highLiquidity = math.max(nz(overnightHigh, 0.0), nz(priorDayHigh, 0.0), nz(orHigh, 0.0))
+sweepBelowHit = (not na(overnightLow) and low < overnightLow and close > overnightLow) or
+                (not na(priorDayLow) and low < priorDayLow and close > priorDayLow) or
+                (not na(orLow) and low < orLow and close > orLow)
+sweepAboveHit = (not na(overnightHigh) and high > overnightHigh and close < overnightHigh) or
+                (not na(priorDayHigh) and high > priorDayHigh and close < priorDayHigh) or
+                (not na(orHigh) and high > orHigh and close < orHigh)
 
-if inSession and low < lowLiquidity and close > lowLiquidity
+if inRTHDay and sweepBelowHit
     sweptBelow := true
-if inSession and high > highLiquidity and close < highLiquidity
+if inRTHDay and sweepAboveHit
     sweptAbove := true
 
 // ── Entry conditions ────────────────────────────────────────────────
 atr    = ta.atr(atrLen)
 volOk  = volume > ta.sma(volume, volLen)
 var int tradesToday = 0
-if newDay
+var bool longUsed  = false
+var bool shortUsed = false
+if rthStart
     tradesToday := 0
+    longUsed  := false
+    shortUsed := false
 
 longBreak  = inEntryWindow and not na(orHigh) and close > orHigh and close[1] <= orHigh
 shortBreak = inEntryWindow and not na(orLow)  and close < orLow  and close[1] >= orLow
 
 canTrade  = tradesToday < maxTrades and strategy.position_size == 0
-longEntry  = longBreak  and sweptBelow and volOk and canTrade
-shortEntry = shortBreak and sweptAbove and volOk and canTrade
+longEntry  = longBreak  and sweptBelow and volOk and canTrade and not longUsed
+shortEntry = shortBreak and sweptAbove and volOk and canTrade and not shortUsed
 
 // ── Orders + alerts ─────────────────────────────────────────────────
 orMid = (nz(orHigh) + nz(orLow)) / 2
@@ -113,6 +126,7 @@ if longEntry
     entryPrice := close
     beMoved   := false
     tradesToday += 1
+    longUsed  := true
     strategy.entry("L", strategy.long)
     strategy.exit("L-exit", "L", stop=stopPrice, limit=t2Price)
     alert(f_payload("buy", close, stopPrice, t1Price, t2Price), alert.freq_once_per_bar_close)
@@ -126,6 +140,7 @@ if shortEntry
     entryPrice := close
     beMoved   := false
     tradesToday += 1
+    shortUsed := true
     strategy.entry("S", strategy.short)
     strategy.exit("S-exit", "S", stop=stopPrice, limit=t2Price)
     alert(f_payload("sell", close, stopPrice, t1Price, t2Price), alert.freq_once_per_bar_close)
