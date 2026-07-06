@@ -122,7 +122,14 @@ if longEntry
     stopPrice := math.max(stopRaw, orMid)   // cap at OR midpoint
     riskPts    = close - stopPrice
     t1Price   := close + beTriggerR * riskPts
-    t2Price   := close + rrTarget * riskPts
+    // Target 2: 3R or nearest opposing liquidity level above entry, whichever is closer
+    t2Raw      = close + rrTarget * riskPts
+    float nearestAbove = na
+    if not na(overnightHigh) and overnightHigh > close
+        nearestAbove := overnightHigh
+    if not na(priorDayHigh) and priorDayHigh > close
+        nearestAbove := na(nearestAbove) ? priorDayHigh : math.min(nearestAbove, priorDayHigh)
+    t2Price   := na(nearestAbove) ? t2Raw : math.min(t2Raw, nearestAbove)
     entryPrice := close
     beMoved   := false
     tradesToday += 1
@@ -136,7 +143,14 @@ if shortEntry
     stopPrice := math.min(stopRaw, orMid)
     riskPts    = stopPrice - close
     t1Price   := close - beTriggerR * riskPts
-    t2Price   := close - rrTarget * riskPts
+    // Target 2: 3R or nearest opposing liquidity level below entry, whichever is closer
+    t2Raw      = close - rrTarget * riskPts
+    float nearestBelow = na
+    if not na(overnightLow) and overnightLow < close
+        nearestBelow := overnightLow
+    if not na(priorDayLow) and priorDayLow < close
+        nearestBelow := na(nearestBelow) ? priorDayLow : math.max(nearestBelow, priorDayLow)
+    t2Price   := na(nearestBelow) ? t2Raw : math.max(t2Raw, nearestBelow)
     entryPrice := close
     beMoved   := false
     tradesToday += 1
