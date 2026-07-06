@@ -71,11 +71,11 @@ if rthStart
     sweptAbove := false
 
 sweepBelowHit = (not na(overnightLow) and low < overnightLow and close > overnightLow) or
-                (not na(priorDayLow) and low < priorDayLow and close > priorDayLow) or
-                (not na(orLow) and low < orLow and close > orLow)
+                 (not na(priorDayLow) and low < priorDayLow and close > priorDayLow) or
+                 (not na(orLow) and low < orLow and close > orLow)
 sweepAboveHit = (not na(overnightHigh) and high > overnightHigh and close < overnightHigh) or
-                (not na(priorDayHigh) and high > priorDayHigh and close < priorDayHigh) or
-                (not na(orHigh) and high > orHigh and close < orHigh)
+                 (not na(priorDayHigh) and high > priorDayHigh and close < priorDayHigh) or
+                 (not na(orHigh) and high > orHigh and close < orHigh)
 
 if inRTHDay and sweepBelowHit
     sweptBelow := true
