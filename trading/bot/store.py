@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS fills (
     day TEXT NOT NULL,
     filled_at TEXT NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_signals_accepted
+    ON signals(signal_id) WHERE accepted = 1;
 """
 
 
@@ -38,6 +40,8 @@ class Store:
     def __init__(self, path: str):
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
+        self.conn.execute("PRAGMA journal_mode=WAL")
+        self.conn.execute("PRAGMA busy_timeout=5000")
         self.conn.executescript(SCHEMA)
         self.conn.commit()
 

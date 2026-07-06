@@ -1,3 +1,7 @@
+import sqlite3
+
+import pytest
+
 from bot.store import Store
 
 
@@ -10,6 +14,19 @@ def test_record_and_dedup_signal(tmp_path):
     assert st.seen("sig-1") is False
     st.record_signal("sig-1", "buy", accepted=True, reason="ok")
     assert st.seen("sig-1") is True
+
+
+def test_seen_false_for_rejected(tmp_path):
+    st = make_store(tmp_path)
+    st.record_signal("sig-1", "buy", accepted=False, reason="risk limit")
+    assert st.seen("sig-1") is False
+
+
+def test_duplicate_accepted_insert_raises(tmp_path):
+    st = make_store(tmp_path)
+    st.record_signal("sig-1", "buy", accepted=True, reason="ok")
+    with pytest.raises(sqlite3.IntegrityError):
+        st.record_signal("sig-1", "buy", accepted=True, reason="ok")
 
 
 def test_record_fill_and_daily_pnl(tmp_path):
