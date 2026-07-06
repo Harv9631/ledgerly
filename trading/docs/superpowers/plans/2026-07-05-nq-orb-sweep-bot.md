@@ -283,6 +283,27 @@ def test_age_seconds():
 def test_modify_stop_requires_stop_price():
     s = Signal(**make_payload(action="modify_stop", stop=21450.0))
     assert s.stop == 21450.0
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(action="modify_stop", stop=0))
+    payload = make_payload(action="modify_stop")
+    del payload["stop"]
+    with pytest.raises(ValidationError):
+        Signal(**payload)
+
+
+def test_rejects_invalid_qty():
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(qty=0))
+
+
+def test_rejects_nan_price():
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(entry="NaN"))
+
+
+def test_secret_not_in_repr():
+    s = Signal(**make_payload())
+    assert "s3cret" not in repr(s)
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -297,20 +318,26 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'bot.models'`
 from datetime import datetime, timezone
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 
 
 class Signal(BaseModel):
-    secret: str
+    secret: str = Field(repr=False)
     action: Literal["buy", "sell", "exit", "modify_stop"]
     symbol: str
-    qty: int = 1
-    entry: float = 0.0
-    stop: float = 0.0
-    target1: float = 0.0
-    target2: float = 0.0
+    qty: int = Field(1, ge=1, le=10)
+    entry: float = Field(0.0, ge=0, allow_inf_nan=False)
+    stop: float = Field(0.0, ge=0, allow_inf_nan=False)
+    target1: float = Field(0.0, ge=0, allow_inf_nan=False)
+    target2: float = Field(0.0, ge=0, allow_inf_nan=False)
     signal_id: str
     sent_at: datetime
+
+    @model_validator(mode="after")
+    def _modify_stop_requires_stop(self) -> "Signal":
+        if self.action == "modify_stop" and self.stop <= 0:
+            raise ValueError("modify_stop requires a positive stop price")
+        return self
 
     def age_seconds(self, now: datetime | None = None) -> float:
         now = now or datetime.now(timezone.utc)
@@ -323,7 +350,7 @@ class Signal(BaseModel):
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `venv/Scripts/pytest tests/test_models.py -v`
-Expected: 4 PASS
+Expected: 7 PASS
 
 - [ ] **Step 5: Commit**
 

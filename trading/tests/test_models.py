@@ -43,3 +43,24 @@ def test_age_seconds():
 def test_modify_stop_requires_stop_price():
     s = Signal(**make_payload(action="modify_stop", stop=21450.0))
     assert s.stop == 21450.0
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(action="modify_stop", stop=0))
+    payload = make_payload(action="modify_stop")
+    del payload["stop"]
+    with pytest.raises(ValidationError):
+        Signal(**payload)
+
+
+def test_rejects_invalid_qty():
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(qty=0))
+
+
+def test_rejects_nan_price():
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(entry="NaN"))
+
+
+def test_secret_not_in_repr():
+    s = Signal(**make_payload())
+    assert "s3cret" not in repr(s)
