@@ -1536,3 +1536,9 @@ git commit -m "test: dry-run smoke test fixes"
   bracket order id, so `modify_stop` signals after a restart are rejected with
   "no active bracket order to modify" (safe failure mode). It is also cleared
   on `exit` and `/halt`.
+- **Average R is not reported by the stats CLI.** Fills carry P&L only, not
+  per-trade risk, so average R cannot be computed; stats also depend on fills
+  being populated, which requires the V2 fill feed or manual entry.
+- **RiskManager counters are in-memory.** A mid-day restart resets the
+  trades-today count (2/day limit). The signals table retains the data needed
+  to rebuild it if that ever matters.

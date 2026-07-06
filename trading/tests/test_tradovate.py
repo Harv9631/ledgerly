@@ -171,6 +171,109 @@ async def test_modify_stop_sends_order_and_qty():
     assert body["isAutomated"] is True
 
 
+async def test_modify_stop_raises_on_failure_reason():
+    def handler(request):
+        r = auth_routes(request)
+        if r:
+            return r
+        if request.url.path.endswith("/order/modifyorder"):
+            return httpx.Response(200, json={
+                "failureReason": "UnknownReason",
+                "failureText": "Order not working",
+            })
+        return httpx.Response(404)
+
+    c = make_client(handler)
+    await c.authenticate()
+    with pytest.raises(RuntimeError) as exc:
+        await c.modify_stop(order_id=777, new_stop=21430.25, qty=1)
+    assert "UnknownReason" in str(exc.value)
+    assert "Order not working" in str(exc.value)
+
+
+async def test_find_working_stop_filters_correctly():
+    def handler(request):
+        r = auth_routes(request)
+        if r:
+            return r
+        if request.url.path.endswith("/order/list"):
+            return httpx.Response(200, json=[
+                {"orderId": 1, "accountId": 99, "ordStatus": "Working",
+                 "orderType": "Stop"},          # other account
+                {"orderId": 2, "accountId": 42, "ordStatus": "Filled",
+                 "orderType": "Stop"},          # not working
+                {"orderId": 3, "accountId": 42, "ordStatus": "Working",
+                 "orderType": "Limit"},         # not a stop
+                {"orderId": 4, "accountId": 42, "ordStatus": "Working",
+                 "orderType": "Stop"},          # match
+            ])
+        return httpx.Response(404)
+
+    c = make_client(handler)
+    await c.authenticate()
+    assert await c.find_working_stop() == 4
+
+
+async def test_find_working_stop_returns_none_when_absent():
+    def handler(request):
+        r = auth_routes(request)
+        if r:
+            return r
+        if request.url.path.endswith("/order/list"):
+            return httpx.Response(200, json=[
+                {"orderId": 3, "accountId": 42, "ordStatus": "Working",
+                 "orderType": "Limit"},
+            ])
+        return httpx.Response(404)
+
+    c = make_client(handler)
+    await c.authenticate()
+    assert await c.find_working_stop() is None
+
+
+async def test_reauthenticates_once_on_401():
+    calls = {"auth": 0, "list": 0}
+
+    def handler(request):
+        if request.url.path.endswith("/auth/accesstokenrequest"):
+            calls["auth"] += 1
+            return httpx.Response(200, json={
+                "accessToken": f"tok{calls['auth']}",
+                "expirationTime": "2026-07-06T12:00:00Z",
+            })
+        if request.url.path.endswith("/account/list"):
+            return httpx.Response(200, json=[{"id": 42, "name": "DEMO123"}])
+        if request.url.path.endswith("/position/list"):
+            calls["list"] += 1
+            if calls["list"] == 1:
+                return httpx.Response(401)
+            return httpx.Response(200, json=[
+                {"contractId": 9, "netPos": 1, "accountId": 42},
+            ])
+        return httpx.Response(404)
+
+    c = make_client(handler)
+    await c.authenticate()
+    assert calls["auth"] == 1
+    positions = await c.open_positions()
+    assert calls["auth"] == 2  # re-authenticated after the 401
+    assert c.access_token == "tok2"
+    assert [p["contractId"] for p in positions] == [9]
+
+
+async def test_persistent_401_raises():
+    def handler(request):
+        r = auth_routes(request)
+        if r:
+            return r
+        return httpx.Response(401)
+
+    c = make_client(handler)
+    await c.authenticate()
+    with pytest.raises(httpx.HTTPStatusError):
+        await c.open_positions()
+
+
 async def test_open_positions_filters_other_accounts_and_flat():
     def handler(request):
         r = auth_routes(request)

@@ -56,6 +56,7 @@ def make_broker():
     broker = AsyncMock()
     broker.place_bracket.return_value = 777
     broker.flatten_all.return_value = 0
+    broker.find_working_stop.return_value = 555
     return broker
 
 
@@ -105,6 +106,25 @@ def test_exit_flattens(app_client):
     r = client.post("/webhook", json=make_payload(action="exit", signal_id="sig-x"))
     assert r.status_code == 200
     broker.flatten_all.assert_awaited_once()
+
+
+def test_stale_exit_still_accepted(app_client):
+    client, broker = app_client
+    old = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat()
+    r = client.post("/webhook", json=make_payload(
+        action="exit", signal_id="sig-x", sent_at=old
+    ))
+    assert r.status_code == 200
+    assert r.json()["status"] == "accepted"
+    broker.flatten_all.assert_awaited_once()
+
+
+def test_symbol_mismatch_rejected(app_client):
+    client, broker = app_client
+    r = client.post("/webhook", json=make_payload(symbol="ES"))
+    assert r.json()["status"] == "rejected"
+    assert "symbol mismatch" in r.json()["reason"]
+    broker.place_bracket.assert_not_called()
 
 
 def test_halt_endpoint_flattens_and_blocks(app_client):
@@ -175,7 +195,20 @@ def test_modify_stop_accepted_after_entry(app_client):
     ))
     assert r.status_code == 200
     assert r.json()["status"] == "accepted"
-    broker.modify_stop.assert_awaited_once_with(777, 21430.0, 1)
+    # must target the resolved working stop order, NOT the entry order id (777)
+    broker.modify_stop.assert_awaited_once_with(555, 21430.0, 1)
+
+
+def test_modify_stop_rejected_when_no_working_stop(app_client):
+    client, broker = app_client
+    client.post("/webhook", json=make_payload())
+    broker.find_working_stop.return_value = None
+    r = client.post("/webhook", json=make_payload(
+        action="modify_stop", signal_id="sig-m", stop=21430.0
+    ))
+    assert r.json()["status"] == "rejected"
+    assert "no working stop" in r.json()["reason"]
+    broker.modify_stop.assert_not_called()
 
 
 def test_modify_stop_rejected_after_exit(app_client):

@@ -17,9 +17,14 @@ class Signal(BaseModel):
     sent_at: datetime
 
     @model_validator(mode="after")
-    def _modify_stop_requires_stop(self) -> "Signal":
+    def _action_price_requirements(self) -> "Signal":
         if self.action == "modify_stop" and self.stop <= 0:
             raise ValueError("modify_stop requires a positive stop price")
+        if self.action in ("buy", "sell"):
+            if self.stop <= 0:
+                raise ValueError("entry requires a positive stop price")
+            if self.target2 <= 0:
+                raise ValueError("entry requires a positive target2 price")
         return self
 
     def age_seconds(self, now: datetime | None = None) -> float:

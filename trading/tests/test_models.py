@@ -51,6 +51,25 @@ def test_modify_stop_requires_stop_price():
         Signal(**payload)
 
 
+def test_entry_requires_positive_stop():
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(action="buy", stop=0))
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(action="sell", stop=0))
+
+
+def test_entry_requires_positive_target2():
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(action="buy", target2=0))
+    with pytest.raises(ValidationError):
+        Signal(**make_payload(action="sell", target2=0))
+
+
+def test_exit_allows_zero_prices():
+    s = Signal(**make_payload(action="exit", stop=0, target2=0))
+    assert s.action == "exit"
+
+
 def test_rejects_invalid_qty():
     with pytest.raises(ValidationError):
         Signal(**make_payload(qty=0))

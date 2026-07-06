@@ -6,8 +6,9 @@ from bot.config import Settings
 class TradovateClient:
     """Minimal async client for Tradovate demo REST API.
 
-    Access tokens expire (~80 minutes). Re-authentication is the caller's
-    responsibility; calls made after expiry raise httpx.HTTPStatusError (401).
+    Access tokens expire (~80 minutes). Authed requests automatically
+    re-authenticate once on a 401 and retry; a persistent 401 raises
+    httpx.HTTPStatusError.
     """
 
     def __init__(self, settings: Settings, http: httpx.AsyncClient | None = None):
@@ -19,6 +20,18 @@ class TradovateClient:
 
     def _auth_headers(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.access_token}"}
+
+    async def _request(self, method: str, path: str, **kwargs) -> httpx.Response:
+        """Authed request; re-auth once on 401 and retry (a 401'd request was
+        never executed, so the retry carries no duplicate-order risk)."""
+        r = await self.http.request(method, path,
+                                    headers=self._auth_headers(), **kwargs)
+        if r.status_code == 401:
+            await self.authenticate()
+            r = await self.http.request(method, path,
+                                        headers=self._auth_headers(), **kwargs)
+        r.raise_for_status()
+        return r
 
     async def aclose(self) -> None:
         await self.http.aclose()
@@ -50,7 +63,7 @@ class TradovateClient:
         if action not in ("buy", "sell"):
             raise ValueError(f"invalid action: {action!r}")
         exit_action = "Sell" if action == "buy" else "Buy"
-        r = await self.http.post("/order/placeoso", headers=self._auth_headers(), json={
+        r = await self._request("POST", "/order/placeoso", json={
             "accountId": self.account_id,
             "action": action.capitalize(),
             "symbol": self.settings.contract_symbol,
@@ -68,7 +81,6 @@ class TradovateClient:
                 "price": target,
             },
         })
-        r.raise_for_status()
         payload = r.json()
         if "orderId" not in payload:
             raise RuntimeError(
@@ -78,19 +90,33 @@ class TradovateClient:
         return payload["orderId"]
 
     async def modify_stop(self, order_id: int, new_stop: float, qty: int) -> None:
-        r = await self.http.post("/order/modifyorder", headers=self._auth_headers(),
-                                 json={
-                                     "orderId": order_id,
-                                     "orderQty": qty,
-                                     "orderType": "Stop",
-                                     "stopPrice": new_stop,
-                                     "isAutomated": True,
-                                 })
-        r.raise_for_status()
+        r = await self._request("POST", "/order/modifyorder", json={
+            "orderId": order_id,
+            "orderQty": qty,
+            "orderType": "Stop",
+            "stopPrice": new_stop,
+            "isAutomated": True,
+        })
+        payload = r.json()
+        if payload.get("failureReason"):
+            raise RuntimeError(
+                "modifyorder rejected: "
+                f"{payload.get('failureReason')} - {payload.get('failureText')}"
+            )
+
+    async def find_working_stop(self) -> int | None:
+        """Return the orderId of the first working protective stop order on
+        this account, or None if there is none."""
+        r = await self._request("GET", "/order/list")
+        for o in r.json():
+            if (o.get("accountId") == self.account_id
+                    and o.get("ordStatus") == "Working"
+                    and o.get("orderType") == "Stop"):
+                return o["orderId"]
+        return None
 
     async def open_positions(self) -> list[dict]:
-        r = await self.http.get("/position/list", headers=self._auth_headers())
-        r.raise_for_status()
+        r = await self._request("GET", "/position/list")
         return [p for p in r.json()
                 if p.get("accountId") == self.account_id and p.get("netPos", 0) != 0]
 
@@ -104,13 +130,11 @@ class TradovateClient:
         failures: list[str] = []
         for p in positions:
             try:
-                r = await self.http.post("/order/liquidateposition",
-                                         headers=self._auth_headers(), json={
-                                             "accountId": self.account_id,
-                                             "contractId": p["contractId"],
-                                             "admin": False,
-                                         })
-                r.raise_for_status()
+                await self._request("POST", "/order/liquidateposition", json={
+                    "accountId": self.account_id,
+                    "contractId": p["contractId"],
+                    "admin": False,
+                })
             except Exception as e:
                 failures.append(f"contractId={p['contractId']}: {e}")
         if failures:

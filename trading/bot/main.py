@@ -52,7 +52,12 @@ def create_app(settings: Settings, broker) -> FastAPI:
 
         now = datetime.now(timezone.utc)
 
-        if sig.age_seconds(now) > settings.stale_seconds:
+        if sig.symbol != settings.symbol:
+            return _reject(sig, "symbol mismatch")
+
+        # Staleness never blocks an exit: a late flatten is safer than none,
+        # and flatten is idempotent.
+        if sig.action != "exit" and sig.age_seconds(now) > settings.stale_seconds:
             return _reject(sig, f"stale signal (> {settings.stale_seconds}s)")
 
         if store.seen(sig.signal_id):
@@ -66,12 +71,21 @@ def create_app(settings: Settings, broker) -> FastAPI:
             return {"status": "accepted", "action": "exit"}
 
         if sig.action == "modify_stop":
-            order_id = state["last_entry_order_id"]
-            if order_id is None:
+            # last_entry_order_id is only a "position is active" sentinel; the
+            # actual protective stop is a separate child order of the OSO
+            # bracket and must be resolved from the broker's working orders.
+            if state["last_entry_order_id"] is None:
                 return _reject(sig, "no active bracket order to modify")
             if not settings.dry_run:
                 try:
-                    await broker.modify_stop(order_id, sig.stop, sig.qty)
+                    stop_id = await broker.find_working_stop()
+                except Exception as e:
+                    log.error("STOP LOOKUP FAILED for %s: %s", sig.signal_id, e)
+                    return _reject(sig, "broker error")
+                if stop_id is None:
+                    return _reject(sig, "no working stop order found")
+                try:
+                    await broker.modify_stop(stop_id, sig.stop, sig.qty)
                 except Exception as e:
                     log.error("MODIFY FAILED for %s: %s", sig.signal_id, e)
                     return _reject(sig, "broker error")
@@ -162,6 +176,13 @@ def run():
             if positions:
                 log.warning("Resuming with %d open position(s)", len(positions))
         yield
+        # Shutdown (incl. Ctrl-C): never leave a live position unattended.
+        if not settings.dry_run:
+            try:
+                flattened = await broker.flatten_all()
+                log.warning("SHUTDOWN: %d position(s) flattened", flattened)
+            except Exception as e:
+                log.error("SHUTDOWN flatten failed: %s", e)
         await broker.aclose()
 
     app = create_app(settings, broker)
