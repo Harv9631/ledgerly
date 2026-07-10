@@ -1,0 +1,166 @@
+/* Salty Air Home Cleaning — quote widget + booking form */
+
+.quote-card {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 30px 28px 26px;
+  box-shadow: var(--shadow-lg);
+}
+.quote-card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px; }
+.quote-card-head h3 { font-size: 1.3rem; }
+.quote-card-head span { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--seaglass); }
+
+.q-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.q-field label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+.q-field select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--linen);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.q-field select:focus { outline: none; border-color: var(--seaglass); }
+
+/* segmented control */
+.seg { display: flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button {
+  flex: 1;
+  padding: 10px 4px;
+  border: none;
+  background: var(--linen);
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.seg button + button { border-left: 1.5px solid var(--line); }
+.seg button.on { background: var(--ocean); color: var(--linen); }
+
+/* frequency pills */
+.pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.pills button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pills button.on { background: var(--seaglass); border-color: var(--seaglass); color: var(--white); }
+.pills button small { display: block; font-size: 0.62rem; font-weight: 800; opacity: 0.75; }
+
+/* add-ons */
+.addons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.addon {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s;
+}
+.addon input { accent-color: var(--seaglass); width: 15px; height: 15px; }
+.addon:has(input:checked) { border-color: var(--seaglass); background: var(--seaglass-soft); }
+.addon span b { color: var(--seaglass); font-weight: 800; }
+
+/* price readout */
+.q-price {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 18px 20px;
+  background: var(--linen-deep);
+  border-radius: 14px;
+}
+.q-price-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.q-price-note { font-size: 0.72rem; color: var(--ink-soft); margin-top: 2px; }
+.q-price-num {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: var(--ocean);
+  line-height: 1;
+  transition: transform 0.15s;
+}
+.q-price-num.tick { transform: scale(1.07); }
+.q-price-num sup { font-size: 1.1rem; font-weight: 600; }
+.q-price-num small { font-size: 0.85rem; font-family: var(--font-body); font-weight: 600; color: var(--ink-soft); }
+
+.q-cta { width: 100%; justify-content: center; margin-top: 16px; font-size: 1rem; padding: 15px 26px; }
+.q-fine { text-align: center; font-size: 0.72rem; color: var(--ink-soft); margin-top: 12px; }
+
+/* ---------- booking page ---------- */
+.book-main { padding: 56px 0 90px; }
+.book-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+.book-head { max-width: 640px; margin-bottom: 40px; }
+.book-head h1 { font-size: clamp(2rem, 4vw, 3rem); margin: 14px 0 12px; }
+
+.book-form {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 32px 30px;
+  box-shadow: var(--shadow-sm);
+}
+.book-form h3 { margin-bottom: 20px; }
+.f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.f-row.single { grid-template-columns: 1fr; }
+.f-field label { display: block; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+.f-field input, .f-field textarea, .f-field select {
+  width: 100%;
+  padding: 12px 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: var(--linen);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.f-field input:focus, .f-field textarea:focus, .f-field select:focus { outline: none; border-color: var(--seaglass); }
+.f-field textarea { resize: vertical; min-height: 88px; }
+
+.form-success {
+  text-align: center;
+  padding: 48px 24px;
+}
+.form-success h3 { font-size: 1.6rem; margin: 16px 0 10px; }
+.form-success p { color: var(--ink-soft); max-width: 42ch; margin: 0 auto; }
+.form-success svg { margin: 0 auto; }
+
+.form-error { color: #B4452E; font-size: 0.85rem; font-weight: 600; margin-top: 10px; display: none; }
+.form-error.show { display: block; }
+
+@media (max-width: 960px) {
+  .book-grid { grid-template-columns: 1fr; }
+  .q-row { grid-template-columns: 1fr; }
+  .f-row { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book a Clean — Salty Air Home Cleaning, Ponte Vedra FL</title>
+  <meta name="description" content="Price your home clean instantly and request your first visit. Serving Ponte Vedra Beach, Nocatee, Sawgrass and Jacksonville Beach.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='19' fill='%230F2C3B'/%3E%3Cpath d='M7 22c3.5-3 6.5-3 10 0s6.5 3 10 0 5-2.5 6-1.5' stroke='%238FC3B4' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Cpath d='M9 27c3-2.4 5.5-2.4 8.5 0s6 2.4 9 0' stroke='%23E08A4E' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3Ccircle cx='27' cy='12' r='3.5' fill='%23FAF5EB'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Albert+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap nav-inner">
+    <a class="logo" href="index.html" aria-label="Salty Air Home Cleaning">
+      <svg class="logo-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+        <circle cx="20" cy="20" r="19" fill="#0F2C3B"/>
+        <path d="M7 22c3.5-3 6.5-3 10 0s6.5 3 10 0 5-2.5 6-1.5" stroke="#8FC3B4" stroke-width="2.2" stroke-linecap="round"/>
+        <path d="M9 27c3-2.4 5.5-2.4 8.5 0s6 2.4 9 0" stroke="#E08A4E" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="27" cy="12" r="3.5" fill="#FAF5EB"/>
+      </svg>
+      <span class="logo-name">Salty <em>Air</em><span class="logo-sub">Home Cleaning</span></span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html#services">Services</a></li>
+      <li><a href="index.html#how">How it works</a></li>
+      <li><a href="index.html#faq">FAQ</a></li>
+    </ul>
+    <a class="btn btn-ghost" href="index.html">&larr; Back home</a>
+  </div>
+</nav>
+
+<main class="book-main">
+  <div class="wrap">
+    <div class="book-head">
+      <span class="eyebrow">Book a clean</span>
+      <h1>Your price, then your <span class="accent-i">date.</span></h1>
+      <p class="lede">Dial in your home below — the price updates live. Then tell us where to send your team. We confirm every new booking personally within one business day.</p>
+    </div>
+
+    <div class="book-grid">
+      <div id="quote-mount" data-mode="booking"></div>
+
+      <form class="book-form" id="book-form" novalidate>
+        <h3>Where should we send the team?</h3>
+        <div class="f-row">
+          <div class="f-field"><label for="b-name">Full name</label>
+            <input id="b-name" name="name" type="text" autocomplete="name" required></div>
+          <div class="f-field"><label for="b-phone">Phone</label>
+            <input id="b-phone" name="phone" type="tel" autocomplete="tel" required></div>
+        </div>
+        <div class="f-row single">
+          <div class="f-field"><label for="b-email">Email</label>
+            <input id="b-email" name="email" type="email" autocomplete="email" required></div>
+        </div>
+        <div class="f-row single">
+          <div class="f-field"><label for="b-address">Home address</label>
+            <input id="b-address" name="address" type="text" autocomplete="street-address" placeholder="Street, city, ZIP" required></div>
+        </div>
+        <div class="f-row">
+          <div class="f-field"><label for="b-date">Preferred first date</label>
+            <input id="b-date" name="preferred_date" type="date" required></div>
+          <div class="f-field"><label for="b-time">Preferred time</label>
+            <select id="b-time" name="preferred_time">
+              <option>Morning (8am–12pm)</option>
+              <option>Afternoon (12pm–4pm)</option>
+              <option>Flexible</option>
+            </select></div>
+        </div>
+        <div class="f-row single">
+          <div class="f-field"><label for="b-notes">Anything we should know?</label>
+            <textarea id="b-notes" name="notes" placeholder="Pets, gate codes, product preferences, problem areas&hellip;"></textarea></div>
+        </div>
+        <button type="submit" class="btn btn-primary q-cta" id="b-submit">Request my clean</button>
+        <p class="form-error" id="b-error">Please fill in your name, phone, email, address, and a preferred date.</p>
+        <p class="q-fine">No payment today. We confirm your team and time first &mdash; you're only charged after each completed clean.</p>
+      </form>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-legal" style="border:none; padding:0">
+      <span>&copy; 2026 Salty Air Home Cleaning LLC &middot; Ponte Vedra Beach, FL</span>
+      <span>Insured &amp; bonded &middot; 100% reclean guarantee</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/quote.js"></script>
+<script src="js/book.js"></script>
+</body>
+</html>
