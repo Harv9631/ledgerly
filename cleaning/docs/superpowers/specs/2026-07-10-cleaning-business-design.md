@@ -4,7 +4,7 @@
 **Model:** Recurring residential cleaning; owner runs marketing/booking/ops; independent 1099 subcontractor teams fulfill jobs
 **Goal:** $8–15k/mo net profit within 12–18 months
 **Startup budget:** $2,000–5,000
-**Market:** US metro/suburb (state TBD — confirm before filing; see §2 caveat)
+**Market:** Ponte Vedra, Florida (St. Johns County) — see §2a for FL specifics and §3 pricing note
 
 ---
 
@@ -42,7 +42,19 @@ The entire model depends on teams being legitimately independent contractors:
 - No training manuals, no supervision, no required uniforms/methods. Quality is enforced only through customer ratings, a reclean guarantee, and routing future jobs to higher-rated teams
 - File 1099-NEC for any team paid $600+/year
 
-**Caveat:** In ABC-test states (CA, MA, NJ, IL, and others trending that way), this model is legally fragile — a cleaner working under your brand may be presumed an employee. **Confirm operating state before forming the entity.** If in an ABC state, revisit the hybrid (subs → W-2) model.
+**Resolved:** Florida is a common-law/right-of-control state, not an ABC-test state — among the friendliest in the country for this model. The permanent-1099 structure is sound here as long as the §2 guardrails hold (per-job pay, own supplies/methods, right of refusal, no supervision).
+
+## 2a. Florida / St. Johns County specifics
+
+- **LLC:** File at sunbiz.org, $125 (articles + registered agent designation). Annual report $138.75 due each May 1 — calendar it; the late penalty is $400.
+- **No state income tax** on personal income; single-member LLC profit passes through federally only.
+- **No state license** is required for residential cleaning in Florida.
+- **Local business tax receipt:** Check St. Johns County (and City of Jacksonville Beach / Ponte Vedra Beach zones if serving there) — typically $30–100/yr.
+- **Sales tax:** Residential cleaning is **not subject to** Florida sales tax. Nonresidential (commercial/office) cleaning **is taxable** — if you ever add commercial accounts, register with the FL Dept. of Revenue first.
+- **Workers' comp:** Not required for 1099 subcontractors; for non-construction businesses it only kicks in at 4+ employees. Keep COIs from teams on file anyway.
+- **1099 reporting:** Florida requires new-hire-style reporting of independent contractors paid $600+/yr (FL New Hire Reporting Center) in addition to federal 1099-NEC.
+
+**Market notes:** Ponte Vedra Beach, Sawgrass, and Nocatee are affluent, fast-growing, and heavy with 3,000+ sq ft homes, golf communities, and dual-income households — ideal recurring-clean demographics. Nocatee alone adds thousands of households and has extremely active community Facebook groups (strong free channel). Natural service area: Ponte Vedra Beach → Nocatee → Jacksonville Beach/Atlantic Beach, optionally St. Augustine north. Beach vacation rentals also make Airbnb turnover work an easy later add-on.
 
 ## 3. Pricing
 
@@ -56,6 +68,8 @@ Flat-rate by home size, quoted instantly online (no in-home estimates):
 | 4bd/3ba | $230 | $345 | $400 |
 
 Frequency discounts off standard rate: weekly −20%, biweekly −15%, monthly −10%. First clean is always priced as a deep clean. Adjust ±15% after checking 3–5 local competitors' quotes.
+
+**Ponte Vedra adjustment:** This market skews affluent and homes skew large — price 10–20% above the table, add a 5bd/4ba+ tier (~$300+ standard), and consider a per-sq-ft adder above 3,000 sq ft. Average job likely lands at $175–200 rather than $150, which means the $10k/mo profit target needs ~85–90 recurring customers instead of ~105.
 
 ## 4. Setup costs (~$1,200–1,800)
 
@@ -126,8 +140,9 @@ Targets: CAC < $75, 40%+ of one-time customers converted to recurring, 20+ Googl
 ## 10. Launch checklist
 
 ### Week 1 — Legal & financial foundation
-- [ ] Confirm operating state → check contractor-classification law (ABC test?)
-- [ ] File LLC, get EIN, open business bank account
+- [x] Confirm operating state → Florida (common-law test, model is sound; see §2a)
+- [ ] File LLC at sunbiz.org ($125), get EIN (free, irs.gov), open business bank account
+- [ ] Check St. Johns County local business tax receipt requirement
 - [ ] Buy general liability policy + janitorial bond (NEXT, Thimble, Hiscox — compare 3 quotes)
 - [ ] Draft subcontractor agreement (attorney review or vetted template; include per-job pay, own supplies/methods, right of refusal, COI requirement, no exclusivity)
 
