@@ -29,6 +29,9 @@ Remotes.InventoryUpdate.OnClientEvent:Connect(function(snap)
 	end
 	snapshot = snap
 end)
+-- Listener is live: request the current snapshot (closes the join-time
+-- FireClient-before-listener race; remotes don't queue).
+Remotes.RequestInventory:FireServer()
 
 -- Returns slotIndex, item, def for the equipped slot, or nil if nothing usable.
 local function getEquipped()
@@ -112,4 +115,10 @@ UserInputService.InputEnded:Connect(function(input, _gameProcessed)
 	if input.KeyCode == SPRINT_KEY then
 		Remotes.SetSprinting:FireServer(false)
 	end
+end)
+
+-- InputEnded does not fire for keys still held while Alt-Tabbing away, so a
+-- focus loss would otherwise leave sprint stuck on.
+UserInputService.WindowFocusReleased:Connect(function()
+	Remotes.SetSprinting:FireServer(false)
 end)

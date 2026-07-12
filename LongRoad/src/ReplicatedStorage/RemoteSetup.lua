@@ -6,7 +6,7 @@ local REMOTE_NAMES = {
 	-- client -> server
 	"EatItem", "UseItem", "EquipSlot", "DropItem", "PlaceFire", "AddFuel",
 	"CookMeat", "SwingWeapon", "FireProjectile", "SquadInvite", "SquadResponse",
-	"SquadLeave", "BuyKit", "SetSprinting",
+	"SquadLeave", "BuyKit", "SetSprinting", "RequestInventory",
 	-- server -> client
 	"InventoryUpdate", "Notify", "TimeUpdate", "SquadUpdate", "RunFinished",
 }

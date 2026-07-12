@@ -106,13 +106,16 @@ end
 
 -- Gives up to `count` of itemId. Partial fills ARE allowed: fills existing
 -- stacks first, then empty hotbar slots, then empty backpack slots, keeping
--- whatever fits. Returns false (and fires Notify "Inventory full") if ANY
--- remainder did not fit; true only if the full count was placed.
+-- whatever fits. Returns two values: fittedAll (false, plus Notify "Inventory
+-- full", if ANY remainder did not fit; true only if the full count was placed)
+-- and placedCount (how many were actually placed), so callers like
+-- LootService (Task 8) can decrement pickups by exactly what was taken.
 function InventoryService.GiveItem(player, itemId, count)
 	local inv = inventories[player]
 	local def = deps.ItemDefs[itemId]
-	if not inv or not def or type(count) ~= "number" or count ~= count or count < 1 then
-		return false
+	if not inv or not def or type(count) ~= "number" or count ~= count
+		or count == math.huge or count < 1 then
+		return false, 0
 	end
 	count = math.floor(count)
 	local maxStack = stackSize(def)
@@ -158,9 +161,9 @@ function InventoryService.GiveItem(player, itemId, count)
 	end
 	if remaining > 0 then
 		notify(player, "Inventory full")
-		return false
+		return false, count - remaining
 	end
-	return true
+	return true, count
 end
 
 -- Removes exactly `count`, or nothing at all (returns false if the player
@@ -169,7 +172,8 @@ end
 -- (the slot stays selected, matching "equipping an empty slot selects it").
 function InventoryService.RemoveItem(player, itemId, count)
 	local inv = inventories[player]
-	if not inv or type(count) ~= "number" or count ~= count or count < 1 then
+	if not inv or type(count) ~= "number" or count ~= count
+		or count == math.huge or count < 1 then
 		return false
 	end
 	count = math.floor(count)
@@ -381,6 +385,9 @@ function InventoryService.Init(depsIn)
 	deps.Remotes.DropItem.OnServerEvent:Connect(onDropItem)
 	deps.Remotes.EatItem.OnServerEvent:Connect(onEatItem)
 	deps.Remotes.UseItem.OnServerEvent:Connect(onUseItem)
+	-- Clients request a snapshot once their InventoryUpdate listener is live:
+	-- closes the FireClient-before-listener race on join (remotes don't queue).
+	deps.Remotes.RequestInventory.OnServerEvent:Connect(pushUpdate)
 	Players.PlayerAdded:Connect(watchPlayer)
 	for _, player in ipairs(Players:GetPlayers()) do
 		if not inventories[player] then

@@ -60,14 +60,24 @@ local snapshot = nil -- latest InventoryUpdate payload
 -- = true) and core-UI unequips desync the server's equipped state.
 -- PlayerList: Tab would toggle both our backpack panel and Roblox's player
 -- list; SquadUI (Task 13) builds its own list, so the core one is redundant.
--- SetCoreGuiEnabled can throw if called before CoreGui is ready, so retry.
+-- SetCoreGuiEnabled can throw if called before CoreGui is ready, so retry
+-- (capped: give up with a warn rather than loop forever on a real failure).
 task.spawn(function()
+	local MAX_CORE_GUI_ATTEMPTS = 10
 	local DISABLED_CORE_GUIS = { Enum.CoreGuiType.Backpack, Enum.CoreGuiType.PlayerList }
 	for _, coreGuiType in ipairs(DISABLED_CORE_GUIS) do
-		while not pcall(function()
-			StarterGui:SetCoreGuiEnabled(coreGuiType, false)
-		end) do
+		local disabled = false
+		for _ = 1, MAX_CORE_GUI_ATTEMPTS do
+			if pcall(function()
+				StarterGui:SetCoreGuiEnabled(coreGuiType, false)
+			end) then
+				disabled = true
+				break
+			end
 			task.wait(0.5)
+		end
+		if not disabled then
+			warn("[HUD] giving up disabling core UI: " .. tostring(coreGuiType))
 		end
 	end
 end)
@@ -338,3 +348,6 @@ Remotes.InventoryUpdate.OnClientEvent:Connect(function(snap)
 	render()
 end)
 render()
+-- Listener is live: request the current snapshot. Closes the race where the
+-- server's FireClient (e.g. a join-time starter-kit grant) beat this script.
+Remotes.RequestInventory:FireServer()
