@@ -19,14 +19,22 @@ local ORDER = {
 for _, name in ipairs(ORDER) do
 	local mod = servicesFolder:FindFirstChild(name)
 	if mod then
-		local service = require(mod)
-		deps[name:gsub("Service$", "")] = service
+		local ok, result = pcall(require, mod)
+		if ok then
+			deps[name:gsub("Service$", "")] = result
+		else
+			warn("[Main] failed to load " .. name .. ": " .. tostring(result))
+		end
 	end
 end
 for _, name in ipairs(ORDER) do
 	local key = name:gsub("Service$", "")
 	if deps[key] and deps[key].Init then
-		deps[key].Init(deps)
-		print("[Main] " .. name .. " initialized")
+		local ok, err = pcall(deps[key].Init, deps)
+		if ok then
+			print("[Main] " .. name .. " initialized")
+		else
+			warn("[Main] failed to init " .. name .. ": " .. tostring(err))
+		end
 	end
 end
