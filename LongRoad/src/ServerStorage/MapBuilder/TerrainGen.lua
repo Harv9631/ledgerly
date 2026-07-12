@@ -41,8 +41,10 @@ function TerrainGen.HeightAt(x, z)
 	if inRiver then
 		h = 2
 	end
-	-- Road strip along X=0 through Suburbs and City: flatten to zone base
-	if math.abs(x) < 15 and ((z >= SUBURBS.zStart and z < SUBURBS.zEnd) or z >= CITY.zStart) then
+	-- Road strip along X=0 through Suburbs and City: flatten to zone base.
+	-- Flatten every cell whose center is within one CELL of X=0 so the 40-stud
+	-- sampling grid actually hits it; gives road + shoulders (flat band X -40..40)
+	if math.abs(x) < CELL and ((z >= SUBURBS.zStart and z < SUBURBS.zEnd) or z >= CITY.zStart) then
 		h = p.base
 	end
 	-- Guard against noise digging holes below the water table (river band excepted)
