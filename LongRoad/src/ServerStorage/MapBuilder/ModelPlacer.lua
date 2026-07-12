@@ -79,7 +79,14 @@ local function targetCFrame(marker, spec)
 	end
 	local pos = marker.Position
 	local hit = workspace:Raycast(pos + Vector3.new(0, RAY_UP, 0), Vector3.new(0, -RAY_LEN, 0), rayParams)
-	local groundY = if hit then hit.Position.Y else pos.Y
+	local groundY
+	if hit then
+		groundY = hit.Position.Y
+	else
+		-- Surface bake anomalies instead of silently falling back to the marker's Y
+		warn("[ModelPlacer] ray miss at " .. marker.Name .. " " .. tostring(pos))
+		groundY = pos.Y
+	end
 	-- Buildings/fixed props keep the marker's rotation (MarkerGen faced houses at the
 	-- road); scattered nature props get a random yaw.
 	local rot = if spec.keepRotation
@@ -88,6 +95,12 @@ local function targetCFrame(marker, spec)
 	return CFrame.new(pos.X, groundY - SINK, pos.Z) * rot
 end
 
+local warnedAssets -- reset each Place(): warn once per assets path, not once per marker
+
+-- Returns the placeable (Model/BasePart) children of Assets.<path>, or nil if the
+-- folder is missing or has none. Non-placeable children (Folders, Scripts, Decals,
+-- ...) are skipped with a one-time warn so a bad Assets layout doesn't silently
+-- fall back to placeholders and confuse the bake.
 local function findAssets(path)
 	if not path then return nil end -- placeholder-only category
 	local node = ReplicatedStorage:FindFirstChild("Assets")
@@ -95,15 +108,27 @@ local function findAssets(path)
 		if not node then return nil end
 		node = node:FindFirstChild(seg)
 	end
-	if node and #node:GetChildren() > 0 then return node end
+	if not node then return nil end
+	local candidates, skipped = {}, 0
+	for _, child in ipairs(node:GetChildren()) do
+		if child:IsA("Model") or child:IsA("BasePart") then
+			table.insert(candidates, child)
+		else
+			skipped += 1
+		end
+	end
+	if skipped > 0 and not warnedAssets[path] then
+		warnedAssets[path] = true
+		warn(("[ModelPlacer] Assets.%s: skipped %d non-placeable child(ren) — only Model/BasePart are cloned"):format(
+			path:gsub("/", "."), skipped))
+	end
+	if #candidates > 0 then return candidates end
 	return nil
 end
 
--- Clone a random real asset and place it at cf. Returns nil for unsupported asset
--- types so the caller falls back to a placeholder.
-local function placeReal(assetsFolder, cf)
-	local children = assetsFolder:GetChildren()
-	local template = children[rng:NextInteger(1, #children)]
+-- Clone a random real asset (Model or BasePart) and place it at cf.
+local function placeReal(candidates, cf)
+	local template = candidates[rng:NextInteger(1, #candidates)]
 	local scale = rng:NextNumber(0.9, 1.15)
 	local clone = template:Clone()
 	if clone:IsA("BasePart") then
@@ -114,11 +139,16 @@ local function placeReal(assetsFolder, cf)
 		wrap.PrimaryPart = clone
 		clone = wrap
 	end
-	if not clone:IsA("Model") then
-		return nil
-	end
 	clone:ScaleTo(scale)
 	clone:PivotTo(cf) -- cf already carries random yaw (or marker rotation for buildings)
+	-- Studio model pivots default to the bounding-box CENTER, so PivotTo(cf) alone
+	-- would place real assets half-buried. Shift the model up so its bounding-box
+	-- BOTTOM sits at cf's Y (rotation stays intact).
+	local bb, size = clone:GetBoundingBox()
+	local lift = cf.Position.Y - (bb.Position.Y - size.Y / 2)
+	if math.abs(lift) > 1e-4 then
+		clone:PivotTo(clone:GetPivot() + Vector3.new(0, lift, 0))
+	end
 	return clone
 end
 
@@ -328,6 +358,7 @@ local SPECS = {
 -- ===== Main =====
 function ModelPlacer.Place()
 	rng = Random.new(SEED)
+	warnedAssets = {}
 	local markers = workspace:FindFirstChild("Markers")
 	assert(markers, "[ModelPlacer] Workspace.Markers missing — run MarkerGen first")
 	-- Idempotent: visuals rebuilt from scratch; markers are never destroyed or moved
@@ -351,8 +382,8 @@ function ModelPlacer.Place()
 			end
 			local cf = targetCFrame(marker, spec)
 			local instance
-			local assetsFolder = findAssets(spec.assets)
-			if assetsFolder then instance = placeReal(assetsFolder, cf) end
+			local candidates = findAssets(spec.assets)
+			if candidates then instance = placeReal(candidates, cf) end
 			local usedReal = instance ~= nil
 			if not instance then instance = spec.builder(cf) end
 			if spec.attrs then
