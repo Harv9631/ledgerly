@@ -1,0 +1,115 @@
+//@version=5
+// NOTE: Requires an ETH (24h) chart of NQ on the 5-minute timeframe (e.g. CME_MINI:NQ1!).
+// The SMT filter pulls CME_MINI:ES1! data; RTH-only charts break session anchoring.
+strategy("ORB v2 [NQ]", overlay=true,
+     default_qty_type=strategy.fixed, default_qty_value=1,
+     initial_capital=25000, commission_type=strategy.commission.cash_per_contract,
+     commission_value=2.10, calc_on_every_tick=false, process_orders_on_close=true)
+
+// ── Inputs ──────────────────────────────────────────────────────────
+targetPct     = input.float(0.5, "Target (fraction of OR size)", minval=0.25, maxval=1.0, step=0.05)
+useSMT        = input.bool(false, "Require SMT divergence (ES non-confirmation)")
+esSymbol      = input.symbol("CME_MINI:ES1!", "SMT comparison symbol")
+// Secret must not contain quotes or backslashes (payload is built by raw JSON string concatenation).
+webhookSecret = input.string("change-me", "Webhook secret")
+
+// ── Session times (ET) ──────────────────────────────────────────────
+inORWindow    = not na(time(timeframe.period, "0930-0945", "America/New_York"))
+inEntryWindow = not na(time(timeframe.period, "0945-1130", "America/New_York"))
+atFlatTime    = not na(time(timeframe.period, "1550-1555", "America/New_York"))
+inRTH         = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+rthStart      = inRTH and not inRTH[1]   // 9:30 ET — daily resets anchored here
+rthEnd        = not inRTH and inRTH[1]   // 16:00 ET (or first bar after an early close)
+
+// ── Opening range (NQ) ──────────────────────────────────────────────
+var float orHigh = na
+var float orLow  = na
+if rthStart
+    orHigh := na
+    orLow  := na
+if inORWindow
+    orHigh := na(orHigh) ? high : math.max(orHigh, high)
+    orLow  := na(orLow)  ? low  : math.min(orLow, low)
+orSize = orHigh - orLow   // na until both legs exist
+
+// ── ES data + ES opening range (for SMT) ────────────────────────────
+[esHigh, esLow] = request.security(esSymbol, timeframe.period, [high, low],
+     lookahead=barmerge.lookahead_off)
+var float esOrHigh = na
+var float esOrLow  = na
+if rthStart
+    esOrHigh := na
+    esOrLow  := na
+if inORWindow and not na(esHigh)
+    esOrHigh := na(esOrHigh) ? esHigh : math.max(esOrHigh, esHigh)
+    esOrLow  := na(esOrLow)  ? esLow  : math.min(esOrLow, esLow)
+
+// ── SMT divergence latches (evaluated BEFORE entry checks) ──────────
+// Bullish SMT: NQ trades below its OR low while ES holds at/above its own OR low.
+var bool bullSMT = false
+var bool bearSMT = false
+if rthStart
+    bullSMT := false
+    bearSMT := false
+if inEntryWindow and not na(orLow) and not na(esOrLow) and not na(esLow)
+    if low < orLow and esLow >= esOrLow
+        bullSMT := true
+if inEntryWindow and not na(orHigh) and not na(esOrHigh) and not na(esHigh)
+    if high > orHigh and esHigh <= esOrHigh
+        bearSMT := true
+
+// ── Entry conditions (one trade per day, first side to trigger) ─────
+var bool tradeUsed = false
+if rthStart
+    tradeUsed := false
+
+rangeOk    = not na(orSize) and orSize > 0
+canTrade   = not tradeUsed and strategy.position_size == 0
+smtOkLong  = not useSMT or bullSMT
+smtOkShort = not useSMT or bearSMT
+
+longBreak  = inEntryWindow and rangeOk and close > orHigh and close[1] <= orHigh
+shortBreak = inEntryWindow and rangeOk and close < orLow  and close[1] >= orLow
+
+longEntry  = longBreak  and canTrade and smtOkLong
+shortEntry = shortBreak and canTrade and smtOkShort
+
+// ── Payload helper ──────────────────────────────────────────────────
+f_payload(action, entryP, stopP, t1, t2) =>
+    '{"secret":"' + webhookSecret + '","action":"' + action +
+     '","symbol":"NQ","qty":1,"entry":' + str.tostring(entryP) +
+     ',"stop":' + str.tostring(stopP) + ',"target1":' + str.tostring(t1) +
+     ',"target2":' + str.tostring(t2) + ',"signal_id":"orbv2-' + action + '-' +
+     str.tostring(time) + '","sent_at":"' + str.format_time(timenow,
+     "yyyy-MM-dd'T'HH:mm:ss'Z'", "UTC") + '"}'
+
+// ── Orders + alerts ─────────────────────────────────────────────────
+if longEntry
+    stopP = orLow
+    tgt   = close + targetPct * orSize
+    tradeUsed := true
+    strategy.entry("L", strategy.long)
+    strategy.exit("L-exit", "L", stop=stopP, limit=tgt)
+    alert(f_payload("buy", close, stopP, tgt, tgt), alert.freq_once_per_bar_close)
+
+if shortEntry
+    stopP = orHigh
+    tgt   = close - targetPct * orSize
+    tradeUsed := true
+    strategy.entry("S", strategy.short)
+    strategy.exit("S-exit", "S", stop=stopP, limit=tgt)
+    alert(f_payload("sell", close, stopP, tgt, tgt), alert.freq_once_per_bar_close)
+
+// ── Hard flat at 15:55 (+ safety net for early-close sessions) ──────
+if atFlatTime and strategy.position_size != 0
+    strategy.close_all("EOD flat")
+    alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
+if rthEnd and strategy.position_size != 0
+    strategy.close_all("Session end flat")
+    alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
+
+// ── Plots ───────────────────────────────────────────────────────────
+plot(orHigh, "OR High", color=color.green, style=plot.style_linebr)
+plot(orLow,  "OR Low",  color=color.red,   style=plot.style_linebr)
+bgcolor(useSMT and bullSMT and inEntryWindow ? color.new(color.green, 92) : na)
+bgcolor(useSMT and bearSMT and inEntryWindow ? color.new(color.red, 92) : na)
