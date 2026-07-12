@@ -51,7 +51,6 @@ inEntryWindow = not na(time(timeframe.period, "0945-1130", "America/New_York"))
 atFlatTime    = not na(time(timeframe.period, "1550-1555", "America/New_York"))
 inRTH         = not na(time(timeframe.period, "0930-1600", "America/New_York"))
 rthStart      = inRTH and not inRTH[1]   // 9:30 ET — daily resets anchored here
-rthEnd        = not inRTH and inRTH[1]   // 16:00 ET (or first bar after an early close)
 
 // ── Opening range (NQ) ──────────────────────────────────────────────
 var float orHigh = na
@@ -66,7 +65,7 @@ orSize = orHigh - orLow   // na until both legs exist
 
 // ── ES data + ES opening range (for SMT) ────────────────────────────
 [esHigh, esLow] = request.security(esSymbol, timeframe.period, [high, low],
-     lookahead=barmerge.lookahead_off)
+     gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
 var float esOrHigh = na
 var float esOrLow  = na
 if rthStart
@@ -100,6 +99,7 @@ canTrade   = not tradeUsed and strategy.position_size == 0
 smtOkLong  = not useSMT or bullSMT
 smtOkShort = not useSMT or bearSMT
 
+// With SMT on, a rejected first breakout close (SMT not yet latched) means no entry until price re-crosses the level — intentional "first confirmed break or nothing" behavior.
 longBreak  = inEntryWindow and rangeOk and close > orHigh and close[1] <= orHigh
 shortBreak = inEntryWindow and rangeOk and close < orLow  and close[1] >= orLow
 
@@ -132,11 +132,11 @@ if shortEntry
     strategy.exit("S-exit", "S", stop=stopP, limit=tgt)
     alert(f_payload("sell", close, stopP, tgt, tgt), alert.freq_once_per_bar_close)
 
-// ── Hard flat at 15:55 (+ safety net for early-close sessions) ──────
+// ── Hard flat at 15:55 (+ safety net: close on last regular-session bar; covers early closes) ──────
 if atFlatTime and strategy.position_size != 0
     strategy.close_all("EOD flat")
     alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
-if rthEnd and strategy.position_size != 0
+if session.islastbar_regular and strategy.position_size != 0
     strategy.close_all("Session end flat")
     alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
 
@@ -189,7 +189,6 @@ inEntryWindow = not na(time(timeframe.period, "1030-1300", "America/New_York"))
 atFlatTime    = not na(time(timeframe.period, "1550-1555", "America/New_York"))
 inRTH         = not na(time(timeframe.period, "0930-1600", "America/New_York"))
 rthStart      = inRTH and not inRTH[1]   // 9:30 ET — daily resets anchored here
-rthEnd        = not inRTH and inRTH[1]   // 16:00 ET (or first bar after an early close)
 
 // ── Initial balance (NQ) ────────────────────────────────────────────
 var float ibHigh = na
@@ -214,7 +213,7 @@ if ibJustEnded and not na(dayOpen)
 
 // ── ES data + ES initial balance (for SMT) ──────────────────────────
 [esHigh, esLow] = request.security(esSymbol, timeframe.period, [high, low],
-     lookahead=barmerge.lookahead_off)
+     gaps=barmerge.gaps_on, lookahead=barmerge.lookahead_off)
 var float esIbHigh = na
 var float esIbLow  = na
 if rthStart
@@ -250,6 +249,7 @@ smtOkShort = not useSMT or bearSMT
 fhOkLong   = not useFH or fhDir >= 0
 fhOkShort  = not useFH or fhDir <= 0
 
+// With SMT on, a rejected first breakout close (SMT not yet latched) means no entry until price re-crosses the level — intentional "first confirmed break or nothing" behavior.
 longBreak  = inEntryWindow and rangeOk and close > ibHigh and close[1] <= ibHigh
 shortBreak = inEntryWindow and rangeOk and close < ibLow  and close[1] >= ibLow
 
@@ -282,11 +282,11 @@ if shortEntry
     strategy.exit("S-exit", "S", stop=stopP, limit=tgt)
     alert(f_payload("sell", close, stopP, tgt, tgt), alert.freq_once_per_bar_close)
 
-// ── Hard flat at 15:55 (+ safety net for early-close sessions) ──────
+// ── Hard flat at 15:55 (+ safety net: close on last regular-session bar; covers early closes) ──────
 if atFlatTime and strategy.position_size != 0
     strategy.close_all("EOD flat")
     alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
-if rthEnd and strategy.position_size != 0
+if session.islastbar_regular and strategy.position_size != 0
     strategy.close_all("Session end flat")
     alert(f_payload("exit", close, 0, 0, 0), alert.freq_once_per_bar_close)
 
