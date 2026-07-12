@@ -229,6 +229,29 @@ function InventoryService.HasItem(player, itemId, count)
 	return InventoryService.CountItem(player, itemId) >= (count or 1)
 end
 
+-- Read-only slot inspection for SurvivalService's Eat/UseMedkit re-validation
+-- (Task 7). Returns a copy so callers can never mutate inventory state.
+-- container: "hotbar" | "backpack".
+function InventoryService.GetSlot(player, container, index)
+	local inv = inventories[player]
+	if not inv then
+		return nil
+	end
+	local slots, size
+	if container == "hotbar" then
+		slots, size = inv.hotbar, deps.Config.HOTBAR_SLOTS
+	elseif container == "backpack" then
+		slots, size = inv.backpack, deps.Config.BACKPACK_SLOTS
+	else
+		return nil
+	end
+	if not isValidSlot(index, size) then
+		return nil
+	end
+	local s = slots[index]
+	return s and { id = s.id, count = s.count } or nil
+end
+
 function InventoryService.GetEquipped(player)
 	local inv = inventories[player]
 	local slot = inv and inv.equipped and inv.hotbar[inv.equipped] or nil
