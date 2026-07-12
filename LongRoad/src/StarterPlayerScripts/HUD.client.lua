@@ -6,6 +6,7 @@
 -- listener; HUD state is not shared between the two scripts.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -52,6 +53,24 @@ local HOTBAR_KEYS = {
 local BACKPACK_KEY = Enum.KeyCode.Tab
 
 local snapshot = nil -- latest InventoryUpdate payload
+
+-- ===== Disable conflicting core UIs =====
+-- Backpack: the default backpack UI appears whenever a weapon Tool is equipped;
+-- its ContextActionService bindings swallow the 1-6 hotkeys (gameProcessedEvent
+-- = true) and core-UI unequips desync the server's equipped state.
+-- PlayerList: Tab would toggle both our backpack panel and Roblox's player
+-- list; SquadUI (Task 13) builds its own list, so the core one is redundant.
+-- SetCoreGuiEnabled can throw if called before CoreGui is ready, so retry.
+task.spawn(function()
+	local DISABLED_CORE_GUIS = { Enum.CoreGuiType.Backpack, Enum.CoreGuiType.PlayerList }
+	for _, coreGuiType in ipairs(DISABLED_CORE_GUIS) do
+		while not pcall(function()
+			StarterGui:SetCoreGuiEnabled(coreGuiType, false)
+		end) do
+			task.wait(0.5)
+		end
+	end
+end)
 
 -- ===== ScreenGui =====
 local gui = Instance.new("ScreenGui")
