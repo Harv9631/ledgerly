@@ -6,7 +6,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
 local Config = require(ReplicatedStorage:WaitForChild("GameConfig"))
-local Remotes = require(ReplicatedStorage:WaitForChild("RemoteSetup")).Get()
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -109,15 +108,18 @@ rainEmitter.Transparency = NumberSequence.new(RAIN_TRANSPARENCY)
 rainEmitter.Size = NumberSequence.new(RAIN_PARTICLE_SIZE)
 rainEmitter.Parent = rainPart
 
+local rainActive = false
+local savedDensity, savedHaze
+
 RunService.Heartbeat:Connect(function()
+	if not rainActive then
+		return
+	end
 	local camera = Workspace.CurrentCamera
 	if camera then
 		rainPart.CFrame = CFrame.new(camera.CFrame.Position + Vector3.new(0, RAIN_HEIGHT_OFFSET, 0))
 	end
 end)
-
-local rainActive = false
-local savedDensity, savedHaze
 
 local function setRainActive(on)
 	if on == rainActive then
@@ -141,9 +143,13 @@ local function setRainActive(on)
 	end
 end
 
-Remotes.TimeUpdate.OnClientEvent:Connect(function(_isNight, isRaining)
-	setRainActive(isRaining)
+-- Rain state comes from a workspace attribute, not the TimeUpdate remote:
+-- attributes replicate and are readable at any join time, so a late joiner
+-- gets the current state instead of missing an unqueued RemoteEvent fire.
+workspace:GetAttributeChangedSignal("IsRaining"):Connect(function()
+	setRainActive(workspace:GetAttribute("IsRaining") == true)
 end)
+setRainActive(workspace:GetAttribute("IsRaining") == true)
 
 -- ===== Hostile highlights =====
 local hostileConnections = {} -- player -> { RBXScriptConnection }

@@ -1,6 +1,5 @@
 -- DayNightService: drives the day/night clock, ambient lighting, and the rain schedule
 local Lighting = game:GetService("Lighting")
-local Players = game:GetService("Players")
 
 local DAY_AMBIENT = Color3.fromRGB(70, 70, 70)
 local NIGHT_AMBIENT = Color3.fromRGB(10, 10, 20)
@@ -24,9 +23,13 @@ local function broadcast()
 	deps.Remotes.TimeUpdate:FireAllClients(isNight, isRaining)
 end
 
+-- Workspace attributes mirror the state: attributes replicate and are readable at
+-- any join time, so late joiners never miss it (RemoteEvents don't queue). This is
+-- the precedent for world state; the remote still fires for change-driven consumers.
 local function setNight(night)
 	if isNight ~= night then
 		isNight = night
+		workspace:SetAttribute("IsNight", isNight)
 		broadcast()
 	end
 end
@@ -34,6 +37,7 @@ end
 local function setRaining(on)
 	if isRaining ~= on then
 		isRaining = on
+		workspace:SetAttribute("IsRaining", isRaining)
 		broadcast()
 	end
 end
@@ -59,8 +63,10 @@ local function runPhase(night, myGeneration)
 		rainOverride = false
 		setRaining(false)
 		if rng:NextNumber() < Config.RAIN_CHANCE then
-			rainStart = rng:NextNumber() * (length - Config.RAIN_DURATION)
-			rainStop = rainStart + Config.RAIN_DURATION
+			-- Clamp so a debug-shortened day (length < RAIN_DURATION) still ends rain in-phase.
+			local window = math.max(0, length - Config.RAIN_DURATION)
+			rainStart = rng:NextNumber() * window
+			rainStop = math.min(rainStart + Config.RAIN_DURATION, length)
 		end
 	end
 
@@ -84,9 +90,8 @@ end
 
 function DayNightService.Init(depsIn)
 	deps = depsIn
-	Players.PlayerAdded:Connect(function(player)
-		deps.Remotes.TimeUpdate:FireClient(player, isNight, isRaining)
-	end)
+	workspace:SetAttribute("IsNight", isNight)
+	workspace:SetAttribute("IsRaining", isRaining)
 	task.spawn(function()
 		local phaseNight = false
 		while true do
