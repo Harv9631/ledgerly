@@ -53,7 +53,10 @@ local function groundY(x, z)
 		if hit.Material == Enum.Material.Water then return nil end
 		return hit.Position.Y
 	end
-	return (TerrainGen.HeightAt(x, z)) -- ray missed (shouldn't happen post-bake)
+	-- Ray missed (shouldn't happen post-bake): still reject the river band so the
+	-- HeightAt fallback can't sneak a marker onto the riverbed.
+	if z >= Config.RIVER_Z[1] and z <= Config.RIVER_Z[2] then return nil end
+	return (TerrainGen.HeightAt(x, z))
 end
 
 -- For fixed markers that must always exist (checkpoints/spawn/extraction).
@@ -252,8 +255,17 @@ function MarkerGen.Build()
 	buildHighlands()
 	buildCity()
 	buildGlobal()
+	-- Per-name breakdown (sorted) so the Studio baker can sanity-check the bake.
+	local names = {}
+	for name in pairs(counts) do table.insert(names, name) end
+	table.sort(names)
 	local total = 0
-	for _, n in pairs(counts) do total += n end
+	local entries = {}
+	for _, name in ipairs(names) do
+		total += counts[name]
+		table.insert(entries, ("%s=%d"):format(name, counts[name]))
+	end
+	print("[MarkerGen] counts: " .. table.concat(entries, ", "))
 	print(("[MarkerGen] done — %d markers total"):format(total))
 end
 
