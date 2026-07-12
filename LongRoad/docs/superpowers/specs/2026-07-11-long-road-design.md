@@ -110,7 +110,7 @@ The baked map is saved into the place file; servers start instantly.
 | `CombatService` | Server-authoritative melee/ranged validation, PvP + Hostile marking |
 | `SquadService` | Invites, no friendly fire, shared checkpoints |
 | `ProgressService` | Checkpoints, extraction, currency, leaderboards (DataStore) |
-| `DayNightService` | Clock, lighting, monster spawn-rate multiplier |
+| `DayNightService` | Clock, lighting, monster spawn-rate multiplier, simple rain cycle (periodic rain that increases warmth drain) |
 
 ### Client
 
