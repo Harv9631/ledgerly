@@ -95,7 +95,7 @@ if rthStart
     tradeUsed := false
 
 rangeOk    = not na(orSize) and orSize > 0
-canTrade   = not tradeUsed and strategy.position_size == 0
+canTrade   = not tradeUsed and strategy.position_size == 0 and not session.islastbar_regular
 smtOkLong  = not useSMT or bullSMT
 smtOkShort = not useSMT or bearSMT
 
@@ -243,7 +243,7 @@ if rthStart
     tradeUsed := false
 
 rangeOk    = not na(ibWidth) and ibWidth > 0
-canTrade   = not tradeUsed and strategy.position_size == 0
+canTrade   = not tradeUsed and strategy.position_size == 0 and not session.islastbar_regular
 smtOkLong  = not useSMT or bullSMT
 smtOkShort = not useSMT or bearSMT
 fhOkLong   = not useFH or fhDir >= 0
