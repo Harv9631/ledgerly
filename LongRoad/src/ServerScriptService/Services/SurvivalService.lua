@@ -1,12 +1,9 @@
 -- SurvivalService: hunger/warmth drain, wet/sick timers, toxic zones, sprint,
 -- and the Eat/UseMedkit consumption API called by InventoryService's handlers.
 --
--- Stats live as player attributes (Hunger, Warmth, Wet, Sick, Sprinting) so
--- they replicate to the owning client for HUD display with no extra remotes.
+-- Stats live as player attributes (Hunger, Warmth, Wet, Sick, Sprinting):
+-- they replicate to all clients, which the HUD reads with no extra remotes.
 local Players = game:GetService("Players")
-
-local TOXIC_DPS = 4      -- damage per second inside a toxic zone
-local WET_DRAIN_MULT = 2 -- warmth drains doubled while wet
 
 local SurvivalService = {}
 
@@ -75,6 +72,29 @@ local function resetStats(player)
 	player:SetAttribute("Wet", false)
 	player:SetAttribute("Sick", false)
 	player:SetAttribute("Sprinting", false)
+	-- Clear stale cause so an untagged death (fall, drowning) isn't misreported.
+	-- Combat/monster kills (Tasks 10/11) must set their own LastDeathCause.
+	player:SetAttribute("LastDeathCause", nil)
+end
+
+-- Cold overrides sprint; sprint requires hunger above the low mark. Only
+-- assigns on change to avoid replicating WalkSpeed needlessly. Shared by the
+-- tick loop and the SetSprinting handler so Shift responds instantly.
+local function updateWalkSpeed(player, humanoid)
+	local Config = deps.Config
+	local warmth = player:GetAttribute("Warmth") or Config.STAT_MAX
+	local hunger = player:GetAttribute("Hunger") or Config.STAT_MAX
+	local targetSpeed
+	if warmth < Config.LOW_STAT then
+		targetSpeed = Config.COLD_WALK_SPEED
+	elseif player:GetAttribute("Sprinting") and hunger > Config.LOW_STAT then
+		targetSpeed = Config.SPRINT_SPEED
+	else
+		targetSpeed = Config.WALK_SPEED
+	end
+	if humanoid.WalkSpeed ~= targetSpeed then
+		humanoid.WalkSpeed = targetSpeed
+	end
 end
 
 local function tickPlayer(player, now)
@@ -127,7 +147,7 @@ local function tickPlayer(player, now)
 			rate += Config.WARMTH_MOUNTAIN_EXTRA
 		end
 		if player:GetAttribute("Wet") then
-			rate *= WET_DRAIN_MULT
+			rate *= Config.WET_DRAIN_MULT
 		end
 		warmth -= rate * dt
 	end
@@ -149,24 +169,12 @@ local function tickPlayer(player, now)
 			notify(player, "Toxic air! Get out!")
 		end
 		if humanoid.Health > 0 then
-			applyDamage(player, humanoid, TOXIC_DPS * dt, "Toxic")
+			applyDamage(player, humanoid, Config.TOXIC_DPS * dt, "Toxic")
 		end
 	end
 	s.inToxic = inToxic
 
-	-- Movement: cold overrides sprint; sprint requires hunger above the low mark.
-	-- Only assign on change to avoid replicating WalkSpeed every tick.
-	local targetSpeed
-	if warmth < Config.LOW_STAT then
-		targetSpeed = Config.COLD_WALK_SPEED
-	elseif player:GetAttribute("Sprinting") and hunger > Config.LOW_STAT then
-		targetSpeed = Config.SPRINT_SPEED
-	else
-		targetSpeed = Config.WALK_SPEED
-	end
-	if humanoid.WalkSpeed ~= targetSpeed then
-		humanoid.WalkSpeed = targetSpeed
-	end
+	updateWalkSpeed(player, humanoid)
 end
 
 local function onCharacterAdded(player, character)
@@ -258,8 +266,14 @@ function SurvivalService.Init(depsIn)
 	cacheToxicZones()
 
 	deps.Remotes.SetSprinting.OnServerEvent:Connect(function(player, on)
-		if type(on) == "boolean" then
-			player:SetAttribute("Sprinting", on)
+		if type(on) ~= "boolean" then
+			return
+		end
+		player:SetAttribute("Sprinting", on)
+		-- Apply immediately rather than waiting up to a tick for the loop
+		local humanoid = getLiveHumanoid(player)
+		if humanoid then
+			updateWalkSpeed(player, humanoid)
 		end
 	end)
 
