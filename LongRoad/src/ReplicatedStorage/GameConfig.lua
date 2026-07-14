@@ -59,6 +59,12 @@ GameConfig.FIRE_LIGHT_RANGE = 60
 GameConfig.FIRE_COOK_TIME = 5              -- seconds to cook raw meat
 GameConfig.TREE_CHOPS_BASE = 6             -- chop-points to fell a tree (axe chopPower counts double)
 GameConfig.TREE_WOOD_YIELD = 3
+GameConfig.TREE_RESPAWN = 300              -- felled trees regrow (hide/restore) so long servers can't deforest
+GameConfig.FIRE_MAX_FUEL = 600             -- fuelUntil can never exceed now + this (caps wood stockpiling)
+GameConfig.FIRE_MAX_PER_PLAYER = 3         -- placing a 4th extinguishes your oldest
+GameConfig.FIRE_PLACE_COOLDOWN = 2         -- seconds between placements per player
+GameConfig.CHOP_HOLD = 1                   -- prompt hold seconds per chop
+GameConfig.CHOP_PROMPT_RANGE = 8
 
 -- ===== Day/Night =====
 GameConfig.DAY_LENGTH = 480                -- seconds of day
