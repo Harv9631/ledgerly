@@ -18,6 +18,7 @@ local PLACE_RAY_DEPTH = 20
 local MAX_SLOPE_COS = math.cos(math.rad(30)) -- reject surfaces steeper than 30 deg
 local FELL_TILT = math.rad(8)      -- initial lean that lets the felled clone topple
 local FELL_CLONE_LIFETIME = 4
+local RESPAWN_CLEAR_RADIUS_SQ = 8 ^ 2 -- defer tree restore if a player stands this close
 local LOG_COLOR = Color3.fromRGB(110, 76, 46)
 local LIGHT_COLOR = Color3.fromRGB(255, 150, 50)
 local SMOKE_COLOR = Color3.fromRGB(120, 120, 120)
@@ -28,7 +29,7 @@ local FireService = {}
 
 local deps
 local firesFolder -- Workspace.RuntimeFires: campfires + falling-tree clones
-local placeParams -- excludes placer's character + RuntimeFires (rebuilt per cast)
+local placeParams -- excludes all characters + RuntimeFires (rebuilt per cast)
 
 -- Module scope (NOT Init): the public queries must work pre-Init.
 local activeFires = {}   -- model -> { x, z, pos, fuelUntil, owner, light, flame, dimmed }
@@ -88,6 +89,21 @@ local function fellTree(model, tree, player)
 	tree.respawnAt = os.clock() + deps.Config.TREE_RESPAWN
 end
 
+-- A trunk materializing inside a camping player would stick or fling them, so
+-- restoration is deferred to a later sweep while anyone stands on the stump.
+local function isTreeSpotClear(tree)
+	for _, player in ipairs(Players:GetPlayers()) do
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			local pos = root.Position
+			if (pos.X - tree.x) ^ 2 + (pos.Z - tree.z) ^ 2 <= RESPAWN_CLEAR_RADIUS_SQ then
+				return false
+			end
+		end
+	end
+	return true
+end
+
 local function restoreTree(tree)
 	tree.respawnAt = nil
 	tree.points = 0
@@ -119,7 +135,8 @@ local function setupTrees()
 	end
 	for _, model in ipairs(treeFolder:GetChildren()) do
 		if model:IsA("Model") and model:GetAttribute("Choppable") and model.PrimaryPart then
-			local tree = { points = 0, parts = {} }
+			local pivot = model:GetPivot().Position
+			local tree = { points = 0, parts = {}, x = pivot.X, z = pivot.Z }
 			for _, part in ipairs(model:GetDescendants()) do
 				if part:IsA("BasePart") then
 					table.insert(tree.parts, {
@@ -174,11 +191,17 @@ local function onAddWood(model, player)
 	if not state then
 		return
 	end
+	local now = os.clock()
+	-- Fully stoked: if the FIRE_MAX_FUEL cap would swallow more than half this
+	-- wood's fuel value, refuse WITHOUT consuming it — no silent waste.
+	if (now + deps.Config.FIRE_MAX_FUEL) - state.fuelUntil < deps.Config.FIRE_FUEL_PER_WOOD / 2 then
+		notify(player, "The fire is fully stoked")
+		return
+	end
 	if not deps.Inventory.RemoveItem(player, "Wood", 1) then
 		notify(player, "You need Wood")
 		return
 	end
-	local now = os.clock()
 	state.fuelUntil = math.min(state.fuelUntil + deps.Config.FIRE_FUEL_PER_WOOD,
 		now + deps.Config.FIRE_MAX_FUEL)
 	setDimmed(state, state.fuelUntil - now <= DIM_WINDOW) -- feeding restores brightness
@@ -261,7 +284,9 @@ local function buildCampfire(position, owner, now)
 	local addPrompt = makePrompt(core, "Add Wood", "Campfire", 0.5, Config.CHOP_PROMPT_RANGE)
 	local cookPrompt = makePrompt(core, "Cook Meat", "Campfire",
 		Config.FIRE_COOK_TIME, Config.CHOP_PROMPT_RANGE)
-	cookPrompt.KeyboardKeyCode = Enum.KeyCode.F -- distinct key so both prompts show
+	-- G, not F: F is Interaction.client's eat key — a player holding F here with
+	-- RawMeat equipped could EAT it raw (sick risk) instead of cooking it.
+	cookPrompt.KeyboardKeyCode = Enum.KeyCode.G -- distinct key so both prompts show
 	cookPrompt.GamepadKeyCode = Enum.KeyCode.ButtonY
 	cookPrompt.UIOffset = Vector2.new(0, 64)
 	addPrompt.Triggered:Connect(function(player)
@@ -291,7 +316,15 @@ local function onPlaceFire(player)
 		return
 	end
 	local origin = root.Position + root.CFrame.LookVector * PLACE_DISTANCE
-	placeParams.FilterDescendantsInstances = { character, firesFolder }
+	-- Exclude EVERY character (LootService's settle pattern), not just the
+	-- placer's: hitting another player's head would leave a floating fire.
+	local exclude = { firesFolder }
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then
+			table.insert(exclude, other.Character)
+		end
+	end
+	placeParams.FilterDescendantsInstances = exclude
 	local hit = workspace:Raycast(origin, Vector3.new(0, -PLACE_RAY_DEPTH, 0), placeParams)
 	if not hit or hit.Material == Enum.Material.Water or hit.Normal.Y < MAX_SLOPE_COS then
 		notify(player, "Can't place a fire here")
@@ -309,7 +342,11 @@ local function onPlaceFire(player)
 	end
 	table.insert(list, model)
 	while #list > Config.FIRE_MAX_PER_PLAYER do
-		extinguishFire(list[1]) -- oldest; extinguishFire shifts the list itself
+		local oldest = list[1]
+		extinguishFire(oldest) -- oldest; extinguishFire shifts the list itself
+		if list[1] == oldest then
+			table.remove(list, 1) -- insurance: no state entry; never spin forever
+		end
 	end
 	notify(player, "Campfire placed")
 end
@@ -327,8 +364,8 @@ local function sweep(now)
 	for model, tree in pairs(trees) do
 		if not model.Parent then
 			trees[model] = nil
-		elseif tree.respawnAt and now >= tree.respawnAt then
-			restoreTree(tree)
+		elseif tree.respawnAt and now >= tree.respawnAt and isTreeSpotClear(tree) then
+			restoreTree(tree) -- occupied stump: retried next sweep
 		end
 	end
 end
