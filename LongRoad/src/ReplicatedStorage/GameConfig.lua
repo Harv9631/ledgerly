@@ -86,6 +86,19 @@ GameConfig.HOTBAR_SLOTS = 6
 GameConfig.BACKPACK_SLOTS = 6
 GameConfig.DEATH_BAG_LIFETIME = 120
 
+-- ===== Loot =====
+GameConfig.FORAGE_RESPAWN = 120            -- seconds until a foraged node refills
+GameConfig.CRATE_REFILL = 300              -- seconds until a searched crate refills
+GameConfig.FORAGE_PROMPT_RANGE = 8
+GameConfig.FORAGE_HOLD = 1.5
+GameConfig.SEARCH_HOLD = 2
+GameConfig.LOOT_TABLES = {
+	[1] = { { "CannedFood", 1, 50 }, { "Plank", 1, 25 }, { "Medkit", 1, 15 }, { "Bat", 1, 10 } },
+	[2] = { { "CannedFood", 1, 30 }, { "Bat", 1, 20 }, { "Medkit", 1, 15 }, { "Arrow", 5, 15 }, { "FireAxe", 1, 10 }, { "Bow", 1, 10 } },
+	[3] = { { "Arrow", 5, 25 }, { "Medkit", 1, 20 }, { "FireAxe", 1, 20 }, { "Crossbow", 1, 15 }, { "Bow", 1, 10 }, { "Flare", 1, 10 } },
+}
+-- each entry: { itemId, count, weight } — weights per tier sum to 100 but are normalized anyway
+
 -- ===== Progress =====
 GameConfig.EXTRACTION_REWARD = 100
 GameConfig.TIME_BONUS_MAX = 100            -- linearly scaled: finish in 30min = full bonus, 60min = 0
