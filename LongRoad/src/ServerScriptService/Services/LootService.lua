@@ -7,8 +7,16 @@
 -- crate/pickup state lives in local tables keyed by instance; one shared 5s
 -- maintenance loop sweeps expiries (respawn/refill/despawn) and drops entries
 -- whose instances were destroyed externally (Parent == nil).
+local Players = game:GetService("Players")
+
 local MAINTENANCE_INTERVAL = 5
 local SETTLE_RAY_LENGTH = 100
+
+-- Depleted-bush visuals: hide these decoration parts (ModelPlacer placeholder
+-- names) so a picked-clean bush reads as such. Wood (branches) hides ALL parts
+-- instead (the branch was taken). Real user models without these part names
+-- fall back gracefully to prompt-only deactivation.
+local HIDE_PART_NAMES = { Berries = "Berry", Mushroom = "Stem" }
 
 local CRATE_COLORS = {
 	[1] = Color3.fromRGB(196, 164, 120), -- tan
@@ -24,8 +32,8 @@ local LootService = {}
 
 local deps
 local rng
-local pickupsFolder, cratesFolder
-local settleParams -- excludes RuntimeLoot so drops never settle on other drops
+local runtimeFolder, pickupsFolder, cratesFolder
+local settleParams -- excludes RuntimeLoot + characters (rebuilt per settle)
 
 local nodes = {}  -- root instance -> { prompt, itemId, hideParts?, expiry? }
 local crates = {} -- crate part   -> { prompt, tier, expiry? }
@@ -65,8 +73,17 @@ local function makeBillboard(parent, text)
 end
 
 -- Drop position may be mid-air (dropped while jumping): ray straight down
--- against everything except runtime loot; miss -> keep the given position.
+-- against everything except runtime loot and player characters (a death bag
+-- settling on a corpse would float once the corpse despawns); miss -> keep
+-- the given position.
 local function settleOnGround(position, halfHeight)
+	local exclude = { runtimeFolder }
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then
+			table.insert(exclude, player.Character)
+		end
+	end
+	settleParams.FilterDescendantsInstances = exclude
 	local hit = workspace:Raycast(position, Vector3.new(0, -SETTLE_RAY_LENGTH, 0), settleParams)
 	if hit then
 		return Vector3.new(position.X, hit.Position.Y + halfHeight, position.Z)
@@ -105,13 +122,14 @@ local function onForageTriggered(node, player)
 	end
 	node.prompt.Enabled = false
 	node.expiry = os.clock() + deps.Config.FORAGE_RESPAWN
-	if node.hideParts then -- branches vanish (the branch was taken)
+	-- Branches vanish entirely; bushes hide just their berries/stems (the bush
+	-- body stays visible, reading as picked clean).
+	if node.hideParts then
 		for _, rec in ipairs(node.hideParts) do
 			rec.part.Transparency = 1
 			rec.part.CanCollide = false
 		end
 	end
-	-- bushes stay visible (picked clean): prompt off is all they get
 end
 
 local function reactivateNode(node)
@@ -145,18 +163,22 @@ local function setupForageNodes()
 				local node = { itemId = itemId }
 				node.prompt = makePrompt(holder, "Forage", def.name,
 					deps.Config.FORAGE_HOLD, deps.Config.FORAGE_PROMPT_RANGE)
-				if itemId == "Wood" then -- branch: record originals for vanish/restore
-					node.hideParts = {}
-					local parts = inst:IsA("BasePart") and { inst } or inst:GetDescendants()
-					for _, part in ipairs(parts) do
-						if part:IsA("BasePart") then
-							table.insert(node.hideParts, {
-								part = part,
-								transparency = part.Transparency,
-								canCollide = part.CanCollide,
-							})
-						end
+				-- Record originals for hide/restore: branches hide every part,
+				-- bushes hide only their named decoration parts (if any exist).
+				local hideName = HIDE_PART_NAMES[itemId]
+				local hideParts = {}
+				local parts = inst:IsA("BasePart") and { inst } or inst:GetDescendants()
+				for _, part in ipairs(parts) do
+					if part:IsA("BasePart") and (itemId == "Wood" or part.Name == hideName) then
+						table.insert(hideParts, {
+							part = part,
+							transparency = part.Transparency,
+							canCollide = part.CanCollide,
+						})
 					end
+				end
+				if #hideParts > 0 then
+					node.hideParts = hideParts
 				end
 				nodes[inst] = node
 				node.prompt.Triggered:Connect(function(player)
@@ -222,7 +244,8 @@ end
 
 function LootService.SpawnPickup(position, itemId, count)
 	local def = deps.ItemDefs[itemId]
-	if not def or type(count) ~= "number" or count ~= count or count < 1 then
+	if not def or type(count) ~= "number" or count ~= count
+		or count == math.huge or count < 1 then
 		return nil
 	end
 	count = math.floor(count)
@@ -260,9 +283,13 @@ end
 function LootService.SpawnDeathBag(position, items)
 	local stacks = {}
 	for _, s in ipairs(items) do
-		if deps.ItemDefs[s.id] and type(s.count) == "number" and s.count >= 1 then
-			table.insert(stacks, { id = s.id, count = s.count })
+		if deps.ItemDefs[s.id] and type(s.count) == "number" and s.count == s.count
+			and s.count ~= math.huge and s.count >= 1 then
+			table.insert(stacks, { id = s.id, count = math.floor(s.count) })
 		end
+	end
+	if #stacks == 0 then
+		return nil
 	end
 	local part = Instance.new("Part")
 	part.Name = "Backpack"
@@ -335,19 +362,18 @@ function LootService.Init(depsIn)
 	deps = depsIn
 	rng = Random.new() -- unseeded: runtime loot should differ per server
 
-	local runtime = workspace:FindFirstChild("RuntimeLoot") or Instance.new("Folder")
-	runtime.Name = "RuntimeLoot"
-	runtime.Parent = workspace
-	cratesFolder = runtime:FindFirstChild("Crates") or Instance.new("Folder")
+	runtimeFolder = workspace:FindFirstChild("RuntimeLoot") or Instance.new("Folder")
+	runtimeFolder.Name = "RuntimeLoot"
+	runtimeFolder.Parent = workspace
+	cratesFolder = runtimeFolder:FindFirstChild("Crates") or Instance.new("Folder")
 	cratesFolder.Name = "Crates"
-	cratesFolder.Parent = runtime
-	pickupsFolder = runtime:FindFirstChild("Pickups") or Instance.new("Folder")
+	cratesFolder.Parent = runtimeFolder
+	pickupsFolder = runtimeFolder:FindFirstChild("Pickups") or Instance.new("Folder")
 	pickupsFolder.Name = "Pickups"
-	pickupsFolder.Parent = runtime
+	pickupsFolder.Parent = runtimeFolder
 
 	settleParams = RaycastParams.new()
 	settleParams.FilterType = Enum.RaycastFilterType.Exclude
-	settleParams.FilterDescendantsInstances = { runtime }
 
 	setupForageNodes()
 	setupCrates()
