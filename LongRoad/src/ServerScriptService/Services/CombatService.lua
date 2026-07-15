@@ -133,7 +133,7 @@ local function onSwing(player)
 
 	local origin = root.Position
 	local look = root.CFrame.LookVector
-	local best, bestHum, bestDistSq
+	local best, bestHum, bestRoot, bestDistSq
 
 	local function consider(targetChar)
 		if targetChar == character then
@@ -159,7 +159,7 @@ local function onSwing(player)
 			return
 		end
 		if not bestDistSq or distSq < bestDistSq then
-			best, bestHum, bestDistSq = targetChar, humanoid, distSq
+			best, bestHum, bestRoot, bestDistSq = targetChar, humanoid, targetRoot, distSq
 		end
 	end
 
@@ -175,7 +175,14 @@ local function onSwing(player)
 	end
 
 	if best then
-		dealDamage(best, bestHum, def.damage, player)
+		-- Occlusion: no reaching through a solid wall. Exclude both characters
+		-- so the attacker's own body and the target don't count as blockers.
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { character, best }
+		if not workspace:Raycast(origin, bestRoot.Position - origin, params) then
+			dealDamage(best, bestHum, def.damage, player)
+		end
 	end
 end
 
@@ -239,7 +246,17 @@ local function onFire(player, direction)
 		return
 	end
 	lastPrimary[player] = now
-	spawnProjectile(player, character, root.Position + unit * spawnOffset, unit, def.damage)
+	-- Muzzle sits a few studs ahead, but if a thin wall is between the shooter
+	-- and that offset, spawn AT the shooter so the shot can't originate past
+	-- cover. Shooter is excluded so this never self-hits.
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character, projectilesFolder }
+	local spawnPos = root.Position
+	if not workspace:Raycast(root.Position, unit * spawnOffset, params) then
+		spawnPos = root.Position + unit * spawnOffset
+	end
+	spawnProjectile(player, character, spawnPos, unit, def.damage)
 end
 
 local function stepProjectiles(dt)
@@ -254,27 +271,32 @@ local function stepProjectiles(dt)
 			local from = p.part.Position
 			local advance = math.min(step, maxDistance - p.traveled)
 			local segment = p.dir * advance
-			local hit = workspace:Raycast(from, segment, p.params)
-			if hit then
+			-- Re-cast the SAME segment after passing through a friendly/self so an
+			-- enemy standing just behind them is still hit this frame. Bounded:
+			-- each passthrough excludes one more model, so the loop terminates.
+			while true do
+				local hit = workspace:Raycast(from, segment, p.params)
+				if not hit then
+					local to = from + segment
+					p.part.CFrame = CFrame.lookAt(to, to + p.dir)
+					p.traveled += advance
+					break
+				end
 				local model, humanoid = resolveHumanoid(hit.Instance)
 				local victimPlayer = model and Players:GetPlayerFromCharacter(model)
-				if model and victimPlayer and deps.Squad and deps.Squad.SameSquad(p.shooter, victimPlayer) then
-					-- Pass through a squad-mate: exclude them and keep flying.
+				local passthrough = victimPlayer ~= nil and (victimPlayer == p.shooter
+					or (deps.Squad ~= nil and deps.Squad.SameSquad(p.shooter, victimPlayer) == true))
+				if passthrough then
+					-- Squad-mate or the shooter's own (respawned) character: skip.
 					table.insert(p.exclude, model)
 					p.params.FilterDescendantsInstances = p.exclude
-					p.part.CFrame = CFrame.lookAt(from + segment, from + segment + p.dir)
-					p.traveled += advance
 				else
 					if model then
 						dealDamage(model, humanoid, p.damage, p.shooter)
 					end
-					p.part.Position = hit.Position
 					remove = true
+					break
 				end
-			else
-				local to = from + segment
-				p.part.CFrame = CFrame.lookAt(to, to + p.dir)
-				p.traveled += advance
 			end
 		end
 		if remove then
@@ -299,30 +321,28 @@ local function onDied(victimPlayer, character)
 	killer:SetAttribute("HostileUntil", os.time() + deps.Config.HOSTILE_DURATION)
 end
 
+-- Yields (Humanoid replicates a frame after CharacterAdded / on hot reload),
+-- so always run via task.spawn — never from Init's synchronous path.
 local function bindDeath(player, character)
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then
-		return
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if humanoid then
+		humanoid.Died:Connect(function()
+			onDied(player, character)
+		end)
 	end
-	humanoid.Died:Connect(function()
-		onDied(player, character)
-	end)
 end
 
 local function watchPlayer(player)
 	local conns = {}
 	table.insert(conns, player.CharacterAdded:Connect(function(character)
-		local humanoid = character:WaitForChild("Humanoid", 10)
-		if humanoid then
-			bindDeath(player, character)
-		end
+		task.spawn(bindDeath, player, character)
 	end))
 	table.insert(conns, player.CharacterRemoving:Connect(function(character)
 		lastHit[character] = nil -- per-life memory dies with the character
 	end))
 	playerConns[player] = conns
 	if player.Character then
-		bindDeath(player, player.Character)
+		task.spawn(bindDeath, player, player.Character)
 	end
 end
 
