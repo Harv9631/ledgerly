@@ -75,7 +75,12 @@ GameConfig.RAIN_DURATION = 120
 -- ===== Combat =====
 GameConfig.HOSTILE_DURATION = 300          -- red-mark after player kill
 GameConfig.MAX_MELEE_RANGE = 10            -- server-side reach validation
+GameConfig.MELEE_CONE_DEGREES = 60         -- swing hits within this half-angle of facing
 GameConfig.PROJECTILE_SPEED = 120
+GameConfig.PROJECTILE_SPAWN_OFFSET = 3     -- studs ahead of the shooter it appears
+GameConfig.PROJECTILE_MAX_DISTANCE = 300   -- studs before it despawns
+GameConfig.PROJECTILE_LIFETIME = 3         -- seconds before it despawns
+GameConfig.DAMAGER_MEMORY = 10             -- seconds a player-damager stays attributable for a kill
 
 -- ===== Monsters =====
 GameConfig.MONSTERS = {
