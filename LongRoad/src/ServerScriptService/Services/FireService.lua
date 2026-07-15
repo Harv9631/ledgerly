@@ -322,6 +322,10 @@ local function onPlaceFire(player)
 	-- Exclude EVERY character (LootService's settle pattern), not just the
 	-- placer's: hitting another player's head would leave a floating fire.
 	local exclude = { firesFolder }
+	local monstersFolder = workspace:FindFirstChild("RuntimeMonsters")
+	if monstersFolder then
+		table.insert(exclude, monstersFolder) -- don't place a fire on / reject against a monster
+	end
 	for _, other in ipairs(Players:GetPlayers()) do
 		if other.Character then
 			table.insert(exclude, other.Character)

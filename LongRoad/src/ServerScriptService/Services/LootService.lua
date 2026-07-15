@@ -78,6 +78,10 @@ end
 -- the given position.
 local function settleOnGround(position, halfHeight)
 	local exclude = { runtimeFolder }
+	local monstersFolder = workspace:FindFirstChild("RuntimeMonsters")
+	if monstersFolder then
+		table.insert(exclude, monstersFolder) -- a living monster shouldn't catch a dropped pickup
+	end
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then
 			table.insert(exclude, player.Character)

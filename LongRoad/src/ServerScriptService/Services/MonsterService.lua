@@ -6,7 +6,9 @@
 -- thread-per-monster. Neither loop yields mid-iteration, and Humanoid.Died only
 -- fires at a yield point, so the `monsters` table is never mutated mid-traversal
 -- (removing the current key during pairs() is legal in Luau). All rigs live under
--- workspace.RuntimeMonsters (other systems' raycasts exclude that exact name).
+-- workspace.RuntimeMonsters; FireService's fire-placement ray and LootService's
+-- pickup-settle ray exclude that folder (this service added those excludes) so
+-- monsters neither host a campfire nor catch dropped loot.
 --
 -- Damage attribution: a monster deals its own damage. Before a lethal blow it
 -- sets the victim's LastDeathCause="Monster" (SurvivalService's convention) and
@@ -55,10 +57,11 @@ local function isNight()
 	return workspace:GetAttribute("IsNight") == true
 end
 
--- No live player character within minDist of pos (X/Y/Z).
-local function farFromPlayers(pos, minDist)
+-- No live player character within minDist of pos (X/Y/Z). `players` is a snapshot
+-- taken once per loop pass so we don't call Players:GetPlayers() per monster.
+local function farFromPlayers(pos, minDist, players)
 	local minSq = minDist * minDist
-	for _, player in ipairs(Players:GetPlayers()) do
+	for _, player in ipairs(players) do
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		if root then
 			local d = root.Position - pos
@@ -81,11 +84,12 @@ local function targetInfo(player)
 end
 
 -- Nearest live player within maxRange of pos. avoidWarded skips players standing
--- in a fire ward (fearsFire acquisition). Returns player, char, humanoid, root.
-local function nearestTarget(pos, maxRange, avoidWarded)
+-- in a fire ward (fearsFire acquisition). `players` is a per-pass snapshot.
+-- Returns player, char, humanoid, root.
+local function nearestTarget(pos, maxRange, avoidWarded, players)
 	local bestSq = maxRange * maxRange
 	local best, bestChar, bestHum, bestRoot
-	for _, player in ipairs(Players:GetPlayers()) do
+	for _, player in ipairs(players) do
 		local char, humanoid, root = targetInfo(player)
 		if char then
 			local tp = root.Position
@@ -175,6 +179,21 @@ local function buildRig(typeName)
 	humanoid.RigType = Enum.HumanoidRigType.R6
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	humanoid.HipHeight = 0
+	-- Weld-only rig has no "Neck" Motor6D; without this the neck-check can decide
+	-- the head is detached and kill the monster on spawn.
+	humanoid.RequiresNeck = false
+	-- Prune states this ground-walking rig can never legitimately enter — stops the
+	-- Humanoid wandering into Swimming/FallingDown/Ragdoll on slopes or water edges.
+	for _, disabled in ipairs({
+		Enum.HumanoidStateType.Climbing,
+		Enum.HumanoidStateType.Swimming,
+		Enum.HumanoidStateType.Seated,
+		Enum.HumanoidStateType.FallingDown,
+		Enum.HumanoidStateType.Ragdoll,
+		Enum.HumanoidStateType.PlatformStanding,
+	}) do
+		humanoid:SetStateEnabled(disabled, false)
+	end
 	humanoid.Parent = model
 
 	model.PrimaryPart = root
@@ -315,10 +334,10 @@ local function countZone(zoneName)
 	return n
 end
 
-local function pickSpawnMarker(markers)
+local function pickSpawnMarker(markers, players)
 	local candidates = {}
 	for _, marker in ipairs(markers) do
-		if marker.Parent and farFromPlayers(marker.Position, SPAWN_MIN_PLAYER_DIST) then
+		if marker.Parent and farFromPlayers(marker.Position, SPAWN_MIN_PLAYER_DIST, players) then
 			table.insert(candidates, marker)
 		end
 	end
@@ -329,11 +348,11 @@ local function pickSpawnMarker(markers)
 end
 
 -- Dawn: nightOnly monsters walk away from the nearest player, then vanish.
-local function despawnNightMonsters()
+local function despawnNightMonsters(players)
 	for _, m in pairs(monsters) do
 		if m.nightOnly and not m.despawnAt then
 			local pos = m.root.Position
-			local _, _, _, nearestRoot = nearestTarget(pos, math.huge, false)
+			local _, _, _, nearestRoot = nearestTarget(pos, math.huge, false, players)
 			local awayDir = m.root.CFrame.LookVector
 			if nearestRoot then
 				local playerPos = nearestRoot.Position
@@ -353,15 +372,16 @@ local function spawnTick()
 	if not hasSpawns then
 		return
 	end
+	local players = Players:GetPlayers()
 	local night = isNight()
 	if not night then
-		despawnNightMonsters()
+		despawnNightMonsters(players)
 	end
 
 	local now = os.clock()
 	for _, post in ipairs(brutePosts) do
 		if not post.model and (not post.deadUntil or now >= post.deadUntil)
-			and farFromPlayers(post.position, SPAWN_MIN_PLAYER_DIST) then
+			and farFromPlayers(post.position, SPAWN_MIN_PLAYER_DIST, players) then
 			post.model = spawnMonster("Brute", post.position, "City", post)
 			post.deadUntil = nil
 		end
@@ -373,7 +393,7 @@ local function spawnTick()
 			local mult = night and deps.Config.NIGHT_SPAWN_MULT or 1
 			local cap = (deps.Config.MONSTER_CAPS[zone.name] or 0) * mult
 			if countZone(zone.name) < cap then
-				local marker = pickSpawnMarker(markers)
+				local marker = pickSpawnMarker(markers, players)
 				if marker then
 					spawnMonster(pickType(zone.name, night), marker.Position, zone.name, nil)
 				end
@@ -410,9 +430,16 @@ local function wander(m, now, pos, radius, minDelay, maxDelay)
 	m.nextWander = now + rng:NextNumber(minDelay, maxDelay)
 end
 
-local function stepMonster(m, now)
+local function stepMonster(m, now, players)
+	-- External destruction (model:Destroy() from elsewhere) may not fire Died, which
+	-- would otherwise leak this entry — a ghost consuming zone cap and, for a Brute,
+	-- a post that never respawns. Reap it here so destroyMonster runs its cleanup.
+	if not m.model.Parent then
+		destroyMonster(m.model, m, false)
+		return
+	end
 	local humanoid, root = m.humanoid, m.root
-	if humanoid.Health <= 0 or not root.Parent then
+	if humanoid.Health <= 0 then
 		return -- Died handler owns teardown
 	end
 	local pos = root.Position
@@ -448,7 +475,7 @@ local function stepMonster(m, now)
 	end
 
 	-- No target: try to acquire, else wander.
-	local newTarget, _, _, tRoot = nearestTarget(pos, m.aggroRange, m.fearsFire)
+	local newTarget, _, _, tRoot = nearestTarget(pos, m.aggroRange, m.fearsFire, players)
 	if newTarget then
 		m.target = newTarget
 		m.nextWander = nil
@@ -487,9 +514,13 @@ local function cacheMarkers()
 			end
 		end
 	end
-	-- Three highest-tier city loot clusters become fixed Brute posts.
+	-- Three highest-tier city loot clusters become fixed Brute posts. Coerce the
+	-- LootTier attribute defensively, matching LootService's crate setup.
+	local function lootTier(marker)
+		return tonumber(marker:GetAttribute("LootTier")) or 0
+	end
 	table.sort(cityLoot, function(a, b)
-		return (a:GetAttribute("LootTier") or 0) > (b:GetAttribute("LootTier") or 0)
+		return lootTier(a) > lootTier(b)
 	end)
 	for i = 1, math.min(3, #cityLoot) do
 		table.insert(brutePosts, { position = cityLoot[i].Position, model = nil, deadUntil = nil })
@@ -501,7 +532,7 @@ local function cacheMarkers()
 	end
 	hasSpawns = total > 0
 	if not hasSpawns then
-		warn("[MonsterService] no Marker_MonsterSpawn markers found; spawning disabled")
+		warn("[MonsterService] no Marker_MonsterSpawn or City Marker_Loot markers found; spawning disabled")
 	end
 end
 
@@ -537,14 +568,31 @@ function MonsterService.Init(depsIn)
 		while true do
 			task.wait(AI_INTERVAL)
 			local now = os.clock()
+			local players = Players:GetPlayers()
 			for _, m in pairs(monsters) do
-				local ok, err = pcall(stepMonster, m, now)
+				local ok, err = pcall(stepMonster, m, now, players)
 				if not ok then
 					warn("[MonsterService] AI error: " .. tostring(err))
 				end
 			end
 		end
 	end)
+end
+
+-- Public spawn for DebugService (Task 12): /spawnmonster. Infers the zone from Z
+-- so it counts toward caps and honors dawn despawn like an organic spawn.
+function MonsterService.SpawnMonster(typeName, position)
+	if not deps or not deps.Config.MONSTERS[typeName] or typeof(position) ~= "Vector3" then
+		return nil
+	end
+	local zoneName
+	for _, zone in ipairs(deps.Config.ZONES) do
+		if position.Z >= zone.zStart and position.Z <= zone.zEnd then
+			zoneName = zone.name
+			break
+		end
+	end
+	return spawnMonster(typeName, position, zoneName, nil)
 end
 
 return MonsterService
