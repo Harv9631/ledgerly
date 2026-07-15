@@ -84,6 +84,7 @@ local function fellTree(model, tree, player)
 	for _, rec in ipairs(tree.parts) do
 		rec.part.Transparency = 1
 		rec.part.CanCollide = false
+		rec.part.CanQuery = false -- else the invisible trunk still blocks raycasts (melee LOS, arrows)
 	end
 	tree.points = 0
 	tree.respawnAt = os.clock() + deps.Config.TREE_RESPAWN
@@ -110,6 +111,7 @@ local function restoreTree(tree)
 	for _, rec in ipairs(tree.parts) do
 		rec.part.Transparency = rec.transparency
 		rec.part.CanCollide = rec.canCollide
+		rec.part.CanQuery = rec.canQuery
 	end
 	tree.prompt.Enabled = true
 end
@@ -143,6 +145,7 @@ local function setupTrees()
 						part = part,
 						transparency = part.Transparency,
 						canCollide = part.CanCollide,
+						canQuery = part.CanQuery,
 					})
 				end
 			end

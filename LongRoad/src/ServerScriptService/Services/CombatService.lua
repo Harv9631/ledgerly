@@ -180,6 +180,7 @@ local function onSwing(player)
 		local params = RaycastParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude
 		params.FilterDescendantsInstances = { character, best }
+		params.IgnoreWater = true -- river voxels mustn't block a swing between two swimmers
 		if not workspace:Raycast(origin, bestRoot.Position - origin, params) then
 			dealDamage(best, bestHum, def.damage, player)
 		end
@@ -205,6 +206,8 @@ local function spawnProjectile(shooter, shooterChar, position, dir, damage)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = exclude
+	-- IgnoreWater left at default (false) on purpose: an arrow stopping at the
+	-- water surface reads as intended, unlike a melee swing between swimmers.
 
 	table.insert(activeProjectiles, {
 		part = part, dir = dir, damage = damage, shooter = shooter,
