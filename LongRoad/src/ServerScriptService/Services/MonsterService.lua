@@ -434,7 +434,7 @@ local function stepMonster(m, now, players)
 	-- External destruction (model:Destroy() from elsewhere) may not fire Died, which
 	-- would otherwise leak this entry — a ghost consuming zone cap and, for a Brute,
 	-- a post that never respawns. Reap it here so destroyMonster runs its cleanup.
-	if not m.model.Parent then
+	if not m.model.Parent or not m.root.Parent then
 		destroyMonster(m.model, m, false)
 		return
 	end
