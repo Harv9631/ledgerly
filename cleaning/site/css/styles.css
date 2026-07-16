@@ -352,17 +352,23 @@ footer a:hover { color: #8FC3B4; }
 .mop-sweep { position: absolute; inset: 0; pointer-events: none; z-index: 5; display: none; }
 .wipe-armed .mop-sweep { display: block; }
 .mop-sweep svg {
-  position: absolute; top: -6%; height: 112%;
-  transform: translateX(-60vw) rotate(-3deg);
+  position: absolute; left: 0; top: -6%; height: 112%; max-height: 120vh;
+  /* park fully off-screen regardless of viewport/section proportions */
+  transform: translateX(calc(-100% - 25vw)) rotate(-3deg);
   transform-origin: 50% 30%;
 }
 .wipe-play .mop-sweep svg { animation: mop-cross 1.9s cubic-bezier(0.55, 0.08, 0.35, 1) forwards; }
 @keyframes mop-cross {
-  0%   { transform: translateX(-60vw) rotate(-3deg); }
-  45%  { transform: translateX(40vw) rotate(3.5deg); }
-  100% { transform: translateX(112vw) rotate(-2deg); }
+  0%   { transform: translateX(calc(-100% - 25vw)) rotate(-3deg); }
+  45%  { transform: translateX(35vw) rotate(3.5deg); }
+  100% { transform: translateX(calc(100vw + 25%)) rotate(-2deg); }
 }
+/* final state enforced even if the keyframe animation never ran */
 .wipe-done .mop-sweep { display: none; }
+.wipe-done .price-flex {
+  -webkit-mask-image: none; mask-image: none;
+  animation: none;
+}
 
 @media (max-width: 960px) {
   .hero3d-track { height: 340vh; }
