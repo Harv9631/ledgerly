@@ -30,18 +30,24 @@
 local Players = game:GetService("Players")
 local DataStoreService = game:GetService("DataStoreService")
 
--- Detection radii (plan): 30 studs around a checkpoint, 20 around extraction.
--- Compared on the XZ plane only (checkpoint/extraction Y is ground level, the
--- root sits a few studs above), matching SurvivalService's isNearCheckpoint.
-local CHECKPOINT_RADIUS = 30
-local EXTRACTION_RADIUS = 20
+-- Checkpoint/extraction detection is XZ-planar only (the target Y is ground
+-- level, the root sits a few studs above), matching SurvivalService's
+-- isNearCheckpoint. Radii live in GameConfig (CHECKPOINT_RADIUS/EXTRACTION_RADIUS).
 local ZONE_SCAN_INTERVAL = 2
 local AUTOSAVE_INTERVAL = 120
-local SPAWN_Y_LIFT = 50    -- positions carry Y=0 (resolved at bake); lift + fall, like DebugService
 local RESPAWN_TIME = 5
 local LOAD_RETRIES = 3
 local RUN_HOUR = 3600      -- full-bonus below 30min, zero at 60min (see timeBonus)
 local BONUS_WINDOW = 1800
+local BINDTOCLOSE_DEADLINE = 25 -- seconds; below Roblox's ~30s shutdown budget, leaving margin
+
+-- Spawn/checkpoint positions carry Y=0 in Config; we resolve real ground Y once
+-- at Init by raycasting down onto the baked map, then spawn SPAWN_OFFSET above it.
+-- SPAWN_Y_LIFT is only the fallback when a raycast misses (map not baked): pivot
+-- high and let the character fall, like DebugService's /tp.
+local SPAWN_OFFSET = 4
+local SPAWN_Y_LIFT = 50
+local GROUND_RAY_HEIGHT = 500 -- ray origin Y; well above the tallest baked terrain
 
 local ProgressService = {}
 
@@ -53,6 +59,7 @@ local profileLoaded = {}     -- player -> bool (read succeeded; gate every save)
 local extracting = {}        -- player -> true while standing in the extraction radius (edge-trigger guard)
 local store                  -- DataStore handle, or nil if GetDataStore threw (Studio w/o API access)
 local warnedNoStore = false  -- warn-once flag for the degraded (no persistence) path
+local spawnCFrames = {}      -- index (0 = spawn, 1..N = checkpoints) -> ground-resolved CFrame (built at Init)
 
 local function notify(player, text)
 	deps.Remotes.Notify:FireClient(player, text)
@@ -92,7 +99,18 @@ local function getLiveChar(player)
 	return root, humanoid
 end
 
-local function liftedCFrame(position)
+-- Resolves a Config position (Y=0) to a spawn CFrame sitting SPAWN_OFFSET above
+-- the baked ground. Raycasts down onto everything except water; a miss means the
+-- map isn't baked, so we fall back to the high lift (pivot up, fall onto ground).
+local function resolveGround(position)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.IgnoreWater = true -- don't land on the river surface
+	local origin = Vector3.new(position.X, GROUND_RAY_HEIGHT, position.Z)
+	local result = workspace:Raycast(origin, Vector3.new(0, -GROUND_RAY_HEIGHT * 2, 0), params)
+	if result then
+		return CFrame.new(position.X, result.Position.Y + SPAWN_OFFSET, position.Z)
+	end
 	return CFrame.new(position + Vector3.new(0, SPAWN_Y_LIFT, 0))
 end
 
@@ -230,6 +248,10 @@ end
 -- first. Autosave and PlayerRemoving can both call this for the same player;
 -- SetAsync is atomic per key so the race resolves last-write-wins (acceptable —
 -- both write the same up-to-date snapshot).
+-- No session locking: if the same UserId is live on two servers (e.g. a fast
+-- rejoin onto a different instance), the later save wins and the earlier
+-- server's progress is lost. UpdateAsync/ProfileService-style session locking is
+-- deliberately out of scope for v1 (single-key SetAsync is enough here).
 local function saveProfile(player)
 	if not store or not profileLoaded[player] then
 		return
@@ -268,20 +290,34 @@ local function resolveCheckpointIndex(player)
 	return best
 end
 
-local function checkpointPosition(index)
-	local cp = index >= 1 and Config.CHECKPOINTS[index]
-	return cp and cp.position or Config.SPAWN_POSITION
+-- Ground-resolved spawn CFrame for a checkpoint index (0 = start line). Out-of-
+-- range indices fall back to the start (spawnCFrames always has key 0).
+local function spawnCFrameForIndex(index)
+	return spawnCFrames[index] or spawnCFrames[0]
+end
+
+-- Prefetches streaming around the destination (Workspace.StreamingEnabled) so
+-- the client has terrain to land on, then pivots. RequestStreamAroundAsync
+-- YIELDS, so callers MUST run this off any synchronous hot path (the scan loop);
+-- the character is re-checked after the yield in case it died/despawned.
+local function streamAndPivot(player, character, target)
+	pcall(function()
+		player:RequestStreamAroundAsync(target.Position)
+	end)
+	if character.Parent and character:FindFirstChild("HumanoidRootPart") then
+		character:PivotTo(target)
+	end
 end
 
 -- Places the fresh character at its resolved checkpoint. Waits for the root to
--- exist (Roblox positions the character a moment after CharacterAdded) then
--- pivots; the SPAWN_Y_LIFT lets them fall onto baked ground.
+-- exist (Roblox positions the character a moment after CharacterAdded). Always
+-- invoked via task.spawn, so the streaming yield in streamAndPivot is safe.
 local function placeAtCheckpoint(player, character)
 	local root = character:WaitForChild("HumanoidRootPart", 10)
 	if not root then
 		return
 	end
-	character:PivotTo(liftedCFrame(checkpointPosition(resolveCheckpointIndex(player))))
+	streamAndPivot(player, character, spawnCFrameForIndex(resolveCheckpointIndex(player)))
 end
 
 local function onDied(player, character)
@@ -336,9 +372,11 @@ local function completeRun(player)
 	deps.Inventory.ClearAll(player)
 	grantOwnedKits(player)
 	player:SetAttribute("RunStartTime", os.time())
+	-- Teleport off the scan loop's synchronous path: streamAndPivot yields on
+	-- RequestStreamAroundAsync, and the loop must not yield mid-pass.
 	local character = player.Character
 	if character then
-		character:PivotTo(liftedCFrame(Config.SPAWN_POSITION))
+		task.spawn(streamAndPivot, player, character, spawnCFrameForIndex(0))
 	end
 end
 
@@ -354,14 +392,14 @@ local function scanPlayer(player)
 
 	local current = player:GetAttribute("CheckpointIndex") or 0
 	for idx, cp in ipairs(Config.CHECKPOINTS) do
-		if idx > current and withinXZ(pos, cp.position, CHECKPOINT_RADIUS) then
+		if idx > current and withinXZ(pos, cp.position, Config.CHECKPOINT_RADIUS) then
 			current = idx
 			player:SetAttribute("CheckpointIndex", idx)
 			notify(player, "Checkpoint: " .. cp.name)
 		end
 	end
 
-	if withinXZ(pos, Config.EXTRACTION_POSITION, EXTRACTION_RADIUS) then
+	if withinXZ(pos, Config.EXTRACTION_POSITION, Config.EXTRACTION_RADIUS) then
 		if not extracting[player] then
 			extracting[player] = true
 			completeRun(player)
@@ -426,6 +464,10 @@ local function onPlayerAdded(player)
 			profileLoaded[player] = true
 		end
 		-- Apply on both paths (default profile on failure just re-writes zeros).
+		-- This REPLACES the Currency attribute with the loaded value, clobbering
+		-- any change made during the (sub-second to a few seconds) load window.
+		-- Only reachable today via DebugService /set currency mid-load; a real
+		-- award needs a 30min+ run, so it can't land inside the window.
 		local applied = profiles[player]
 		player:SetAttribute("Currency", applied.currency)
 		updateOwnedKitsAttribute(player)
@@ -446,6 +488,13 @@ function ProgressService.Init(depsIn)
 	Config = deps.Config
 
 	Players.RespawnTime = RESPAWN_TIME -- respawn feeds back into placeAtCheckpoint
+
+	-- Ground-resolve every spawn point once (the map is baked into the place file
+	-- before any script runs, so the raycasts hit). Index 0 = start line.
+	spawnCFrames[0] = resolveGround(Config.SPAWN_POSITION)
+	for idx, cp in ipairs(Config.CHECKPOINTS) do
+		spawnCFrames[idx] = resolveGround(cp.position)
+	end
 
 	local ok, result = pcall(function()
 		return DataStoreService:GetDataStore(Config.DATASTORE_NAME)
@@ -469,11 +518,27 @@ function ProgressService.Init(depsIn)
 	end
 	Players.PlayerRemoving:Connect(onPlayerRemoving)
 
-	-- BindToClose gets ~30s; save present players sequentially (each pcall'd, and
-	-- skipped fast when there's no store / an unloaded profile) so it can't hang.
+	-- BindToClose gets ~30s. Save every present player IN PARALLEL (one task each)
+	-- so the total is bounded by a single save's latency — sequential saves would
+	-- blow the budget on a full server, especially with the per-key ~6s write
+	-- cooldown queuing behind a recent autosave. Wait on a completion counter up
+	-- to BINDTOCLOSE_DEADLINE; saveProfile is pcall'd and fast-skips no store /
+	-- unloaded profiles, so a straggler can't hang shutdown past the deadline.
 	game:BindToClose(function()
-		for _, player in ipairs(Players:GetPlayers()) do
-			saveProfile(player)
+		local present = Players:GetPlayers()
+		local remaining = #present
+		if remaining == 0 then
+			return
+		end
+		for _, player in ipairs(present) do
+			task.spawn(function()
+				saveProfile(player)
+				remaining -= 1
+			end)
+		end
+		local deadline = os.clock() + BINDTOCLOSE_DEADLINE
+		while remaining > 0 and os.clock() < deadline do
+			task.wait()
 		end
 	end)
 

@@ -520,7 +520,6 @@ bannerStats.Font = Enum.Font.GothamMedium
 bannerStats.TextSize = 16
 bannerStats.TextColor3 = TEXT_COLOR
 bannerStats.TextYAlignment = Enum.TextYAlignment.Top
-bannerStats.RichText = true
 bannerStats.Text = ""
 bannerStats.Parent = banner
 banner.Parent = gui

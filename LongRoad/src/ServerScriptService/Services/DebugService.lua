@@ -142,7 +142,7 @@ handlers.set = function(player, args)
 		print(string.format("[Debug] set %s Health = %d", player.Name, humanoid.Health))
 	elseif stat == "currency" then
 		local amount = math.max(0, math.floor(value))
-		player:SetAttribute("Currency", amount) -- ProgressService (Task 14) owns this later
+		player:SetAttribute("Currency", amount) -- ProgressService loads/saves/awards Currency; this overrides the live attribute for testing
 		print(string.format("[Debug] set %s Currency = %d", player.Name, amount))
 	else
 		print("[Debug] usage: /set <hunger|warmth|health|currency> <n>")
@@ -221,7 +221,7 @@ handlers.checkpoint = function(player, args)
 		print(string.format("[Debug] usage: /checkpoint <1-%d>", maxIdx))
 		return
 	end
-	player:SetAttribute("CheckpointIndex", n) -- ProgressService (Task 14) owns respawn later
+	player:SetAttribute("CheckpointIndex", n) -- ProgressService reads CheckpointIndex for respawn; this sets it for testing
 	print(string.format("[Debug] set %s CheckpointIndex = %d", player.Name, n))
 end
 

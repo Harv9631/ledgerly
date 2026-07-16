@@ -22,6 +22,9 @@ GameConfig.CHECKPOINTS = {
 	{ name = "City Gate",        position = Vector3.new(0, 0, 9200) },
 }
 GameConfig.CHECKPOINT_SHELTER_RADIUS = 30  -- warmth regen zone around checkpoints
+-- NOTE: keep aligned with CHECKPOINT_RADIUS below. These are the SAME visual
+-- circle to a player but serve different systems (warmth regen vs. progress
+-- detection), so they live as separate tunables rather than one shared value.
 
 -- ===== Survival =====
 GameConfig.STAT_MAX = 100
@@ -111,6 +114,8 @@ GameConfig.LOOT_TABLES = {
 -- each entry: { itemId, count, weight } — weights per tier sum to 100 but are normalized anyway
 
 -- ===== Progress =====
+GameConfig.CHECKPOINT_RADIUS = 30          -- progress detection (see CHECKPOINT_SHELTER_RADIUS)
+GameConfig.EXTRACTION_RADIUS = 20          -- run-complete trigger around EXTRACTION_POSITION
 GameConfig.EXTRACTION_REWARD = 100
 GameConfig.TIME_BONUS_MAX = 100            -- linearly scaled: finish in 30min = full bonus, 60min = 0
 GameConfig.DATASTORE_NAME = "LongRoad_v1"
