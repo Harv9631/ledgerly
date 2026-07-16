@@ -19,7 +19,7 @@ async function boot() {
 
   let scene;
   try {
-    const mod = await import("./hero3d-scene.js?v=20260716a");
+    const mod = await import("./hero3d-scene.js?v=20260716b");
     scene = await mod.createScene(canvas);
   } catch (err) {
     return abortToFallback(err);

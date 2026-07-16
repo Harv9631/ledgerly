@@ -24,15 +24,19 @@
     setTimeout(function () { sec.classList.add("wipe-done"); }, 2300);
   }
 
+  // fire only once the section substantially fills the view — triggering the
+  // one-shot sweep the moment the top edge peeks up meant most visitors
+  // (still reading the hero finale) never saw it
   var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (en) { if (en.isIntersecting) play(); });
-  }, { threshold: 0, rootMargin: "0px 0px -35% 0px" });
+    entries.forEach(function (en) { if (en.intersectionRatio >= 0.55) play(); });
+  }, { threshold: [0.55] });
   io.observe(sec);
 
-  // fallback trigger in case the observer misbehaves in any browser
+  // fallback trigger: section top well inside the viewport (covers short
+  // windows where the 0.55 area ratio is unreachable, and any IO quirks)
   function fallbackCheck() {
     var r = sec.getBoundingClientRect();
-    if (r.top < window.innerHeight * 0.65 && r.bottom > 0) play();
+    if (r.top < window.innerHeight * 0.35 && r.bottom > window.innerHeight * 0.5) play();
   }
   addEventListener("scroll", fallbackCheck, { passive: true });
   fallbackCheck();
