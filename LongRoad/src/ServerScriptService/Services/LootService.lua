@@ -117,6 +117,9 @@ end
 -- ===== Forage nodes =====
 
 local function onForageTriggered(node, player)
+	if deps.AntiCheat and not deps.AntiCheat.AllowPrompt(player) then
+		return -- rate gate: drop fireproximityprompt() spam (skips HoldDuration)
+	end
 	if node.expiry then -- prompt is disabled while depleted; belt and braces
 		return
 	end
@@ -196,6 +199,9 @@ end
 -- ===== Loot crates =====
 
 local function onCrateTriggered(crate, state, player)
+	if deps.AntiCheat and not deps.AntiCheat.AllowPrompt(player) then
+		return -- rate gate: drop fireproximityprompt() spam (skips HoldDuration)
+	end
 	if state.expiry then -- searched and waiting on refill
 		return
 	end
@@ -266,6 +272,9 @@ function LootService.SpawnPickup(position, itemId, count)
 	state.label = makeBillboard(part, ("%dx %s"):format(count, def.name))
 	local prompt = makePrompt(part, "Take", def.name, 0, deps.Config.FORAGE_PROMPT_RANGE)
 	prompt.Triggered:Connect(function(player)
+		if deps.AntiCheat and not deps.AntiCheat.AllowPrompt(player) then
+			return -- rate gate: drop fireproximityprompt() spam (skips HoldDuration)
+		end
 		local _, placed = deps.Inventory.GiveItem(player, state.itemId, state.count)
 		if placed == 0 then
 			return -- GiveItem notified "Inventory full"
@@ -308,6 +317,9 @@ function LootService.SpawnDeathBag(position, items)
 	makeBillboard(part, "Backpack")
 	local prompt = makePrompt(part, "Loot", "Backpack", 0, deps.Config.FORAGE_PROMPT_RANGE)
 	prompt.Triggered:Connect(function(player)
+		if deps.AntiCheat and not deps.AntiCheat.AllowPrompt(player) then
+			return -- rate gate: drop fireproximityprompt() spam (skips HoldDuration)
+		end
 		-- Iterate a COPY of the remaining stacks (entries are shared references,
 		-- so decrements land in state.stacks); rebuild the live list afterwards.
 		local snapshot = table.clone(state.stacks)

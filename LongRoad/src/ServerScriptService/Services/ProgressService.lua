@@ -311,6 +311,13 @@ local function streamAndPivot(player, character, target)
 		player:RequestStreamAroundAsync(target.Position, STREAM_TIMEOUT)
 	end)
 	if character.Parent and character:FindFirstChild("HumanoidRootPart") then
+		-- Excuse AFTER the stream yield, immediately before the pivot: the excuse
+		-- window (5s) must cover the pivot's position jump, not be spent waiting on
+		-- RequestStreamAroundAsync (up to STREAM_TIMEOUT). Placing it here means the
+		-- full window is available from the moment the character actually moves.
+		if deps.AntiCheat then
+			deps.AntiCheat.Excuse(player)
+		end
 		character:PivotTo(target)
 	end
 end

@@ -124,6 +124,14 @@ GameConfig.STARTER_KITS = {
 	{ id = "TrapperKit", name = "Trapper Kit", cost = 300, items = { "FireAxe", "Medkit", "Wood", "Wood", "Wood" } },
 }
 
+-- ===== AntiCheat =====
+GameConfig.ANTICHEAT_SAMPLE_INTERVAL = 1   -- seconds between per-player movement samples
+GameConfig.ANTICHEAT_SPEED_BUFFER = 1.8    -- multiple of SPRINT_SPEED tolerated per sample (headroom for lag spikes + falls with horizontal momentum)
+GameConfig.ANTICHEAT_MAX_STRIKES = 3       -- consecutive over-threshold samples before a snap-back
+GameConfig.ANTICHEAT_EXCUSE_DURATION = 5   -- seconds movement checks stay suppressed after a legit teleport (covers ProgressService's stream + pivot)
+GameConfig.ANTICHEAT_PROMPT_BURST = 3      -- ProximityPrompt triggers allowed back-to-back per player
+GameConfig.ANTICHEAT_PROMPT_REFILL = 0.75  -- seconds to regenerate one prompt token (sustained spam past the burst is dropped)
+
 -- ===== Testing (REVERT BEFORE RELEASE) =====
 GameConfig.DEBUG_COMMANDS = true           -- Studio-only chat commands
 

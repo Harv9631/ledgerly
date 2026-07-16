@@ -36,8 +36,12 @@ local function getChar(player)
 end
 
 -- Teleport helper: positions carry Y=0 (resolved at bake), so we pivot 50 studs up
--- and let the character fall onto whatever ground is baked there.
-local function teleportTo(char, position)
+-- and let the character fall onto whatever ground is baked there. Excuse the
+-- player first so AntiCheatService doesn't read the pivot as a speed hack.
+local function teleportTo(player, char, position)
+	if deps.AntiCheat then
+		deps.AntiCheat.Excuse(player)
+	end
 	char:PivotTo(CFrame.new(position + Vector3.new(0, 50, 0)))
 end
 
@@ -72,7 +76,7 @@ handlers.tp = function(player, args)
 			#Config.ZONES, #Config.CHECKPOINTS))
 		return
 	end
-	teleportTo(char, pos)
+	teleportTo(player, char, pos)
 	print(string.format("[Debug] tp %s -> (%d, %d, %d)", player.Name, pos.X, pos.Y, pos.Z))
 end
 

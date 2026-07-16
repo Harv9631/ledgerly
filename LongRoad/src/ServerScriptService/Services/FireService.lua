@@ -117,6 +117,9 @@ local function restoreTree(tree)
 end
 
 local function onChopTriggered(model, tree, player)
+	if deps.AntiCheat and not deps.AntiCheat.AllowPrompt(player) then
+		return -- rate gate: drop fireproximityprompt() spam (skips HoldDuration)
+	end
 	if tree.respawnAt then -- prompt is disabled while felled; belt and braces
 		return
 	end
