@@ -294,6 +294,30 @@ footer a:hover { color: #8FC3B4; }
   display: flex; flex-direction: column; justify-content: center;
   opacity: 0; pointer-events: none;
 }
+/* inside a flex column, .wrap's auto margins would otherwise shrink-wrap and
+   center the copy — force full width so it left-aligns like every section */
+.hero3d-overlay .wrap { width: 100%; }
+
+/* big brand wordmark that docks into the nav as you scroll (likova-style) */
+.hero3d-brand { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.hero3d-brand-panel {
+  position: absolute; top: 0; left: 0;
+  width: min(720px, 62vw); height: 32vh; min-height: 230px;
+  background: var(--linen);
+  border-radius: 0 0 var(--radius) 0;
+  box-shadow: 0 18px 44px -20px rgba(15, 44, 59, 0.4);
+  will-change: transform;
+}
+.hero3d-brand-logo {
+  position: absolute; top: 0; left: 0;
+  display: flex; align-items: center; gap: 10px;
+  transform-origin: top left;
+  will-change: transform;
+}
+.hero3d-brand { opacity: 0; }
+.hero3d-ready .hero3d-brand { opacity: 1; }
+.hero3d-ready .nav .logo { opacity: 0; }
+.hero3d-s1 { justify-content: flex-end; padding-bottom: 12vh; }
 .hero3d-overlay.is-live { pointer-events: auto; }
 
 .hero3d-s1 h1 { color: var(--linen); max-width: 13ch; margin: 18px 0 20px; }
