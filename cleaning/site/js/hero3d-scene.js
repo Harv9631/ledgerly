@@ -221,14 +221,14 @@ export async function createScene(canvas) {
 
   // Camera path (positions + look targets), scrubbed by progress
   const camPath = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-10, 2.6, 13.5),
-    new THREE.Vector3(-3, 3.0, 15.5),
+    new THREE.Vector3(-6.5, 2.3, 11.5),
+    new THREE.Vector3(-2, 2.8, 14.5),
     new THREE.Vector3(10.5, 3.6, 11),
     new THREE.Vector3(1.5, 4.8, 18.5),
   ]);
   const lookPath = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, 1.9, 0),
-    new THREE.Vector3(0, 2.0, 0),
+    new THREE.Vector3(-4.3, 2.5, 0),
+    new THREE.Vector3(-1.5, 2.2, 0),
     new THREE.Vector3(0, 2.0, 0),
     new THREE.Vector3(-7, 2.5, 0),
   ]);
