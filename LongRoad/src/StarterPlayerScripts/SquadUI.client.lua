@@ -5,7 +5,7 @@
 -- SquadUpdate payload (full per-player snapshot from SquadService; the whole UI
 -- re-renders on each one and treats it as idempotent):
 --   squad  = { id = string, members = { {name=string, userId=number}, ... } } OR false
---   invite = { inviter = string, expiresAt = number (os.time seconds) }        OR false
+--   invite = { inviter = string, expiresIn = number (seconds remaining) }      OR false
 --
 -- Green highlights are attribute-driven (each player's `SquadId`), mirroring the
 -- hostile-red pattern in Effects.client.lua — independent of the SquadUpdate
@@ -24,7 +24,6 @@ local LocalPlayer = Players.LocalPlayer
 -- ===== Constants =====
 local SQUAD_HIGHLIGHT_NAME = "SquadHighlight"
 local SQUAD_OUTLINE_COLOR = Color3.fromRGB(80, 220, 120)
-local INVITE_EXPIRY = 30 -- fallback dismiss window if the payload omits expiresAt
 
 local PANEL_COLOR = Color3.fromRGB(25, 25, 30)
 local PANEL_TRANSPARENCY = 0.35
@@ -41,7 +40,7 @@ local PANEL_WIDTH = 200
 
 -- ===== State =====
 local currentSquad = nil  -- { id, members = { {name, userId}, ... } } or nil
-local currentInvite = nil -- { inviter, expiresAt } or nil
+local currentInvite = nil -- { inviter, expiresIn } or nil
 
 -- ===== ScreenGui =====
 local gui = Instance.new("ScreenGui")
@@ -179,6 +178,7 @@ local function makeMemberRow(member, order)
 	nameLabel.TextSize = 12
 	nameLabel.TextColor3 = (member.userId == LocalPlayer.UserId) and ACCENT_COLOR or TEXT_COLOR
 	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 	nameLabel.Text = member.name
 	nameLabel.Parent = row
 
@@ -305,13 +305,16 @@ local function showInvite(invite)
 	local myToken = inviteToken
 	inviteLabel.Text = invite.inviter .. " invited you to their squad"
 	invitePrompt.Visible = true
-	-- Client-side auto-dismiss; the server is authoritative on expiry anyway.
-	local expiresAt = (typeof(invite.expiresAt) == "number") and invite.expiresAt or (os.time() + INVITE_EXPIRY)
-	task.delay(math.max(0, expiresAt - os.time()), function()
-		if inviteToken == myToken then
-			hideInvite()
-		end
-	end)
+	-- Client-side auto-dismiss on seconds-remaining (clock-skew-safe: the server
+	-- sends time left, not an absolute stamp, and is authoritative on expiry
+	-- regardless). A malformed payload just leaves the server to drive dismissal.
+	if typeof(invite.expiresIn) == "number" then
+		task.delay(math.max(0, invite.expiresIn), function()
+			if inviteToken == myToken then
+				hideInvite()
+			end
+		end)
+	end
 end
 
 acceptButton.Activated:Connect(function()
@@ -332,7 +335,8 @@ local playerListFrame = Instance.new("Frame")
 playerListFrame.Name = "PlayerListFrame"
 playerListFrame.AnchorPoint = Vector2.new(1, 0.5)
 playerListFrame.Position = UDim2.new(1, -12, 0.5, 0)
-playerListFrame.Size = UDim2.fromOffset(PANEL_WIDTH, 40)
+playerListFrame.Size = UDim2.fromOffset(PANEL_WIDTH, 0)
+playerListFrame.AutomaticSize = Enum.AutomaticSize.Y -- fits header + body
 playerListFrame.BackgroundTransparency = 1
 playerListFrame.Parent = gui
 
@@ -356,13 +360,25 @@ listHeader.LayoutOrder = 0
 withCorner(listHeader)
 listHeader.Parent = playerListFrame
 
-local listBody = Instance.new("Frame")
+-- Scrolls once the roster is tall enough: grows with content (AutomaticSize +
+-- AutomaticCanvasSize) but a UISizeConstraint caps its height so a populated
+-- server can't run the list off-screen.
+local listBody = Instance.new("ScrollingFrame")
 listBody.Name = "Body"
 listBody.Size = UDim2.new(1, 0, 0, 0)
 listBody.BackgroundTransparency = 1
+listBody.BorderSizePixel = 0
 listBody.AutomaticSize = Enum.AutomaticSize.Y
+listBody.AutomaticCanvasSize = Enum.AutomaticSize.Y
+listBody.CanvasSize = UDim2.new(0, 0, 0, 0)
+listBody.ScrollingDirection = Enum.ScrollingDirection.Y
+listBody.ScrollBarThickness = 4
 listBody.LayoutOrder = 1
 listBody.Parent = playerListFrame
+
+local listBodyConstraint = Instance.new("UISizeConstraint")
+listBodyConstraint.MaxSize = Vector2.new(math.huge, 300)
+listBodyConstraint.Parent = listBody
 
 local bodyLayout = Instance.new("UIListLayout")
 bodyLayout.FillDirection = Enum.FillDirection.Vertical
@@ -463,6 +479,9 @@ local function applySquadHighlight(player)
 	local mySquad = LocalPlayer:GetAttribute("SquadId")
 	local theirSquad = player:GetAttribute("SquadId")
 	local existing = character:FindFirstChild(SQUAD_HIGHLIGHT_NAME)
+	-- Includes the local player (mySquad == theirSquad for self): highlighting my
+	-- own character green is deliberate, mirroring Effects' hostile pattern which
+	-- likewise watches every player uniformly.
 	local shouldHighlight = mySquad ~= nil and mySquad ~= "" and theirSquad == mySquad
 	if shouldHighlight then
 		if not existing then
@@ -519,8 +538,8 @@ Remotes.SquadUpdate.OnClientEvent:Connect(function(payload)
 	if typeof(payload) ~= "table" then
 		return
 	end
-	currentSquad = (type(payload.squad) == "table") and payload.squad or nil
-	if type(payload.invite) == "table" and typeof(payload.invite.inviter) == "string" then
+	currentSquad = (typeof(payload.squad) == "table") and payload.squad or nil
+	if typeof(payload.invite) == "table" and typeof(payload.invite.inviter) == "string" then
 		showInvite(payload.invite)
 	else
 		hideInvite()

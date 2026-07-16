@@ -21,8 +21,11 @@
 -- idempotent). Both keys are always present so the table serializes intact:
 --   squad  = { id = string, members = { {name=string, userId=number}, ... } }
 --            OR false  (not in a squad)
---   invite = { inviter = string, expiresAt = number (os.time seconds) }
+--   invite = { inviter = string, expiresIn = number (seconds remaining) }
 --            OR false  (no pending incoming invite)
+-- expiresIn is seconds-REMAINING, recomputed per push, NOT an absolute os.time:
+-- the client's clock may differ from ours, and a fast client clock would else
+-- auto-dismiss every invite instantly. Expiry bookkeeping stays server-side.
 -- The members array is dense (built by table.insert of live members only), so
 -- there are no nil holes to truncate replication; `false` is the sentinel for
 -- the two optional top-level fields.
@@ -84,7 +87,9 @@ local function buildSnapshot(player)
 	if not squadField then
 		local invite = getPendingInvite(player)
 		if invite then
-			inviteField = { inviter = invite.inviterName, expiresAt = invite.expiresAt }
+			-- getPendingInvite already dropped it if fully expired, so the
+			-- remaining time here is always >= 1s (see header re: expiresIn).
+			inviteField = { inviter = invite.inviterName, expiresIn = invite.expiresAt - os.time() }
 		end
 	end
 	return { squad = squadField, invite = inviteField }
