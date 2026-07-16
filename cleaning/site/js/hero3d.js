@@ -42,7 +42,8 @@ async function boot() {
     brand.navY = nav.top;
     brand.startX = Math.max((window.innerWidth - 1160) / 2 + 24, 24);
     brand.startY = Math.min(Math.max(window.innerHeight * 0.13, 96), 200);
-    brand.scale = Math.min(3.4, Math.max(2.1, window.innerWidth / 460));
+    brand.scale = Math.min(2.5, Math.max(1.7, window.innerWidth / 576));
+    brandLogo.style.setProperty("--bs", brand.scale);
   }
   measureBrand();
 
@@ -53,7 +54,7 @@ async function boot() {
     const e = t * t * (3 - 2 * t);
     const x = brand.startX + (brand.navX - brand.startX) * e;
     const y = brand.startY + (brand.navY - stageTop - brand.startY) * e;
-    const s = brand.scale + (1 - brand.scale) * e;
+    const s = 1 + (1 / brand.scale - 1) * e; // layout is already big: shrink to dock
     brandLogo.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
     const handoff = Math.min(1, Math.max(0, (t - 0.9) / 0.1)); // crossfade at dock
     brandLogo.style.opacity = (1 - handoff).toFixed(3);
