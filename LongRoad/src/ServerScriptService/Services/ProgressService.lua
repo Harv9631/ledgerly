@@ -48,6 +48,8 @@ local BINDTOCLOSE_DEADLINE = 25 -- seconds; below Roblox's ~30s shutdown budget,
 local SPAWN_OFFSET = 4
 local SPAWN_Y_LIFT = 50
 local GROUND_RAY_HEIGHT = 500 -- ray origin Y; well above the tallest baked terrain
+local TENT_CLEARANCE = 6       -- checkpoints spawn this far +X of the marker, clear of the tent A-frame (spans ±4)
+local STREAM_TIMEOUT = 5       -- seconds; cap RequestStreamAroundAsync so a slow stream doesn't strand a fresh character
 
 local ProgressService = {}
 
@@ -99,9 +101,11 @@ local function getLiveChar(player)
 	return root, humanoid
 end
 
--- Resolves a Config position (Y=0) to a spawn CFrame sitting SPAWN_OFFSET above
--- the baked ground. Raycasts down onto everything except water; a miss means the
--- map isn't baked, so we fall back to the high lift (pivot up, fall onto ground).
+-- Resolves a position (Y=0) to a spawn CFrame sitting SPAWN_OFFSET above the
+-- baked ground AT THAT XZ. Raycasts down onto everything except water; a miss
+-- means the map isn't baked, so we fall back to the high lift (pivot up, fall).
+-- Callers pass a tent-cleared XZ for checkpoints (see Init) so the ray samples
+-- open ground, not the CanCollide tent roof — the ray point IS the spawn point.
 local function resolveGround(position)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
@@ -299,10 +303,12 @@ end
 -- Prefetches streaming around the destination (Workspace.StreamingEnabled) so
 -- the client has terrain to land on, then pivots. RequestStreamAroundAsync
 -- YIELDS, so callers MUST run this off any synchronous hot path (the scan loop);
--- the character is re-checked after the yield in case it died/despawned.
+-- the character is re-checked after the yield in case it died/despawned. The
+-- STREAM_TIMEOUT caps the yield so a slow stream can't strand a fresh character
+-- at the default SpawnLocation waiting to be pivoted.
 local function streamAndPivot(player, character, target)
 	pcall(function()
-		player:RequestStreamAroundAsync(target.Position)
+		player:RequestStreamAroundAsync(target.Position, STREAM_TIMEOUT)
 	end)
 	if character.Parent and character:FindFirstChild("HumanoidRootPart") then
 		character:PivotTo(target)
@@ -490,10 +496,13 @@ function ProgressService.Init(depsIn)
 	Players.RespawnTime = RESPAWN_TIME -- respawn feeds back into placeAtCheckpoint
 
 	-- Ground-resolve every spawn point once (the map is baked into the place file
-	-- before any script runs, so the raycasts hit). Index 0 = start line.
+	-- before any script runs, so the raycasts hit). Index 0 = start line (the
+	-- spawn pad has no tent, so resolve it as-is). Checkpoints are shifted
+	-- +TENT_CLEARANCE in X so the ray clears the tent A-frame and players land
+	-- beside it on open ground rather than on the roof.
 	spawnCFrames[0] = resolveGround(Config.SPAWN_POSITION)
 	for idx, cp in ipairs(Config.CHECKPOINTS) do
-		spawnCFrames[idx] = resolveGround(cp.position)
+		spawnCFrames[idx] = resolveGround(cp.position + Vector3.new(TENT_CLEARANCE, 0, 0))
 	end
 
 	local ok, result = pcall(function()
