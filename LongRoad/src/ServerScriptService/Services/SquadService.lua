@@ -76,9 +76,16 @@ local function buildSnapshot(player)
 		squadField = { id = id, members = members }
 	end
 	local inviteField = false
-	local invite = getPendingInvite(player)
-	if invite then
-		inviteField = { inviter = invite.inviterName, expiresAt = invite.expiresAt }
+	-- A squadded player can never legitimately hold an invite (onInvite rejects
+	-- squadded targets), so suppress any straggler — e.g. the mutual-invite race
+	-- where both players invited each other and one just joined the other's
+	-- squad: without this, the new member would see a dangling invite prompt over
+	-- their fresh squad frame.
+	if not squadField then
+		local invite = getPendingInvite(player)
+		if invite then
+			inviteField = { inviter = invite.inviterName, expiresAt = invite.expiresAt }
+		end
 	end
 	return { squad = squadField, invite = inviteField }
 end
