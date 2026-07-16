@@ -41,8 +41,8 @@ async function boot() {
     brand.navX = nav.left;
     brand.navY = nav.top;
     brand.startX = Math.max((window.innerWidth - 1160) / 2 + 24, 24);
-    brand.startY = Math.min(Math.max(window.innerHeight * 0.13, 96), 200);
-    brand.scale = Math.min(2.5, Math.max(1.7, window.innerWidth / 576));
+    brand.startY = Math.min(Math.max(window.innerHeight * 0.12, 90), 170);
+    brand.scale = Math.min(1.9, Math.max(1.45, window.innerWidth / 760));
     brandLogo.style.setProperty("--bs", brand.scale);
   }
   measureBrand();
