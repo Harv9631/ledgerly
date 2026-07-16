@@ -126,6 +126,38 @@
 </header>
 
 <section class="instant-price" id="price">
+  <div class="mop-sweep" aria-hidden="true">
+    <svg viewBox="0 0 340 900" fill="none">
+      <!-- water trail -->
+      <ellipse cx="10" cy="700" rx="220" ry="36" fill="#8FC3B4" opacity="0.35"/>
+      <ellipse cx="-70" cy="650" rx="150" ry="26" fill="#DCEAE4" opacity="0.6"/>
+      <circle cx="-20" cy="470" r="52" fill="#8FC3B4" opacity="0.4"/>
+      <circle cx="55" cy="390" r="30" fill="#DCEAE4" opacity="0.7"/>
+      <circle cx="-70" cy="330" r="38" fill="#8FC3B4" opacity="0.3"/>
+      <circle cx="20" cy="240" r="22" fill="#DCEAE4" opacity="0.55"/>
+      <circle cx="-40" cy="160" r="28" fill="#8FC3B4" opacity="0.28"/>
+      <circle cx="40" cy="90" r="16" fill="#DCEAE4" opacity="0.5"/>
+      <circle cx="-30" cy="820" r="24" fill="#8FC3B4" opacity="0.3"/>
+      <!-- handle -->
+      <rect x="176" y="-80" width="24" height="440" rx="12" fill="#C98F5A"/>
+      <rect x="182" y="-80" width="6" height="440" rx="3" fill="#E0B183" opacity="0.8"/>
+      <!-- collar -->
+      <rect x="146" y="338" width="84" height="46" rx="12" fill="#0F2C3B"/>
+      <!-- strands -->
+      <path d="M158 384 C148 480 136 560 114 690" stroke="#FAF5EB" stroke-width="24" stroke-linecap="round"/>
+      <path d="M178 384 C176 500 168 590 158 705" stroke="#F2EADA" stroke-width="24" stroke-linecap="round"/>
+      <path d="M198 384 C202 500 208 595 218 700" stroke="#FAF5EB" stroke-width="24" stroke-linecap="round"/>
+      <path d="M218 384 C230 480 248 570 268 685" stroke="#F2EADA" stroke-width="24" stroke-linecap="round"/>
+      <path d="M168 384 C158 495 148 585 132 695" stroke="#E3D9C4" stroke-width="10" stroke-linecap="round"/>
+      <path d="M208 384 C216 495 228 588 244 692" stroke="#E3D9C4" stroke-width="10" stroke-linecap="round"/>
+      <!-- droplets -->
+      <path d="M96 550c-8 14-8 22 0 28 8-6 8-14 0-28z" fill="#8FC3B4"/>
+      <path d="M292 510c-7 12-7 19 0 24 7-5 7-12 0-24z" fill="#8FC3B4" opacity="0.8"/>
+      <path d="M80 410c-6 10-6 16 0 21 6-5 6-11 0-21z" fill="#DCEAE4"/>
+      <text x="244" y="280" fill="#DCEAE4" font-size="30" opacity="0.9">✦</text>
+      <text x="70" y="150" fill="#8FC3B4" font-size="22" opacity="0.7">✦</text>
+    </svg>
+  </div>
   <div class="wrap price-flex">
     <div class="price-copy">
       <span class="eyebrow">Instant price</span>
@@ -328,6 +360,7 @@
 </footer>
 
 <script src="js/quote.js"></script>
+<script src="js/price-wipe.js"></script>
 <script type="module" src="js/hero3d.js"></script>
 </body>
 </html>

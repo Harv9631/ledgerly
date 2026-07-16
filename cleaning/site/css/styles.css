@@ -329,9 +329,40 @@ footer a:hover { color: #8FC3B4; }
 .hero-fallback .hero-copy { max-width: 620px; }
 
 /* instant price section (directly below the hero) */
-.instant-price { background: var(--linen); }
+.instant-price { background: var(--linen); position: relative; overflow: hidden; }
 .price-flex { display: grid; grid-template-columns: 1fr 1.05fr; gap: 64px; align-items: center; }
 .price-copy h2 { margin: 14px 0 14px; }
+
+/* mop wipe: a giant mop sweeps across and reveals the pricing behind it.
+   Armed by js/price-wipe.js; without JS (or reduced motion) content just shows. */
+.wipe-armed .price-flex {
+  -webkit-mask-image: linear-gradient(90deg, #000 48%, transparent 52%);
+          mask-image: linear-gradient(90deg, #000 48%, transparent 52%);
+  -webkit-mask-size: 300% 100%;
+          mask-size: 300% 100%;
+  -webkit-mask-position: 100% 0;
+          mask-position: 100% 0;
+}
+.wipe-play .price-flex {
+  animation: price-reveal 1.9s cubic-bezier(0.55, 0.08, 0.35, 1) 0.05s forwards;
+}
+@keyframes price-reveal {
+  to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+}
+.mop-sweep { position: absolute; inset: 0; pointer-events: none; z-index: 5; display: none; }
+.wipe-armed .mop-sweep { display: block; }
+.mop-sweep svg {
+  position: absolute; top: -6%; height: 112%;
+  transform: translateX(-60vw) rotate(-3deg);
+  transform-origin: 50% 30%;
+}
+.wipe-play .mop-sweep svg { animation: mop-cross 1.9s cubic-bezier(0.55, 0.08, 0.35, 1) forwards; }
+@keyframes mop-cross {
+  0%   { transform: translateX(-60vw) rotate(-3deg); }
+  45%  { transform: translateX(40vw) rotate(3.5deg); }
+  100% { transform: translateX(112vw) rotate(-2deg); }
+}
+.wipe-done .mop-sweep { display: none; }
 
 @media (max-width: 960px) {
   .hero3d-track { height: 340vh; }
