@@ -19,16 +19,18 @@ local function parseNumber(token)
 	return n
 end
 
--- Resolve a player's live character parts, or nil (+ reason) if unavailable.
+-- Resolve a player's live character parts. On failure returns nil in every
+-- position so any call site's `if not <part>` guard fires regardless of which
+-- return slot it reads; callers print their own message.
 local function getChar(player)
 	local char = player.Character
 	if not char then
-		return nil, "no character"
+		return nil
 	end
 	local root = char:FindFirstChild("HumanoidRootPart")
 	local humanoid = char:FindFirstChildOfClass("Humanoid")
 	if not root or not humanoid or humanoid.Health <= 0 then
-		return nil, "character not alive"
+		return nil
 	end
 	return char, root, humanoid
 end
@@ -66,7 +68,8 @@ handlers.tp = function(player, args)
 		end
 	end
 	if not pos then
-		print("[Debug] usage: /tp <1-4|cp1-cp5|end>")
+		print(string.format("[Debug] usage: /tp <1-%d|cp1-cp%d|end>",
+			#Config.ZONES, #Config.CHECKPOINTS))
 		return
 	end
 	teleportTo(char, pos)
@@ -123,8 +126,8 @@ handlers.set = function(player, args)
 	if stat == "hunger" or stat == "warmth" then
 		local statName = stat == "hunger" and "Hunger" or "Warmth"
 		deps.Survival.SetStat(player, statName, value) -- clamps to STAT_MAX
-		print(string.format("[Debug] set %s %s = %s (clamped 0..%d)",
-			player.Name, statName, tostring(value), deps.Config.STAT_MAX))
+		print(string.format("[Debug] set %s %s = %s",
+			player.Name, statName, tostring(player:GetAttribute(statName))))
 	elseif stat == "health" then
 		local _, _, humanoid = getChar(player)
 		if not humanoid then
@@ -177,7 +180,18 @@ end
 -- /spawnmonster <Type>
 handlers.spawnmonster = function(player, args)
 	local requested = args[1]
-	if not requested or not deps.Config.MONSTERS[requested] then
+	-- Prefer exact casing; fall back to a case-insensitive match so /spawnmonster shambler works.
+	local monsterType = requested and deps.Config.MONSTERS[requested] and requested or nil
+	if not monsterType and requested then
+		local lowered = requested:lower()
+		for name in pairs(deps.Config.MONSTERS) do
+			if name:lower() == lowered then
+				monsterType = name
+				break
+			end
+		end
+	end
+	if not monsterType then
 		local names = {}
 		for name in pairs(deps.Config.MONSTERS) do
 			table.insert(names, name)
@@ -191,9 +205,9 @@ handlers.spawnmonster = function(player, args)
 		return
 	end
 	local pos = root.Position + root.CFrame.LookVector * 20
-	local monster = deps.Monster.SpawnMonster(requested, pos)
+	local monster = deps.Monster.SpawnMonster(monsterType, pos)
 	if monster then
-		print(string.format("[Debug] spawned %s 20 studs ahead of %s", requested, player.Name))
+		print(string.format("[Debug] spawned %s 20 studs ahead of %s", monsterType, player.Name))
 	else
 		print("[Debug] /spawnmonster: spawn failed")
 	end
