@@ -185,8 +185,8 @@ handlers.spawnmonster = function(player, args)
 		print("[Debug] usage: /spawnmonster <" .. table.concat(names, "|") .. ">")
 		return
 	end
-	local _, root = getChar(player)
-	if not root then
+	local char, root = getChar(player)
+	if not char then
 		print("[Debug] /spawnmonster: character not alive")
 		return
 	end
