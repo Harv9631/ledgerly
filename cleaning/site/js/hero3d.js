@@ -27,41 +27,6 @@ async function boot() {
 
   root.classList.add("hero3d-ready");
 
-  // --- brand wordmark: starts huge over the scene, docks into the nav ------
-  const brandLogo = track.querySelector(".hero3d-brand-logo");
-  const brandPanel = track.querySelector(".hero3d-brand-panel");
-  const navLogo = document.querySelector(".nav .logo");
-  const brand = { startX: 0, startY: 0, navX: 0, navY: 0, scale: 3 };
-
-  const stage = track.querySelector(".hero3d-stage");
-
-  function measureBrand() {
-    if (!brandLogo || !navLogo) return;
-    const nav = navLogo.getBoundingClientRect(); // sticky nav: stable viewport coords
-    brand.navX = nav.left;
-    brand.navY = nav.top;
-    brand.startX = Math.max((window.innerWidth - 1160) / 2 + 24, 24);
-    brand.startY = Math.min(Math.max(window.innerHeight * 0.12, 90), 170);
-    brand.scale = Math.min(1.9, Math.max(1.45, window.innerWidth / 760));
-    brandLogo.style.setProperty("--bs", brand.scale);
-  }
-  measureBrand();
-
-  function updateBrand(p) {
-    if (!brandLogo || !navLogo) return;
-    const stageTop = stage.getBoundingClientRect().top; // 72→0 as the pin engages
-    const t = Math.min(1, Math.max(0, p / 0.14));
-    const e = t * t * (3 - 2 * t);
-    const x = brand.startX + (brand.navX - brand.startX) * e;
-    const y = brand.startY + (brand.navY - stageTop - brand.startY) * e;
-    const s = 1 + (1 / brand.scale - 1) * e; // layout is already big: shrink to dock
-    brandLogo.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
-    const handoff = Math.min(1, Math.max(0, (t - 0.9) / 0.1)); // crossfade at dock
-    brandLogo.style.opacity = (1 - handoff).toFixed(3);
-    navLogo.style.opacity = handoff.toFixed(3);
-    brandPanel.style.transform = `translateY(${(-115 * e).toFixed(2)}%)`;
-  }
-
   // --- scroll → progress -------------------------------------------------
   const overlays = {
     s1: track.querySelector(".hero3d-s1"),
@@ -95,7 +60,7 @@ async function boot() {
   }
 
   addEventListener("scroll", readScroll, { passive: true });
-  addEventListener("resize", () => { readScroll(); measureBrand(); scene.resize(); }, { passive: true });
+  addEventListener("resize", () => { readScroll(); scene.resize(); }, { passive: true });
   addEventListener("pointermove", (e) => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
@@ -119,7 +84,6 @@ async function boot() {
       el.classList.toggle("is-live", o > 0.5);
     }
 
-    updateBrand(smooth);
     scene.update(smooth, pointer, t);
     requestAnimationFrame(frame);
   }
