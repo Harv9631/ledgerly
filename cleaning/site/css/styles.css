@@ -314,7 +314,7 @@ footer a:hover { color: #8FC3B4; }
 .hero3d-hint em { font-style: normal; font-size: 1.1rem; animation: hint-bob 1.6s ease-in-out infinite; }
 @keyframes hint-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
 
-.hero3d-s2 { justify-content: flex-start; padding-top: 13vh; }
+.hero3d-s2 { justify-content: flex-start; padding-top: 9vh; }
 .hero3d-quote { width: 100%; text-align: center; }
 .hero3d-script {
   font-family: "Allura", cursive;

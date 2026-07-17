@@ -312,6 +312,7 @@ export async function createScene(canvas, opts = {}) {
       const hi = vw - Math.max(40, vw * 0.03);
       availFrac = THREE.MathUtils.clamp((hi - lo) / vw, 0.28, 0.6);
       cx = 0.5 + (((lo + hi) / 2 / vw) - 0.5) * wide;
+      cx -= 0.045 * st(0.68, 1, e) * wide; // finale: sit the house a touch left
     }
 
     const tanF = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
