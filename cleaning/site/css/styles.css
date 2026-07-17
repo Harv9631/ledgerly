@@ -314,12 +314,22 @@ footer a:hover { color: #8FC3B4; }
 .hero3d-hint em { font-style: normal; font-size: 1.1rem; animation: hint-bob 1.6s ease-in-out infinite; }
 @keyframes hint-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(6px); } }
 
-.hero3d-s2 { justify-content: flex-start; padding-top: 16vh; }
-.hero3d-mid {
+.hero3d-s2 { justify-content: flex-start; padding-top: 13vh; }
+.hero3d-quote { text-align: center; }
+.hero3d-script {
+  font-family: "Allura", cursive;
+  font-size: clamp(3.2rem, 7vw, 5.5rem);
+  line-height: 1;
+  color: var(--linen);
+  text-shadow: 0 2px 24px rgba(15, 44, 59, 0.55);
+}
+.hero3d-caps {
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.2vw, 2.4rem);
-  font-weight: 500; line-height: 1.3; font-style: italic;
-  color: var(--linen); max-width: 24ch;
+  font-size: clamp(1.6rem, 3.4vw, 2.8rem);
+  font-weight: 500; line-height: 1.25;
+  letter-spacing: 0.09em; text-transform: uppercase;
+  color: var(--linen);
+  margin-top: -0.3em;
   text-shadow: 0 2px 24px rgba(15, 44, 59, 0.55);
 }
 
