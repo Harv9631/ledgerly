@@ -227,10 +227,10 @@ export async function createScene(canvas) {
     new THREE.Vector3(1.5, 4.8, 18.5),
   ]);
   const lookPath = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-3.9, 2.4, 0),
-    new THREE.Vector3(-1.5, 2.2, 0),
+    new THREE.Vector3(0, 2.4, 0),
+    new THREE.Vector3(0, 2.2, 0),
     new THREE.Vector3(0, 2.0, 0),
-    new THREE.Vector3(-7, 2.5, 0),
+    new THREE.Vector3(0, 2.5, 0),
   ]);
 
   const _pos = new THREE.Vector3();
@@ -267,22 +267,41 @@ export async function createScene(canvas) {
 
     camPath.getPoint(e, _pos);
     lookPath.getPoint(e, _look);
-    // keep the house centered on portrait screens (the sideways look offset
-    // only makes sense when there's copy beside it); there, drop it below the
-    // stacked copy instead
+
+    // Adaptive framing for the "copy beside house" moments (start & finale):
+    // measure the pixel band left over next to the copy column and solve for
+    // the camera distance + aim that fit the house into it, at any resolution.
+    const st = (a, b, x) => { const k = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1); return k * k * (3 - 2 * k); };
+    const side = (1 - st(0, 0.35, e)) + st(0.68, 1, e); // 1 at start/finale, 0 mid-orbit
     const wide = THREE.MathUtils.clamp(camera.aspect - 0.9, 0, 1);
-    const finaleWeight = Math.abs(_look.x) / 7; // 0 early in the path → 1 at the finale
-    _look.x *= wide;
-    _look.y += (1 - wide) * 1.4 * finaleWeight;
-    // gentle mouse parallax
-    _pos.x += pointer.x * 0.7;
-    _pos.y += -pointer.y * 0.4;
-    // dolly out on narrow screens so the house fits horizontally (~14 units)
+
+    const vw = window.innerWidth;
+    const wrapLeft = Math.max((vw - 1160) / 2 + 24, 24);
+    const copyRight = wrapLeft + 620; // copy column width incl. breathing room
+    let cx = 0.5, availFrac = 0.8;    // portrait: centered, most of the width
+    if (wide > 0) {
+      const lo = copyRight + 30;
+      const hi = vw - Math.max(40, vw * 0.03);
+      availFrac = THREE.MathUtils.clamp((hi - lo) / vw, 0.28, 0.6);
+      cx = 0.5 + (((lo + hi) / 2 / vw) - 0.5) * wide;
+    }
+
+    const tanF = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    const HOUSE_SPAN = 9.4; // world units incl. a little margin around the model
+    const dNeed = (HOUSE_SPAN / 2 / availFrac) / (tanF * camera.aspect);
     _dir.subVectors(_pos, _look);
-    const span = camera.aspect < 1 ? 16 : 14;
-    const dNeed = span / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-    if (dNeed > _dir.length()) _dir.setLength(dNeed);
+    const dPath = _dir.length();
+    const d = dPath + (Math.max(dPath, dNeed) - dPath) * side;
+    _dir.setLength(d);
+
+    const halfSpan = d * tanF * camera.aspect;
+    _look.x = -halfSpan * (2 * cx - 1) * side;
+    _look.y += 1.8 * side * (1 - wide); // portrait: drop house below stacked copy
+
     camera.position.copy(_look).add(_dir);
+    // gentle mouse parallax
+    camera.position.x += pointer.x * 0.7;
+    camera.position.y += -pointer.y * 0.4;
     camera.lookAt(_look);
 
     renderer.render(scene, camera);
