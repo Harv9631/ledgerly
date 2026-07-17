@@ -143,7 +143,17 @@ function makeParticles(count, size, color, spread, yBase, yTop) {
   return new THREE.Points(geo, mat);
 }
 
-export async function createScene(canvas) {
+export async function createScene(canvas, opts = {}) {
+  // GPU context can be dropped by the driver (sleep/wake, GPU reset, tab
+  // pressure). preventDefault allows restore; if it never comes back, tell
+  // the caller so it can swap to the static hero instead of a blank band.
+  let lostTimer = 0;
+  canvas.addEventListener("webglcontextlost", (e) => {
+    e.preventDefault();
+    lostTimer = setTimeout(() => { if (opts.onContextDead) opts.onContextDead(); }, 4000);
+  });
+  canvas.addEventListener("webglcontextrestored", () => clearTimeout(lostTimer));
+
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, window.innerWidth > 960 ? 2 : 1.5));
   renderer.setSize(innerWidth, innerHeight, false);
