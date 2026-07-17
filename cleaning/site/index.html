@@ -14,14 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Albert+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=20260716d">
   <link rel="stylesheet" href="css/components.css?v=20260716d">
-  <!-- start the heavy fetches immediately instead of after the module chain.
-       three.js is self-hosted: no CDN dependency (adblockers, outages). -->
-  <link rel="preload" href="assets/models/house.glb" as="fetch" crossorigin="anonymous">
-  <link rel="modulepreload" href="js/hero3d-scene.js?v=20260716d">
-  <link rel="modulepreload" href="vendor/three.module.min.js">
-  <link rel="modulepreload" href="vendor/addons/loaders/GLTFLoader.js">
-  <link rel="modulepreload" href="vendor/addons/libs/meshopt_decoder.module.js">
-  <link rel="modulepreload" href="vendor/addons/environments/RoomEnvironment.js">
+  <!-- import map MUST precede any module preloads (Firefox enforces this) -->
   <script type="importmap">
   {
     "imports": {
@@ -30,6 +23,14 @@
     }
   }
   </script>
+  <!-- start the heavy fetches immediately instead of after the module chain.
+       three.js is self-hosted: no CDN dependency (adblockers, outages). -->
+  <link rel="preload" href="assets/models/house.glb" as="fetch" crossorigin="anonymous">
+  <link rel="modulepreload" href="js/hero3d-scene.js?v=20260716d">
+  <link rel="modulepreload" href="vendor/three.module.min.js">
+  <link rel="modulepreload" href="vendor/addons/loaders/GLTFLoader.js">
+  <link rel="modulepreload" href="vendor/addons/libs/meshopt_decoder.module.js">
+  <link rel="modulepreload" href="vendor/addons/environments/RoomEnvironment.js">
   <script>
     // Show the 3D hero shell only if the device can plausibly run it.
     // hero3d.js removes the class again if scene boot fails.
