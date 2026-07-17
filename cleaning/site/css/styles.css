@@ -392,6 +392,17 @@ footer a:hover { color: #8FC3B4; }
   .hero-fallback { display: block !important; }
 }
 
+/* ---------- water splash accents ---------- */
+.has-splash { position: relative; isolation: isolate; }
+.splash { position: absolute; pointer-events: none; z-index: -1; }
+.splash--drift { animation: splash-bob 7s ease-in-out infinite; }
+@keyframes splash-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-9px) rotate(2deg); }
+}
+@media (prefers-reduced-motion: reduce) { .splash--drift { animation: none; } }
+@media (max-width: 960px) { .splash { display: none; } }
+
 /* ---------- responsive ---------- */
 @media (max-width: 960px) {
   .hero-grid { grid-template-columns: 1fr; gap: 60px; }
