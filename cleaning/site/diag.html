@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Salty Air — 3D hero diagnostics</title>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js",
+               "three/addons/": "./vendor/addons/" } }
+</script>
+<style>
+  body { font: 16px/1.6 "Segoe UI", sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; }
+  .ok { color: #2e7d4f; } .bad { color: #c62828; font-weight: 700; }
+  li { margin: 6px 0; }
+</style>
+</head>
+<body>
+<h1>3D hero diagnostics</h1>
+<ul id="out"><li>Running checks…</li></ul>
+<script type="module">
+const out = document.getElementById("out");
+out.innerHTML = "";
+const add = (label, ok, detail) => {
+  const li = document.createElement("li");
+  li.innerHTML = (ok ? "✅ " : "❌ ") + "<strong>" + label + ":</strong> <span class='" + (ok ? "ok" : "bad") + "'>" + detail + "</span>";
+  out.appendChild(li);
+};
+
+// 1. reduced motion
+const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+add("Reduced motion", !rm, rm ? "ON — Windows/browser animations are disabled; the site intentionally shows the static hero. (Windows Settings → Accessibility → Visual effects → Animation effects)" : "off (good)");
+
+// 2. WebGL
+let glInfo = "unavailable";
+let glOK = false;
+try {
+  const c = document.createElement("canvas");
+  const gl = c.getContext("webgl2") || c.getContext("webgl");
+  if (gl) {
+    glOK = true;
+    const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    glInfo = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : "available (renderer hidden)";
+  }
+} catch (e) { glInfo = "error: " + e.message; }
+add("WebGL", glOK, glOK ? glInfo : "NOT AVAILABLE — usually means hardware acceleration is off in the browser settings");
+
+// 3. three.js CDN
+try {
+  const THREE = await import("three");
+  add("three.js (self-hosted)", true, "loaded (r" + THREE.REVISION + ")");
+} catch (e) {
+  add("three.js (self-hosted)", false, "FAILED — " + e.message);
+}
+
+// 4. scene module
+try {
+  await import("./js/hero3d-scene.js?v=20260716d");
+  add("Scene module", true, "loaded");
+} catch (e) {
+  add("Scene module", false, "FAILED — " + e.message);
+}
+
+// 5. model file
+try {
+  const r = await fetch("assets/models/house.glb", { method: "HEAD" });
+  add("House model", r.ok, r.ok ? Math.round((+r.headers.get("content-length") || 0) / 1024) + " KB reachable" : "HTTP " + r.status);
+} catch (e) {
+  add("House model", false, "FAILED — " + e.message);
+}
+
+// 6. actual render attempt
+try {
+  const { createScene } = await import("./js/hero3d-scene.js?v=20260716d");
+  const cv = document.createElement("canvas");
+  cv.width = 320; cv.height = 180;
+  document.body.appendChild(cv);
+  const s = await createScene(cv);
+  s.update(0.5, { x: 0, y: 0 }, 16);
+  add("Test render", true, "scene rendered below (grimy mid-scroll frame)");
+} catch (e) {
+  add("Test render", false, "FAILED — " + e.message);
+}
+</script>
+</body>
+</html>

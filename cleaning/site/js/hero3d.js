@@ -19,7 +19,7 @@ async function boot() {
 
   let scene;
   try {
-    const mod = await import("./hero3d-scene.js?v=20260716c");
+    const mod = await import("./hero3d-scene.js?v=20260716d");
     scene = await mod.createScene(canvas, {
       onContextDead: () => abortToFallback("webgl context lost"),
     });

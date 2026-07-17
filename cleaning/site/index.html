@@ -12,20 +12,21 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&family=Albert+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=20260716c">
-  <link rel="stylesheet" href="css/components.css?v=20260716c">
-  <!-- start the heavy fetches immediately instead of after the module chain -->
+  <link rel="stylesheet" href="css/styles.css?v=20260716d">
+  <link rel="stylesheet" href="css/components.css?v=20260716d">
+  <!-- start the heavy fetches immediately instead of after the module chain.
+       three.js is self-hosted: no CDN dependency (adblockers, outages). -->
   <link rel="preload" href="assets/models/house.glb" as="fetch" crossorigin="anonymous">
-  <link rel="modulepreload" href="js/hero3d-scene.js?v=20260716c">
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js">
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/loaders/GLTFLoader.js">
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/libs/meshopt_decoder.module.js">
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/environments/RoomEnvironment.js">
+  <link rel="modulepreload" href="js/hero3d-scene.js?v=20260716d">
+  <link rel="modulepreload" href="vendor/three.module.min.js">
+  <link rel="modulepreload" href="vendor/addons/loaders/GLTFLoader.js">
+  <link rel="modulepreload" href="vendor/addons/libs/meshopt_decoder.module.js">
+  <link rel="modulepreload" href="vendor/addons/environments/RoomEnvironment.js">
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.166.1/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.1/examples/jsm/"
+      "three": "./vendor/three.module.min.js",
+      "three/addons/": "./vendor/addons/"
     }
   }
   </script>
@@ -366,8 +367,8 @@
   </div>
 </footer>
 
-<script src="js/quote.js?v=20260716c"></script>
-<script src="js/price-wipe.js?v=20260716c"></script>
-<script type="module" src="js/hero3d.js?v=20260716c"></script>
+<script src="js/quote.js?v=20260716d"></script>
+<script src="js/price-wipe.js?v=20260716d"></script>
+<script type="module" src="js/hero3d.js?v=20260716d"></script>
 </body>
 </html>
