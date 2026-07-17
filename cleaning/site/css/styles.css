@@ -318,19 +318,20 @@ footer a:hover { color: #8FC3B4; }
 .hero3d-quote { width: 100%; text-align: center; }
 .hero3d-script {
   font-family: "Allura", cursive;
-  font-size: 10vw;
+  font-size: min(8vw, 13vh); /* vh cap keeps short/wide windows sane */
   line-height: 1;
   color: var(--linen);
   text-shadow: 0 2px 24px rgba(15, 44, 59, 0.55);
 }
 .hero3d-caps {
   font-family: var(--font-display);
-  font-size: 4.7vw;
+  font-size: min(3.9vw, 7vh);
   font-weight: 500; line-height: 1.15;
-  letter-spacing: 0.08em; text-transform: uppercase;
+  letter-spacing: 0.12em; text-transform: uppercase;
   white-space: nowrap;
   color: var(--linen);
-  margin-top: -0.35em;
+  margin-top: -0.25em;
+  padding-bottom: 6vh;
   text-shadow: 0 2px 24px rgba(15, 44, 59, 0.55);
 }
 
