@@ -183,36 +183,45 @@ export async function createScene(canvas) {
   lawn.receiveShadow = true;
   scene.add(lawn);
 
-  // House: real model if present, placeholder otherwise
-  let house;
-  try {
-    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-    const gltf = await loader.loadAsync("assets/models/house.glb");
-    house = gltf.scene;
-    // Normalize: sit on ground, center at origin, ~8 world units wide
-    const box = new THREE.Box3().setFromObject(house);
-    const sizeV = box.getSize(new THREE.Vector3());
-    const s = 8 / Math.max(sizeV.x, sizeV.z);
-    house.scale.setScalar(s);
-    box.setFromObject(house);
-    const c = box.getCenter(new THREE.Vector3());
-    house.position.set(-c.x, -box.min.y, -c.z);
-  } catch {
-    house = buildPlaceholderHouse();
-  }
-  scene.add(house);
+  // House streams in after the scene is already rendering, so first paint
+  // never waits on the model download; it enters with a short rise.
+  let house = null;
+  let introStart = -1;
+  const houseBase = { scale: 1, y: 0 };
 
-  const hbox = new THREE.Box3().setFromObject(house);
-  uMinY.value = hbox.min.y;
-  uMaxY.value = hbox.max.y;
-  house.traverse((o) => {
-    if (o.isMesh) {
-      o.castShadow = true;
-      o.receiveShadow = true;
-      const mats = Array.isArray(o.material) ? o.material : [o.material];
-      mats.forEach(patchGrime);
+  function adoptHouse(obj, normalize) {
+    house = obj;
+    if (normalize) {
+      // Normalize: sit on ground, center at origin, ~8 world units wide
+      const box = new THREE.Box3().setFromObject(house);
+      const sizeV = box.getSize(new THREE.Vector3());
+      const s = 8 / Math.max(sizeV.x, sizeV.z);
+      house.scale.setScalar(s);
+      box.setFromObject(house);
+      const c = box.getCenter(new THREE.Vector3());
+      house.position.set(-c.x, -box.min.y, -c.z);
     }
-  });
+    const hbox = new THREE.Box3().setFromObject(house);
+    uMinY.value = hbox.min.y;
+    uMaxY.value = hbox.max.y;
+    house.traverse((o) => {
+      if (o.isMesh) {
+        o.castShadow = true;
+        o.receiveShadow = true;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(patchGrime);
+      }
+    });
+    houseBase.scale = house.scale.x;
+    houseBase.y = house.position.y;
+    scene.add(house);
+  }
+
+  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+    .loadAsync("assets/models/house.glb")
+    .then((gltf) => adoptHouse(gltf.scene, true))
+    .catch(() => adoptHouse(buildPlaceholderHouse(), false));
+
   patchGrime(lawnMat);
 
   const dust = makeParticles(360, 0.09, 0xa89a7c, 26, 0.2, 6.5);
@@ -257,6 +266,15 @@ export async function createScene(canvas) {
     renderer.toneMappingExposure = 0.85 + 0.42 * env;
     scene.environmentIntensity = 0.25 + 0.85 * env;
     lawnMat.color.lerpColors(COL.lawnDirty, COL.lawnClean, env);
+
+    // entrance: house rises softly once its download completes
+    if (house) {
+      if (introStart < 0) introStart = t;
+      const k = Math.min(1, (t - introStart) / 700);
+      const ei = k * k * (3 - 2 * k);
+      house.scale.setScalar(houseBase.scale * (0.92 + 0.08 * ei));
+      house.position.y = houseBase.y - 1.6 * (1 - ei);
+    }
 
     dust.material.opacity = 0.5 * (1 - Math.min(1, p * 1.8));
     dust.rotation.y = t * 0.00004;
