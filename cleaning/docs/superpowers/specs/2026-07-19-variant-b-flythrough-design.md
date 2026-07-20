@@ -120,11 +120,11 @@ Same copy as `index.html`, restyled editorial-dark, in this order:
 5. **Service area** (`#areas`) — chip list, same areas + "St. Augustine — coming soon".
 6. **FAQ** (`#faq`) — same six `<details>` items, dark-styled.
 7. **Final CTA** — "Enjoy life. We'll handle *the cleaning*." + terracotta button → `book.html`.
-8. **Footer** — same content/links as page A, including the 3D-model credit removed
-   (no 3D on this page) and Pexels footage note optional (license requires nothing).
+8. **Footer** — same content/links as page A, minus the Sketchfab 3D-model credit (no 3D on
+   this page). No footage attribution needed (Pexels license requires none).
 
-SEO/meta: same title/description pattern as page A with a "B" marker kept out of user-visible
-copy; `<meta name="robots" content="noindex">` while it's an experiment.
+SEO/meta: reuse page A's `<title>` and meta description verbatim, plus
+`<meta name="robots" content="noindex">` while it's an experiment.
 
 ## Motion & fallbacks
 
