@@ -104,11 +104,52 @@ Priority order:
 1. **Google Business Profile** — free; get 10 reviews fast (first customers, friends' cleans)
 2. **Google Local Services Ads** — pay-per-lead (~$20–35/lead residential cleaning), highest intent channel; requires background check + insurance verification ("Google Guaranteed")
 3. **Website with instant online quote + booking** — the main conversion weapon; most local competitors require a phone call
-4. **Nextdoor + local Facebook groups** — free; respond to "anyone know a cleaner?" posts
-5. **Referral program** — give $25, get $25, promoted after every 5-star rating
-6. **Realtor/property-manager outreach** — move-out cleans (high ticket) that convert sellers/landlords into recurring relationships
+4. **Pay-per-call networks** — buy qualified inbound phone calls from people actively searching for a cleaner (see §6a)
+5. **Nextdoor + local Facebook groups** — free; respond to "anyone know a cleaner?" posts
+6. **Referral program** — give $25, get $25, promoted after every 5-star rating
+7. **Realtor/property-manager outreach** — move-out cleans (high ticket) that convert sellers/landlords into recurring relationships
 
 Targets: CAC < $75, 40%+ of one-time customers converted to recurring, 20+ Google reviews by month 3.
+
+## 6a. Pay-per-call
+
+Networks (Service Direct, eLocal, 33 Mile Radius, Networx voice leads) sell live inbound calls from people searching for house cleaning in your zips. You pay only for **qualified** calls — typically defined as a new customer, in service area, connected 30+ seconds. Unqualified calls (solicitors, out-of-area, existing customers) are disputable for credit — dispute them every week.
+
+**Economics:**
+
+| Item | Estimate |
+|---|---|
+| Cost per qualified call (residential cleaning, affluent metro) | $25–45 |
+| Call → booked customer conversion (with instant flat-rate phone quote) | 25–40% |
+| Effective CAC per booked customer | $60–110 |
+| Share that becomes recurring | ~40–50% |
+| Test budget | $300–600/mo (8–15 calls) |
+
+At the $75 CAC cap this channel is **borderline** — it works only if you answer live and quote on the spot. Rules of engagement:
+
+- **Answer every call live.** A missed call is money burned. Forward to your cell; restrict the network's call window to hours you can answer.
+- Quote from the §3 flat-rate table on the phone and book before hanging up — callers who "think about it" convert at half the rate.
+- Track CAC per network monthly. Scale the budget only where measured CAC < $75; cut any network above $100.
+
+**Why it's worth testing anyway:** callers skew older and more affluent than web bookers — exactly the Ponte Vedra/Sawgrass demographic that wants to talk to a human before letting someone in the house. It also fills the pipeline during LSA's 1–3 week verification period, since most pay-per-call networks onboard in days.
+
+## 6b. Channel economics — estimated monthly cost and profit
+
+Steady-state estimates (months 2–6), Ponte Vedra pricing (~$175 avg job). Each new **recurring** (biweekly) customer is worth ~$1,900/yr in gross profit; a one-time deep/move-out clean is worth ~$115–170 gross.
+
+| Channel | Est. monthly cost | Est. new recurring customers/mo | CAC | Year-1 gross profit from that month's cohort |
+|---|---|---|---|---|
+| Google Business Profile (organic) | $0 | 2–4 | ~$0 | $3,800–7,600 |
+| Google Local Services Ads | $400–800 | 6–9 | $50–70 | $11,400–17,100 |
+| Pay-per-call networks | $300–600 | 3–6 | $60–110 | $5,700–11,400 |
+| Nextdoor + Facebook groups | $0 | 2–5 | ~$0 | $3,800–9,500 |
+| Referral program | $50/customer | 1–3 (grows with base) | $50 | $1,900–5,700 |
+| Realtor/PM outreach (move-outs) | $0 (time) | 1–2 recurring + 2–4 one-time | ~$0 | $2,400–5,000 |
+| **Total** | **~$800–1,600** | **~15–29** | **blended ~$40–60** | **~$29,000–56,000** |
+
+Read the table as: every month you spend ~$800–1,600 on acquisition, you add a cohort of recurring customers that returns roughly 25–40× that spend in gross profit over the following year (before churn). This is why the plan front-loads acquisition spend — the milestone path in §8 (25 recurring by month 3, 55 by month 6) needs only ~8–12 net new recurring customers/mo after churn, which the low end of this table covers.
+
+**Churn caveat:** assume 3–5% of recurring customers cancel monthly; the cohort values above are pre-churn. Net of churn, expect ~70–80% of the stated year-1 profit.
 
 ## 7. Operations
 
@@ -151,6 +192,7 @@ Targets: CAC < $75, 40%+ of one-time customers converted to recurring, 20+ Googl
 - [ ] Connect Stripe
 - [ ] Build website: instant quote widget + online booking, services, service-area pages, reviews section
 - [ ] Create Google Business Profile; start Google Local Services Ads verification (takes 1–3 weeks)
+- [ ] Sign up with one pay-per-call network (Service Direct or eLocal); set a $300–500/mo cap, forward calls to your cell, restrict call hours to when you can answer live (§6a)
 
 ### Week 3 — Teams
 - [ ] Post recruiting ads (Facebook groups, Craigslist); goal: 8–10 conversations
@@ -166,7 +208,8 @@ Targets: CAC < $75, 40%+ of one-time customers converted to recurring, 20+ Googl
 - [ ] Turn on referral program in booking software
 
 ### Months 2–6 — Grow
-- [ ] Weekly: review CAC per channel, shift budget to what converts < $75
+- [ ] Weekly: review CAC per channel, shift budget to what converts < $75; dispute unqualified pay-per-call calls
+- [ ] Monthly: compare pay-per-call CAC per network vs. LSA — scale networks under $75, cut any over $100
 - [ ] Convert every one-time clean to recurring (offer at job completion + follow-up email)
 - [ ] Recruit 1 new team per ~20 recurring customers added; keep the bench full
 - [ ] Monthly: review team ratings; reroute or cut low performers
