@@ -7,6 +7,7 @@
 
   const layers = [...track.querySelectorAll(".layer")];
   const stops = [...document.querySelectorAll("#rail .stop")];
+  const nav = document.querySelector(".nav-b");
   const N = layers.length;
   const FADE = 0.18; // fraction of each chapter segment used to crossfade
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -35,6 +36,9 @@
     const total = track.offsetHeight - vh;
     const p = clamp(-rect.top / total, 0, 1);
     const seg = 1 / N;
+
+    // solid nav once the hero track has scrolled past (content scrolls under the bar)
+    if (nav) nav.classList.toggle("scrolled", rect.bottom <= nav.offsetHeight + 40);
 
     layers.forEach((layer, i) => {
       const start = i * seg;
