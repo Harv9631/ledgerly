@@ -46,6 +46,7 @@
       if (i === N - 1 && p >= 1 - seg) o = 1;
       layer.style.opacity = clamp(o, 0, 1).toFixed(3);
       layer.style.zIndex = Math.round(clamp(o, 0, 1) * 10);
+      layer.style.visibility = o === 0 ? "hidden" : "visible";
 
       const local = clamp((p - start) / seg, 0, 1);
       const copy = layer.querySelector(".copy");

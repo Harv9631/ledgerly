@@ -17,6 +17,7 @@
       .track { height: auto; }
       .stage { position: static; }
       .layer { position: absolute; }
+      .layer:not(.arrival) { display: none; }
       .layer.arrival { position: relative; opacity: 1; }
       .rail { display: none; }
       .reveal { opacity: 1; transform: none; }
@@ -53,9 +54,9 @@
       <div class="shade"></div>
       <div class="copy arrival-copy">
         <span class="eyebrow-b">Home cleaning &middot; Ponte Vedra &middot; Nocatee &middot; Jax Beach</span>
-        <div class="big-title">
+        <h1 class="big-title" aria-label="Salty Air Home Cleaning">
           <span class="w">Salty</span><span class="arrow">&darr;</span><span class="w">Air</span>
-        </div>
+        </h1>
         <div class="arrival-sub">
           <p>Walk through a home the way we leave it. Vetted local pros, priced online in sixty seconds, backed by a 100% reclean guarantee.</p>
           <span class="hint">Scroll to enter &rarr;</span>
