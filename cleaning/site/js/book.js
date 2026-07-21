@@ -4,7 +4,7 @@
    pre-filled email instead, so leads still reach you from day one. */
 
 const FORM_ENDPOINT = ""; // TODO: paste Formspree endpoint here
-const LEADS_EMAIL = "hello@saltyairhomecleaning.com"; // TODO: confirm real inbox
+const LEADS_EMAIL = "info@saltyairhomecleaning.com";
 
 const form = document.getElementById("book-form");
 const errorEl = document.getElementById("b-error");
