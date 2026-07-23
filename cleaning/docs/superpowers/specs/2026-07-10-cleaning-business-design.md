@@ -71,6 +71,55 @@ Frequency discounts off standard rate: weekly −20%, biweekly −15%, monthly �
 
 **Ponte Vedra adjustment:** This market skews affluent and homes skew large — price 10–20% above the table, add a 5bd/4ba+ tier (~$300+ standard), and consider a per-sq-ft adder above 3,000 sq ft. Average job likely lands at $175–200 rather than $150, which means the $10k/mo profit target needs ~85–90 recurring customers instead of ~105.
 
+## 3a. Full service & price menu
+
+### What's included (publish on site — prevents scope disputes)
+
+- **Standard:** dust all surfaces; vacuum + mop floors; kitchen counters, sink, appliance exteriors; bathrooms full (toilet, tub/shower, mirrors, sink); trash emptied; beds made.
+- **Deep adds:** baseboards, door frames, switch plates, ceiling fans, cabinet fronts, behind/under movable furniture, window sills, heavy kitchen/bath buildup.
+- **Move-in/out adds:** inside all cabinets/drawers/closets, inside fridge + oven, inside windows.
+
+### Add-ons (high margin; wired into the site quote widget as flat prices)
+
+| Add-on | Price |
+|---|---|
+| Inside fridge | $35 |
+| Inside oven | $35 |
+| Interior windows | $45 |
+| Inside cabinets (empty) | $45 |
+| Dishes (sink load) | $15 |
+| Laundry — wash, dry & fold | $25 |
+| Change bed linens | $20 |
+| Garage sweep-out | $40 |
+| Patio / lanai clean | $40 |
+| Pet hair surcharge (heavy shedding) | $25 |
+| Interior walls spot-wash | $25/room — quote manually |
+| Same-week rush booking | $25 flat — set in booking software |
+
+Add-ons are nearly pure margin lift: teams get their percentage of the bigger ticket, no extra acquisition cost.
+
+### Specialty services — offer / refer decisions
+
+| Service | Typical market price | Decision |
+|---|---|---|
+| **Airbnb / vacation-rental turnovers** | $100–180 flat per turn by home size | **Offer — strong fit.** PV Beach/Sawgrass rental density; recurring by nature; standing schedules for hosts. Featured on the website. |
+| Post-construction clean | $0.30–0.50/sq ft ($750–1,500 typical) | Offer selectively; quote manually at ≥2× deep-clean price. |
+| Office / light commercial | $0.10–0.20/sq ft per visit, contract | Revisit at 50+ residential customers — different sales cycle. |
+| Carpet shampoo/extraction | $50–80/room | Refer out (equipment). |
+| Exterior windows | $150–400/house | Refer out (ladder/liability). |
+| Pressure washing | $200–500 | Refer out (different trade). |
+| Tile & grout machine scrub | $0.75–1.25/sq ft | Refer out (equipment). |
+| Hoarding / biohazard | $500–5,000+ | Decline (licensing/insurance). |
+
+**Referral partnerships:** line up one local carpet cleaner and one pressure washer; trade leads both ways — a free acquisition channel.
+
+### Pricing policies
+
+- **Minimum job: $110** — below this, team payout + CAC isn't covered.
+- **Cancellation:** free reschedule/skip with 24+ hrs notice (matches site FAQ promise); lockout/no-access on arrival charges 50% of the visit.
+- **Reclean guarantee:** reported within 24 hrs → free reclean (the review-generator).
+- **Supplies included** in all prices; teams bring their own (reinforces 1099 status).
+
 ## 4. Setup costs (~$1,200–1,800)
 
 | Item | Cost |

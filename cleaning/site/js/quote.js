@@ -12,12 +12,16 @@ const PRICING = {
   type: { standard: 1, deep: 1.5, move: 1.75 },
   freq: { onetime: 1, monthly: 0.9, biweekly: 0.85, weekly: 0.8 },
   addons: {
-    fridge:  { label: "Inside fridge",    price: 35 },
-    oven:    { label: "Inside oven",      price: 30 },
-    windows: { label: "Interior windows", price: 45 },
-    laundry: { label: "Laundry & fold",   price: 25 },
-    garage:  { label: "Garage sweep-out", price: 40 },
-    linens:  { label: "Change bed linens", price: 20 },
+    fridge:   { label: "Inside fridge",     price: 35 },
+    oven:     { label: "Inside oven",       price: 35 },
+    windows:  { label: "Interior windows",  price: 45 },
+    cabinets: { label: "Inside cabinets",   price: 45 },
+    dishes:   { label: "Dishes (sink load)", price: 15 },
+    laundry:  { label: "Laundry & fold",    price: 25 },
+    linens:   { label: "Change bed linens", price: 20 },
+    garage:   { label: "Garage sweep-out",  price: 40 },
+    patio:    { label: "Patio / lanai",     price: 40 },
+    pethair:  { label: "Pet hair (heavy shedding)", price: 25 },
   },
 };
 
