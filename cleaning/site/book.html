@@ -45,40 +45,13 @@
     <div class="book-grid">
       <div id="quote-mount" data-mode="booking"></div>
 
-      <form class="book-form" id="book-form" novalidate>
-        <h3>Where should we send the team?</h3>
-        <div class="f-row">
-          <div class="f-field"><label for="b-name">Full name</label>
-            <input id="b-name" name="name" type="text" autocomplete="name" required></div>
-          <div class="f-field"><label for="b-phone">Phone</label>
-            <input id="b-phone" name="phone" type="tel" autocomplete="tel" required></div>
-        </div>
-        <div class="f-row single">
-          <div class="f-field"><label for="b-email">Email</label>
-            <input id="b-email" name="email" type="email" autocomplete="email" required></div>
-        </div>
-        <div class="f-row single">
-          <div class="f-field"><label for="b-address">Home address</label>
-            <input id="b-address" name="address" type="text" autocomplete="street-address" placeholder="Street, city, ZIP" required></div>
-        </div>
-        <div class="f-row">
-          <div class="f-field"><label for="b-date">Preferred first date</label>
-            <input id="b-date" name="preferred_date" type="date" required></div>
-          <div class="f-field"><label for="b-time">Preferred time</label>
-            <select id="b-time" name="preferred_time">
-              <option>Morning (8am–12pm)</option>
-              <option>Afternoon (12pm–4pm)</option>
-              <option>Flexible</option>
-            </select></div>
-        </div>
-        <div class="f-row single">
-          <div class="f-field"><label for="b-notes">Anything we should know?</label>
-            <textarea id="b-notes" name="notes" placeholder="Pets, gate codes, product preferences, problem areas&hellip;"></textarea></div>
-        </div>
-        <button type="submit" class="btn btn-primary q-cta" id="b-submit">Request my clean</button>
-        <p class="form-error" id="b-error">Please fill in your name, phone, email, address, and a preferred date.</p>
-        <p class="q-fine">No payment today. We confirm your team and time first &mdash; you're only charged after each completed clean.</p>
-      </form>
+      <div class="book-form" id="book-form">
+        <h3>Happy with your price? Send us the request</h3>
+        <p style="margin:14px 0 6px; font-size:0.95rem; line-height:1.6">You'll finish on our secure booking portal &mdash; your address, preferred date, and anything we should know about your home. Takes about two minutes.</p>
+        <p style="margin:0 0 22px; font-size:0.95rem; line-height:1.6"><b>Tip:</b> jot down the price on the left &mdash; we'll honor exactly what the calculator showed you.</p>
+        <a class="btn btn-primary q-cta" id="b-submit" href="https://clienthub.getjobber.com/hubs/2220c029-9c30-416c-ae9d-5e6ceb5b5603/public/requests/4992380/new">Request my clean &rarr;</a>
+        <p class="q-fine">No payment today. We confirm your team and time personally within one business day &mdash; you're only charged after each completed clean.</p>
+      </div>
     </div>
   </div>
 </main>
@@ -92,7 +65,6 @@
   </div>
 </footer>
 
-<script src="js/quote.js"></script>
-<script src="js/book.js"></script>
+<script src="js/quote.js?v=20260723a"></script>
 </body>
 </html>
