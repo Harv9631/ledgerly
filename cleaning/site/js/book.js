@@ -3,7 +3,7 @@
    "https://formspree.io/f/XXXXXXXX". Until it's set, submissions open a
    pre-filled email instead, so leads still reach you from day one. */
 
-const FORM_ENDPOINT = ""; // TODO: paste Formspree endpoint here
+const FORM_ENDPOINT = "/api/book"; // Cloudflare Pages Function → Jobber
 const LEADS_EMAIL = "info@saltyairhomecleaning.com";
 
 const form = document.getElementById("book-form");

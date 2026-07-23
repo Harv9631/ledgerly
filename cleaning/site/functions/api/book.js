@@ -1,8 +1,11 @@
 /* Salty Air — website booking form → Jobber lead bridge.
-   POST /api/book with the booking form JSON; creates a client + request
-   in Jobber via GraphQL. Requires env secrets:
-     JOBBER_CLIENT_ID, JOBBER_CLIENT_SECRET, JOBBER_REFRESH_TOKEN
-   (refresh-token rotation must be OFF in the Jobber Developer Center app). */
+   POST /api/book with the booking form JSON; creates in Jobber:
+     1. client (name, email, phone, property address)
+     2. request titled "Website booking — <name>"
+     3. pinned note on the request with the quote + preferences
+   Env secrets: JOBBER_CLIENT_ID, JOBBER_CLIENT_SECRET, JOBBER_REFRESH_TOKEN
+   (refresh-token rotation must stay OFF in the Jobber Developer Center app).
+   Schema verified against X-JOBBER-GRAPHQL-VERSION 2025-04-16. */
 
 const JOBBER_TOKEN_URL = "https://api.getjobber.com/api/oauth/token";
 const JOBBER_GRAPHQL_URL = "https://api.getjobber.com/api/graphql";
@@ -27,7 +30,7 @@ export async function onRequestPost({ request, env }) {
   let token;
   try {
     token = await getAccessToken(env);
-  } catch (e) {
+  } catch {
     return json({ error: "Jobber auth failed" }, 502);
   }
 
@@ -36,24 +39,31 @@ export async function onRequestPost({ request, env }) {
   const firstName = spaceIdx > 0 ? name.slice(0, spaceIdx) : name;
   const lastName = spaceIdx > 0 ? name.slice(spaceIdx + 1) : "(no last name)";
 
-  const clientRes = await gql(token, {
-    query: `mutation CreateClient($attrs: ClientCreateAttributes!) {
-      clientCreate(input: $attrs) {
-        client { id }
-        userErrors { message path }
-      }
-    }`,
-    variables: {
-      attrs: {
-        firstName,
-        lastName,
-        emails: [{ description: "MAIN", primary: true, address: String(data.email).trim() }],
-        phones: [{ description: "MAIN", primary: true, number: String(data.phone).trim() }],
-      },
-    },
-  });
+  const clientMutation = `mutation CreateClient($input: ClientCreateInput!) {
+    clientCreate(input: $input) {
+      client { id }
+      userErrors { message path }
+    }
+  }`;
 
-  const clientId = clientRes?.data?.clientCreate?.client?.id;
+  const baseClient = {
+    firstName,
+    lastName,
+    emails: [{ description: "MAIN", primary: true, address: String(data.email).trim() }],
+    phones: [{ description: "MAIN", primary: true, smsAllowed: true, number: String(data.phone).trim() }],
+  };
+
+  // First try with the home address as a property; fall back to a bare
+  // client if Jobber rejects the address shape (address still lands in the note).
+  let clientRes = await gql(token, {
+    query: clientMutation,
+    variables: { input: { ...baseClient, properties: [{ address: parseAddress(data.address) }] } },
+  });
+  let clientId = clientRes?.data?.clientCreate?.client?.id;
+  if (!clientId) {
+    clientRes = await gql(token, { query: clientMutation, variables: { input: baseClient } });
+    clientId = clientRes?.data?.clientCreate?.client?.id;
+  }
   if (!clientId) {
     return json(
       { error: "clientCreate failed", detail: clientRes?.data?.clientCreate?.userErrors || clientRes?.errors },
@@ -61,43 +71,63 @@ export async function onRequestPost({ request, env }) {
     );
   }
 
-  const details = [
-    `WEBSITE BOOKING REQUEST`,
-    ``,
-    data.quote || "(no quote attached)",
-    ``,
-    `Address: ${data.address}`,
-    `Preferred first date: ${data.preferred_date} (${data.preferred_time || "no time preference"})`,
-    `Notes: ${data.notes || "—"}`,
-  ].join("\n");
-
   const requestRes = await gql(token, {
-    query: `mutation CreateRequest($attrs: RequestCreateAttributes!) {
-      requestCreate(input: $attrs) {
+    query: `mutation CreateRequest($input: RequestCreateInput!) {
+      requestCreate(input: $input) {
         request { id }
         userErrors { message path }
       }
     }`,
-    variables: {
-      attrs: {
-        clientId,
-        title: `Website booking — ${name}`,
-        details,
-      },
-    },
+    variables: { input: { clientId, title: `Website booking — ${name}` } },
   });
 
   const requestId = requestRes?.data?.requestCreate?.request?.id;
   if (!requestId) {
-    // Client exists but the request didn't attach — surface for debugging,
-    // still a 502 so the front end tells the visitor to retry/email.
     return json(
       { error: "requestCreate failed", clientId, detail: requestRes?.data?.requestCreate?.userErrors || requestRes?.errors },
       502
     );
   }
 
-  return json({ ok: true, clientId, requestId });
+  const message = [
+    "WEBSITE BOOKING REQUEST",
+    "",
+    data.quote || "(no quote attached)",
+    "",
+    `Address: ${data.address}`,
+    `Preferred first date: ${data.preferred_date} (${data.preferred_time || "no time preference"})`,
+    `Notes: ${data.notes || "—"}`,
+  ].join("\n");
+
+  const noteRes = await gql(token, {
+    query: `mutation CreateNote($requestId: EncodedId!, $input: RequestCreateNoteInput!) {
+      requestCreateNote(requestId: $requestId, input: $input) {
+        requestNote { id }
+        userErrors { message path }
+      }
+    }`,
+    variables: { requestId, input: { message, pinned: true } },
+  });
+
+  const noteId = noteRes?.data?.requestCreateNote?.requestNote?.id;
+  return json({
+    ok: true,
+    clientId,
+    requestId,
+    ...(noteId ? {} : { warning: "note failed", detail: noteRes?.data?.requestCreateNote?.userErrors || noteRes?.errors }),
+  });
+}
+
+/* "123 Ocean Dr, Ponte Vedra Beach, FL 32082" → structured-ish address.
+   Falls back to the whole string as street1. */
+function parseAddress(raw) {
+  const s = String(raw).trim();
+  const parts = s.split(",").map((p) => p.trim()).filter(Boolean);
+  const addr = { street1: parts[0] || s, province: "FL", country: "US" };
+  if (parts.length >= 2) addr.city = parts[1].replace(/\b(FL|Florida)\b/i, "").replace(/\d{5}(-\d{4})?/, "").trim() || parts[1];
+  const zip = s.match(/\b\d{5}(-\d{4})?\b/);
+  if (zip) addr.postalCode = zip[0];
+  return addr;
 }
 
 async function getAccessToken(env) {
