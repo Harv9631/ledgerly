@@ -225,3 +225,19 @@ footer a { color: var(--sand); }
   .rail .lbl { display: none; }
   .copy { padding-bottom: 12vh; }
 }
+
+/* ---------- interior pages (book / hire) ---------- */
+.page-main { padding: 150px 4vw 10vh; max-width: 1240px; margin: 0 auto; }
+.page-head { max-width: 760px; margin-bottom: 6vh; }
+.page-chips { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 28px; }
+.book-grid-b { display: grid; grid-template-columns: 1fr 1fr; gap: 3vw; align-items: start; }
+.book-form h3, .form-success h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.45rem; }
+.hire-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2.5vw; margin: 7vh 0; }
+.hire-req { border: 1px solid rgba(250, 245, 235, 0.16); border-radius: 18px; padding: 30px 28px; margin-bottom: 6vh; }
+.hire-req h3 { font-family: var(--font-display); font-weight: 500; font-size: 1.45rem; margin-bottom: 14px; }
+.hire-req li { color: var(--mist); font-size: 14.5px; line-height: 1.7; list-style: none; padding: 4px 0 4px 22px; position: relative; }
+.hire-req li::before { content: "—"; position: absolute; left: 0; color: var(--seafoam); }
+@media (max-width: 960px) {
+  .book-grid-b { grid-template-columns: 1fr; }
+  .hire-points { grid-template-columns: 1fr; }
+}

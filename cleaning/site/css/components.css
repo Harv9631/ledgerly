@@ -37,21 +37,21 @@
 }
 .q-field select:focus { outline: none; border-color: var(--seaglass); }
 
-/* segmented control */
-.seg { display: flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+/* segmented control (2x2 grid: standard / deep / move / turnover) */
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
 .seg button {
-  flex: 1;
   padding: 10px 4px;
   border: none;
   background: var(--linen);
   font-family: var(--font-body);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--ink-soft);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
-.seg button + button { border-left: 1.5px solid var(--line); }
+.seg button:nth-child(even) { border-left: 1.5px solid var(--line); }
+.seg button:nth-child(n + 3) { border-top: 1.5px solid var(--line); }
 .seg button.on { background: var(--ocean); color: var(--linen); }
 
 /* frequency pills */

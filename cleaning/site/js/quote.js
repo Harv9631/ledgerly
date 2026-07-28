@@ -11,6 +11,7 @@ const PRICING = {
   sqft: { s1: 0, s2: 15, s3: 35, s4: 65, s5: 100 },
   type: { standard: 1, deep: 1.5, move: 1.75 },
   freq: { onetime: 1, monthly: 0.9, biweekly: 0.85, weekly: 0.8 },
+  turnover: { 1: 100, 2: 120, 3: 140, 4: 160, 5: 170, 6: 180 }, // flat per turn, by bedrooms
   addons: {
     fridge:   { label: "Inside fridge",     price: 35 },
     oven:     { label: "Inside oven",       price: 35 },
@@ -31,20 +32,29 @@ const SQFT_LABELS = {
 };
 const FREQ_LABELS = { weekly: "Weekly", biweekly: "Bi-weekly", monthly: "Monthly", onetime: "One-time" };
 const FREQ_SAVE = { weekly: "save 20%", biweekly: "save 15%", monthly: "save 10%", onetime: "" };
-const TYPE_LABELS = { standard: "Standard", deep: "Deep clean", move: "Move in/out" };
+const TYPE_LABELS = { standard: "Standard", deep: "Deep clean", move: "Move in/out", turnover: "Airbnb turnover" };
 
 const state = {
   beds: 3, baths: 2, sqft: "s3", type: "standard", freq: "biweekly", addons: [],
 };
 
 function computePrice(s) {
+  const addons = s.addons.reduce((sum, k) => sum + PRICING.addons[k].price, 0);
+  if (s.type === "turnover") {
+    return Math.round((PRICING.turnover[s.beds] + addons) / 5) * 5;
+  }
   let core = PRICING.base
     + (s.beds - 1) * PRICING.perBedroom
     + (s.baths - 1) * PRICING.perBathroom
     + PRICING.sqft[s.sqft];
   core = core * PRICING.type[s.type] * PRICING.freq[s.freq];
-  const addons = s.addons.reduce((sum, k) => sum + PRICING.addons[k].price, 0);
   return Math.round((core + addons) / 5) * 5;
+}
+
+/* Every online booking is a first clean, and first cleans are done as deep
+   cleans — so recurring standard quotes surface both numbers. */
+function firstVisitPrice(s) {
+  return computePrice({ ...s, type: "deep", freq: "onetime" });
 }
 
 function readParams() {
@@ -52,7 +62,7 @@ function readParams() {
   if (p.get("beds")) state.beds = Math.min(6, Math.max(1, +p.get("beds") || 3));
   if (p.get("baths")) state.baths = Math.min(5, Math.max(1, +p.get("baths") || 2));
   if (PRICING.sqft[p.get("sqft")]) state.sqft = p.get("sqft");
-  if (PRICING.type[p.get("type")]) state.type = p.get("type");
+  if (TYPE_LABELS[p.get("type")]) state.type = p.get("type");
   if (PRICING.freq[p.get("freq")]) state.freq = p.get("freq");
   if (p.get("addons")) state.addons = p.get("addons").split(",").filter((k) => PRICING.addons[k]);
 }
@@ -101,7 +111,7 @@ function buildWidget(mount) {
           <div class="seg" id="q-type">${Object.keys(TYPE_LABELS).map((k) =>
             `<button type="button" data-k="${k}" class="${k === state.type ? "on" : ""}">${TYPE_LABELS[k]}</button>`).join("")}</div></div>
       </div>
-      <div class="q-field" style="margin-bottom:14px"><label>How often?</label>
+      <div class="q-field" style="margin-bottom:14px" id="q-freq-field"><label>How often?</label>
         <div class="pills" id="q-freq">${Object.keys(FREQ_LABELS).map((k) =>
           `<button type="button" data-k="${k}" class="${k === state.freq ? "on" : ""}">${FREQ_LABELS[k]}${
             FREQ_SAVE[k] ? `<small>${FREQ_SAVE[k]}</small>` : ""}</button>`).join("")}</div></div>
@@ -150,12 +160,26 @@ function buildWidget(mount) {
   function render() {
     const num = card.querySelector("#q-num");
     const price = computePrice(state);
-    num.innerHTML = `<sup>$</sup>${price}${state.freq !== "onetime" ? "<small>/visit</small>" : ""}`;
+    const isTurnover = state.type === "turnover";
+    card.querySelector("#q-freq-field").style.display = isTurnover ? "none" : "";
+    num.innerHTML = `<sup>$</sup>${price}${isTurnover ? "<small>/turn</small>" : state.freq !== "onetime" ? "<small>/visit</small>" : ""}`;
     num.classList.remove("tick");
     void num.offsetWidth;
     num.classList.add("tick");
-    card.querySelector("#q-note").textContent =
-      state.freq === "onetime" ? "One-time visit" : `${FREQ_LABELS[state.freq]} · ${FREQ_SAVE[state.freq]}`;
+    const note = card.querySelector("#q-note");
+    if (isTurnover) {
+      note.textContent = "Flat rate per changeover · standing schedules available";
+    } else if (state.freq === "onetime") {
+      note.textContent = "One-time visit";
+    } else if (state.type === "standard") {
+      note.textContent = `First visit $${firstVisitPrice(state)} (deep clean) · then ${FREQ_LABELS[state.freq].toLowerCase()}, ${FREQ_SAVE[state.freq]}`;
+    } else {
+      note.textContent = `${FREQ_LABELS[state.freq]} · ${FREQ_SAVE[state.freq]}`;
+    }
+    const fine = card.querySelector(".q-fine");
+    if (fine) fine.textContent = isTurnover
+      ? "Per-turn flat rate for Airbnb & VRBO hosts. No contracts · cancel anytime."
+      : "First visit is priced as a deep clean so your recurring rate stays low. No contracts · cancel anytime.";
     const cta = card.querySelector("#q-cta");
     if (cta) cta.href = `book.html?${toParams()}`;
   }
@@ -169,10 +193,17 @@ document.querySelectorAll("#quote-mount, [data-quote-mount]").forEach(buildWidge
 window.SaltyQuote = {
   state,
   price: () => computePrice(state),
-  summary: () => [
-    `${state.beds} bed / ${state.baths} bath, ${SQFT_LABELS[state.sqft]}`,
-    `${TYPE_LABELS[state.type]} · ${FREQ_LABELS[state.freq]}`,
-    state.addons.length ? "Add-ons: " + state.addons.map((k) => PRICING.addons[k].label).join(", ") : "No add-ons",
-    `Quoted price: $${computePrice(state)}${state.freq !== "onetime" ? "/visit" : ""}`,
-  ].join("\n"),
+  summary: () => {
+    const isTurnover = state.type === "turnover";
+    const lines = [
+      `${state.beds} bed / ${state.baths} bath, ${SQFT_LABELS[state.sqft]}`,
+      isTurnover ? "Airbnb / vacation rental turnover (per turn)" : `${TYPE_LABELS[state.type]} · ${FREQ_LABELS[state.freq]}`,
+      state.addons.length ? "Add-ons: " + state.addons.map((k) => PRICING.addons[k].label).join(", ") : "No add-ons",
+      `Quoted price: $${computePrice(state)}${isTurnover ? "/turn" : state.freq !== "onetime" ? "/visit" : ""}`,
+    ];
+    if (!isTurnover && state.type === "standard" && state.freq !== "onetime") {
+      lines.push(`First visit (deep clean): $${firstVisitPrice(state)}`);
+    }
+    return lines.join("\n");
+  },
 };
