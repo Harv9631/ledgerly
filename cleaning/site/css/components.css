@@ -90,6 +90,22 @@
 .addon:has(input:checked) { border-color: var(--seaglass); background: var(--seaglass-soft); }
 .addon span b { color: var(--seaglass); font-weight: 800; }
 
+/* first-visit callout (recurring standard cleans) */
+.q-first {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 13px 20px;
+  border: 1.5px dashed var(--coral, #E08A4E);
+  border-radius: 14px;
+}
+.q-first.show { display: flex; }
+.q-first .q-first-label { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--coral, #E08A4E); }
+.q-first .q-first-sub { display: block; font-size: 0.7rem; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink-soft); margin-top: 2px; }
+.q-first .q-first-num { font-family: var(--font-display); font-weight: 700; font-size: 1.55rem; color: var(--coral, #E08A4E); line-height: 1; white-space: nowrap; }
+
 /* price readout */
 .q-price {
   display: flex;

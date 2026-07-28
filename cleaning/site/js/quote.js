@@ -119,9 +119,16 @@ function buildWidget(mount) {
         <div class="addons" id="q-addons">${Object.keys(PRICING.addons).map((k) =>
           `<label class="addon"><input type="checkbox" value="${k}" ${state.addons.includes(k) ? "checked" : ""}>
            ${PRICING.addons[k].label} <span><b>+$${PRICING.addons[k].price}</b></span></label>`).join("")}</div></div>
+      <div class="q-first" id="q-first">
+        <div>
+          <span class="q-first-label">Your first visit</span>
+          <span class="q-first-sub">Priced as a deep clean &mdash; one time only</span>
+        </div>
+        <div class="q-first-num" id="q-first-num"></div>
+      </div>
       <div class="q-price">
         <div>
-          <div class="q-price-label">Your price</div>
+          <div class="q-price-label" id="q-price-label">Your price</div>
           <div class="q-price-note" id="q-note"></div>
         </div>
         <div class="q-price-num" id="q-num"></div>
@@ -167,12 +174,17 @@ function buildWidget(mount) {
     void num.offsetWidth;
     num.classList.add("tick");
     const note = card.querySelector("#q-note");
+    const first = card.querySelector("#q-first");
+    const showFirst = !isTurnover && state.type === "standard" && state.freq !== "onetime";
+    first.classList.toggle("show", showFirst);
+    if (showFirst) {
+      card.querySelector("#q-first-num").innerHTML = `<sup style="font-size:0.75rem">$</sup>${firstVisitPrice(state)}`;
+    }
+    card.querySelector("#q-price-label").textContent = showFirst ? "Then every visit" : "Your price";
     if (isTurnover) {
       note.textContent = "Flat rate per changeover · standing schedules available";
     } else if (state.freq === "onetime") {
       note.textContent = "One-time visit";
-    } else if (state.type === "standard") {
-      note.textContent = `First visit $${firstVisitPrice(state)} (deep clean) · then ${FREQ_LABELS[state.freq].toLowerCase()}, ${FREQ_SAVE[state.freq]}`;
     } else {
       note.textContent = `${FREQ_LABELS[state.freq]} · ${FREQ_SAVE[state.freq]}`;
     }
