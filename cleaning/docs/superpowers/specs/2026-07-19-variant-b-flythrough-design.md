@@ -94,7 +94,7 @@ Extract a poster JPEG from the first frame of each. Store as
 Known-good source URLs (resolved during brainstorming):
 
 - arrival: `videos.pexels.com/video-files/7578540/7578540-hd_1280_720_30fps.mp4`
-- kitchen: `videos.pexels.com/video-files/34955013/14806923_3840_2160_25fps.mp4` (downscale)
+- kitchen: `videos.pexels.com/video-files/15887298/15887298-hd_1920_1080_30fps.mp4` (swapped 2026-07-29 — brighter white/coastal kitchen per Harvey)
 - living: `videos.pexels.com/video-files/15887137/15887137-hd_1920_1080_30fps.mp4`
 - bath: `videos.pexels.com/video-files/8403602/8403602-hd_1280_720_30fps.mp4`
 - bedroom: `videos.pexels.com/video-files/34954996/14806924_3840_2160_25fps.mp4` (downscale)
