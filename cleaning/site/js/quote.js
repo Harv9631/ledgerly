@@ -5,9 +5,9 @@
 */
 
 const PRICING = {
-  base: 120,            // 1 bed / 1 bath standard clean
-  perBedroom: 40,
-  perBathroom: 15,
+  base: 110,            // 1 bed / 1 bath standard clean
+  perBedroom: 35,
+  perBathroom: 10,
   sqft: { s1: 0, s2: 15, s3: 35, s4: 65, s5: 100 },
   type: { standard: 1, deep: 1.5, move: 1.75 },
   freq: { onetime: 1, monthly: 0.9, biweekly: 0.85, weekly: 0.8 },
