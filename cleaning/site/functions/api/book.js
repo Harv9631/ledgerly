@@ -30,7 +30,8 @@ export async function onRequestPost({ request, env }) {
   let token;
   try {
     token = await getAccessToken(env);
-  } catch {
+  } catch (e) {
+    console.error("book: token refresh failed:", e.message);
     return json({ error: "Jobber auth failed" }, 502);
   }
 
@@ -46,25 +47,28 @@ export async function onRequestPost({ request, env }) {
     }
   }`;
 
-  const baseClient = {
+  const buildClient = (smsAllowed) => ({
     firstName,
     lastName,
     emails: [{ description: "MAIN", primary: true, address: String(data.email).trim() }],
-    phones: [{ description: "MAIN", primary: true, smsAllowed: true, number: String(data.phone).trim() }],
-  };
-
-  // First try with the home address as a property; fall back to a bare
-  // client if Jobber rejects the address shape (address still lands in the note).
-  let clientRes = await gql(token, {
-    query: clientMutation,
-    variables: { input: { ...baseClient, properties: [{ address: parseAddress(data.address) }] } },
+    phones: [{ description: "MAIN", primary: true, smsAllowed, number: String(data.phone).trim() }],
   });
-  let clientId = clientRes?.data?.clientCreate?.client?.id;
-  if (!clientId) {
-    clientRes = await gql(token, { query: clientMutation, variables: { input: baseClient } });
+
+  // Try most-complete input first, then degrade: Jobber rejects smsAllowed on
+  // landlines and can reject unparseable addresses (address still lands in the note).
+  const attempts = [
+    { ...buildClient(true), properties: [{ address: parseAddress(data.address) }] },
+    { ...buildClient(false), properties: [{ address: parseAddress(data.address) }] },
+    buildClient(false),
+  ];
+  let clientRes, clientId;
+  for (const input of attempts) {
+    clientRes = await gql(token, { query: clientMutation, variables: { input } });
     clientId = clientRes?.data?.clientCreate?.client?.id;
+    if (clientId) break;
   }
   if (!clientId) {
+    console.error("book: clientCreate failed:", JSON.stringify(clientRes));
     return json(
       { error: "clientCreate failed", detail: clientRes?.data?.clientCreate?.userErrors || clientRes?.errors },
       502
