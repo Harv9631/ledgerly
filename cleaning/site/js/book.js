@@ -51,6 +51,9 @@ form.addEventListener("submit", async (e) => {
 });
 
 function showSuccess() {
+  if (typeof gtag === "function") {
+    gtag("event", "generate_lead", { currency: "USD", value: window.SaltyQuote.price() });
+  }
   form.innerHTML = `
     <div class="form-success">
       <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
