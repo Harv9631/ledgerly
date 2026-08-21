@@ -146,6 +146,24 @@ Vetting: background check, 2 references, 1–2 paid trial cleans at a known home
 
 Pitch to teams: "Steady, pre-sold jobs on your schedule, no marketing, paid weekly, keep 55–60%."
 
+### 5a. Facebook recruiting ads (plan added 2026-08-20)
+
+Facebook is the strongest paid channel for finding independent cleaners; applications cost ~$5–15 vs $15–40+ for customer leads. Run this BEFORE any customer ads — never advertise for customers without a team to serve them.
+
+**One-time account setup (~30 min):** create FB business Page "Salty Air Home Cleaning" (category: Cleaning service; add logo, (904) 913-4335, saltyairhomecleaning.com) → create Business Portfolio at business.facebook.com and link the Page → add billing card in Ads Manager. No Pixel needed for this phase (Instant Forms stay on-platform).
+
+**Campaign:** objective **Leads** → Instant Form (converts far better than sending cleaners to the website). Form fields: name, phone, email + custom: areas served / team size (just me · 2 · 3+) / years of residential experience.
+
+**Ad set:** Jacksonville FL + 25-mile radius, age 21–60, NO interest targeting (broad + specific creative is the modern Meta play), all placements, **$12/day**.
+
+**Three ads in one ad set** (different identity hooks; simple bright statics, not polished video):
+
+1. *Independent cleaner:* "Cleaning pros: we fill your schedule. You keep the majority of every job." Body: chasing clients/quoting/invoicing steals your evenings; we book recurring homes in PV/Nocatee/beaches; see price before accepting, paid weekly by direct deposit, your supplies/methods/schedule, no fees, no exclusivity. Apply in 2 minutes.
+2. *Side-income:* "Get paid weekly cleaning homes in Ponte Vedra — on your schedule." Body: same addresses every week, weekly direct deposit, 100% of tips, choose your jobs; 2+ yrs experience or impress on paid trial; background check required; reply within two business days.
+3. *Business owner:* "Run a cleaning business? We'll keep your calendar full — free." Body: marketing/booking/payments handled; keep the majority of every ticket; recurring homes Nocatee/Sawgrass/PV Beach/Jax Beach; no fees/exclusivity/boss; paid trial clean to start.
+
+**Kill rules & cadence:** judge nothing before day 3–4; kill an ad at ~$40 spend with zero leads; call every applicant within 24 hours (speed doubles close rate). Expected: 1–3 applications/day at $12/day.
+
 ## 6. Customer acquisition (budget $1,500–3,000)
 
 Priority order:
@@ -199,6 +217,16 @@ Steady-state estimates (months 2–6), Ponte Vedra pricing (~$175 avg job). Each
 Read the table as: every month you spend ~$800–1,600 on acquisition, you add a cohort of recurring customers that returns roughly 25–40× that spend in gross profit over the following year (before churn). This is why the plan front-loads acquisition spend — the milestone path in §8 (25 recurring by month 3, 55 by month 6) needs only ~8–12 net new recurring customers/mo after churn, which the low end of this table covers.
 
 **Churn caveat:** assume 3–5% of recurring customers cancel monthly; the cohort values above are pre-churn. Net of churn, expect ~70–80% of the stated year-1 profit.
+
+## 6c. Facebook customer ads — Phase 2 (plan added 2026-08-20)
+
+Activate the day the first team signs (budget: the ~$20/day left from the $750–1,000/mo after §5a recruiting spend). Do NOT start before fulfillment exists.
+
+- **Objective Leads → website quote page** (book.html), tracked via Meta Pixel + the existing GA4 `generate_lead` event (fires with quote $ value on booking-form success).
+- **Pixel prerequisite:** privacy.html currently promises "no advertising or cross-site trackers" — installing the Pixel requires updating that section first (one deploy; Claude has the context).
+- **Targeting:** broad local (PV/Nocatee/beaches radius), no interest stacking — segment with creative identity hooks instead: busy Nocatee families · PV Beach retirees · **Airbnb/VRBO hosts** (turnover service; no local competitor advertises it, standing-schedule LTV).
+- **Hook:** the instant-quote widget is the differentiator — "Price your clean online in 60 seconds — no phone call."
+- **Kill/scale:** customer lead target $15–40; judge at 3–4 days / ~$50 per ad; scale winners +20% at a time, never more.
 
 ## 7. Operations
 
