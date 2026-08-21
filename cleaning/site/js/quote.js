@@ -52,9 +52,10 @@ function computePrice(s) {
 }
 
 /* Every online booking is a first clean, and first cleans are done as deep
-   cleans — so recurring standard quotes surface both numbers. */
+   cleans — so recurring standard quotes surface both numbers. The customer's
+   recurring discount applies from day one (softens first-visit sticker shock). */
 function firstVisitPrice(s) {
-  return computePrice({ ...s, type: "deep", freq: "onetime" });
+  return computePrice({ ...s, type: "deep" });
 }
 
 function readParams() {
@@ -136,7 +137,7 @@ function buildWidget(mount) {
       ${mode === "teaser"
         ? `<a class="btn btn-primary q-cta" id="q-cta" href="book.html">Book this clean &rarr;</a>`
         : `<a class="btn btn-primary q-cta" href="#book-form">Looks right &mdash; request this clean &darr;</a>`}
-      <p class="q-fine">First visit is priced as a deep clean so your recurring rate stays low. No contracts &middot; cancel anytime.</p>
+      <p class="q-fine">First visit is a deep clean &mdash; your recurring discount applies from day one. No contracts &middot; cancel anytime.</p>
     </div>`);
   mount.appendChild(card);
 
@@ -191,7 +192,7 @@ function buildWidget(mount) {
     const fine = card.querySelector(".q-fine");
     if (fine) fine.textContent = isTurnover
       ? "Per-turn flat rate for Airbnb & VRBO hosts. No contracts · cancel anytime."
-      : "First visit is priced as a deep clean so your recurring rate stays low. No contracts · cancel anytime.";
+      : "First visit is a deep clean — your recurring discount applies from day one. No contracts · cancel anytime.";
     const cta = card.querySelector("#q-cta");
     if (cta) cta.href = `book.html?${toParams()}`;
   }
